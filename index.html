@@ -11,8 +11,9 @@
     --accent:#d9a441; --accent-2:#b98a34;   /* overridden per tool */
   }
   /* Per-tool palettes — swapping these two vars retints the whole lock screen. */
-  body.tool-smithy { --accent:#d9a441; --accent-2:#b98a34; }
-  body.tool-tailor { --accent:#c98aa8; --accent-2:#a76b88; }
+  body.tool-smithy  { --accent:#d9a441; --accent-2:#b98a34; }
+  body.tool-tailor  { --accent:#c98aa8; --accent-2:#a76b88; }
+  body.tool-traders { --accent:#4fb39a; --accent-2:#3d8f7c; }
 
   * { box-sizing:border-box; }
   html,body { height:100%; }
@@ -113,6 +114,7 @@
   .tbadge { font-size:9.5px; padding:1px 6px; border-radius:8px; border:1px solid var(--line); margin-right:3px; white-space:nowrap; }
   .tbadge.smithy { color:#d9a441; border-color:#b98a34; }
   .tbadge.tailor { color:#c98aa8; border-color:#a76b88; }
+  .tbadge.traders { color:#4fb39a; border-color:#3d8f7c; }
 
   /* ── Running: product-switch strip + app iframe ── */
   #appbar { display:none; }
@@ -124,6 +126,7 @@
   .toolpill.on { color:#1c1710; font-weight:600; }
   .toolpill[data-tool="smithy"].on { background:#d9a441; }
   .toolpill[data-tool="tailor"].on { background:#c98aa8; }
+  .toolpill[data-tool="traders"].on { background:#4fb39a; }
   #appbar .sp { margin-left:auto; display:flex; gap:6px; align-items:center; }
   #appbar .lbl { color:var(--dim); font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; margin-right:2px; }
   #appFrame { display:none; }
@@ -137,6 +140,7 @@
   <span class="lbl">Keizaal</span>
   <button class="toolpill" data-tool="smithy" onclick="pillClick('smithy')">⚒ Smithy</button>
   <button class="toolpill" data-tool="tailor" onclick="pillClick('tailor')">🧵 Tailor</button>
+  <button class="toolpill" data-tool="traders" onclick="pillClick('traders')">⚖️ Traders</button>
   <span class="sp">
     <button class="b" onclick="openAdmin()" title="Admin panel">Admin</button>
     <button class="b" onclick="lockNow()" title="Lock — back to the code screen">🔒 Lock</button>
@@ -159,7 +163,7 @@
     </div>
 
     <h2>Weekly access</h2>
-    <p class="sub2">Enter your code to open the selected workshop. One code can cover a single tool or both.</p>
+    <p class="sub2">Enter your code to open the selected workshop. One code can cover a single tool or several.</p>
     <label for="gateCode">Access code</label>
     <input id="gateCode" placeholder="KSL-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false"
       onkeydown="if(event.key==='Enter')gateUnlock()">
@@ -228,11 +232,8 @@
         <h4>Generate access code</h4>
         <div class="row" style="flex-wrap:wrap;margin-bottom:8px">
           <span class="dim" style="font-size:11px">unlocks:</span>
-          <span class="seg" id="genScope">
-            <button type="button" data-scope="smithy" class="on" onclick="setGenScope('smithy')">⚒ Smithy</button>
-            <button type="button" data-scope="tailor" onclick="setGenScope('tailor')">🧵 Tailor</button>
-            <button type="button" data-scope="both" onclick="setGenScope('both')">Both</button>
-          </span>
+          <span class="seg" id="genScope"></span>
+          <span class="dim" style="font-size:10.5px">tap to toggle each tool</span>
         </div>
         <div class="row" style="flex-wrap:wrap">
           <input id="genNote" placeholder="buyer note (private, e.g. Ragnar)" spellcheck="false" style="min-width:180px;flex:1">
@@ -278,8 +279,9 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 const TOOLS = {
-  smithy: { name:"Keizaal Smithy", short:"Smithy", icon:"⚒", app:"smithy-app.html", sub:"weapons, armour & ingots" },
-  tailor: { name:"Keizaal Tailor", short:"Tailor", icon:"🧵", app:"tailor-app.html", sub:"clothing, cloth & thread" }
+  smithy:  { name:"Keizaal Smithy",  short:"Smithy",  icon:"⚒",  app:"smithy-app.html", sub:"weapons, armour & ingots" },
+  tailor:  { name:"Keizaal Tailor",  short:"Tailor",  icon:"🧵", app:"tailor-app.html", sub:"clothing, cloth & thread" },
+  traders: { name:"Keizaal Traders", short:"Traders", icon:"⚖️", app:"trader-app.html", sub:"buy low, sell high, haul & haggle" }
 };
 const TOOL_IDS = Object.keys(TOOLS);
 
@@ -295,7 +297,7 @@ const ADMIN_PASS_HASH = "a09708942b0318a21356b6a4c78bc81038352e482db89bcfe7f360e
 let selectedTool = TOOLS[localStorage.getItem(LK.tool)] ? localStorage.getItem(LK.tool) : "smithy";
 let demo = false;
 let grantedTools = [];
-let genScope = "smithy";
+let genSel = new Set(["smithy"]);   // which tools a newly generated code unlocks
 let ghState = { week:1, codes:{} };
 let ghSha = null;
 let codeNotes = jparse(localStorage.getItem(LK.notes)) || {};
@@ -421,7 +423,7 @@ async function gateUnlock(){
 function startDemo(){ demo = true; grantedTools = TOOL_IDS.slice(); enterApp(selectedTool); }
 
 async function bootGate(){
-  buildToolMenu(); applyTheme(selectedTool);
+  buildToolMenu(); buildGenScope(); applyTheme(selectedTool);
   document.body.classList.add("locked");
   let status;
   try { status = await fetchStatus(); }
@@ -523,8 +525,12 @@ async function adminPublish(){
 }
 function adminAdvanceWeek(){ ghState.week = (+ghState.week||1) + 1; renderCodes(); ghmsg("Week is now " + ghState.week + " — Publish to apply.", "dim"); }
 function adminSetWeek(){ const v = parseInt(document.getElementById("wkSet").value,10); if (v>0){ ghState.week = v; renderCodes(); ghmsg("Week set to " + v + " — Publish to apply.", "dim"); } }
-function setGenScope(s){ genScope = s; document.querySelectorAll("#genScope button").forEach(b => b.classList.toggle("on", b.dataset.scope===s)); }
-function scopeTools(){ return genScope==="both" ? ["smithy","tailor"] : [genScope]; }
+function buildGenScope(){
+  document.getElementById("genScope").innerHTML = TOOL_IDS.map(id =>
+    `<button type="button" data-scope="${id}" class="${genSel.has(id)?'on':''}" onclick="toggleGenScope('${id}')">${TOOLS[id].icon} ${TOOLS[id].short}</button>`).join("");
+}
+function toggleGenScope(id){ if(genSel.has(id)){ if(genSel.size>1) genSel.delete(id); } else genSel.add(id); buildGenScope(); }
+function scopeTools(){ return TOOL_IDS.filter(id => genSel.has(id)); }
 function randomCode(){
   const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const r = crypto.getRandomValues(new Uint8Array(12));
