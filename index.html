@@ -391,6 +391,9 @@
         </span>
         <span class="gold" style="font-size:11.5px">×</span>
       </label>
+      <button type="button" id="buybackReset" onclick="clearBuyback()" title="Clear this override and inherit the profile / shop rate"
+        style="display:none;background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:0 2px">↺</button>
+      <span id="buybackSrc" class="dim" style="font-size:11px;min-width:120px"></span>
       <span class="dim" style="font-size:11.5px">of each part's</span>
       <span class="seg" id="buybackSeg">
         <button type="button" data-base="cost" onclick="setBuybackBase('cost')">material cost</button>
@@ -469,22 +472,64 @@
 
 <!-- ══ INVENTORY ══ -->
 <div id="tab-inventory" class="tab">
-  <div class="cols">
-    <div class="box">
-      <h3>Raw Materials <span class="sp"><span class="pill" id="invValue"></span></span></h3>
-      <p class="hint">Set <strong>Stock</strong> to what you're holding. <strong>Buy</strong> logs a purchase and adds to stock.</p>
-      <table><thead><tr>
-        <th>Material</th><th class="n">Price</th><th class="n">Stock</th><th class="n">Value</th><th class="n">Buy</th>
-      </tr></thead><tbody id="invBody"></tbody></table>
+  <div class="box">
+    <h3>Trade Materials <span class="sp"><span class="pill">fluctuating buy / sell</span></span></h3>
+    <p class="hint">Record what you <em>actually</em> paid or received — prices float trade to trade. This moves stock and
+      builds price history for analysis; it never changes your fixed calc price.</p>
+    <div class="row" style="align-items:flex-end">
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Material</span>
+        <select id="trMat" style="min-width:150px" onchange="prefillTradeUnit(true)"></select></label>
+      <span class="seg" id="trSideSeg" style="margin-bottom:1px">
+        <button type="button" data-side="buy" class="on" onclick="setTradeSide('buy')">Buy</button>
+        <button type="button" data-side="sell" onclick="setTradeSide('sell')">Sell</button>
+      </span>
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Qty</span>
+        <span class="step">
+          <button type="button" class="c2" onclick="stepField(this,-1,10)" aria-label="minus 10">−−</button>
+          <button type="button" onclick="stepField(this,-1)" aria-label="decrease">−</button>
+          <input id="trQty" class="n w60" type="number" min="0" step="1" value="1" oninput="updTradeTotal()">
+          <button type="button" onclick="stepField(this,1)" aria-label="increase">+</button>
+          <button type="button" class="c2" onclick="stepField(this,1,10)" aria-label="plus 10">++</button>
+        </span></label>
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Unit price</span>
+        <span class="step">
+          <button type="button" onclick="stepField(this,-1)" aria-label="decrease">−</button>
+          <input id="trUnit" class="n w70" type="number" min="0" step="0.1" oninput="updTradeTotal()">
+          <button type="button" onclick="stepField(this,1)" aria-label="increase">+</button>
+        </span></label>
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Note</span>
+        <input id="trNote" placeholder="optional" style="width:130px" onkeydown="if(event.key==='Enter')recordTrade()"></label>
+      <button class="b pri" onclick="recordTrade()" style="margin-bottom:1px">Record</button>
+      <span id="trTotal" class="dim" style="font-size:12px;margin-bottom:5px"></span>
     </div>
-    <div class="box">
-      <h3>Crafted Components</h3>
-      <p class="hint">Ingots and strips you've already smelted and are holding.</p>
-      <table><thead><tr>
-        <th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th>
-      </tr></thead><tbody id="invInterBody"></tbody></table>
-      <div class="note" id="invTotal"></div>
-    </div>
+  </div>
+
+  <div class="box">
+    <h3>Materials <span class="sp"><span class="pill" id="invValue"></span></span></h3>
+    <p class="hint"><strong>Calc price</strong> is your fixed cost basis (edit in Recipes); the <span class="dim">→</span>
+      button adopts the average you've actually paid. The rest is live trade history for price-making.</p>
+    <table><thead><tr>
+      <th>Material</th><th class="n">Calc price</th><th class="n">Stock</th><th class="n">Value</th>
+      <th class="n">Last buy</th><th class="n">Avg buy</th><th class="n">Last sell</th><th class="n">Avg sell</th>
+      <th>Trend</th>
+    </tr></thead><tbody id="invBody"></tbody></table>
+  </div>
+
+  <div class="box">
+    <h3>Trade Log <span class="sp"><span class="pill" id="trCount"></span><span class="dim" id="trTotals" style="font-size:11px"></span></span></h3>
+    <table><thead><tr>
+      <th>When</th><th>Material</th><th>Side</th><th class="n">Qty</th><th class="n">Unit</th><th class="n">Total</th><th>Note</th><th></th>
+    </tr></thead><tbody id="trBody"></tbody></table>
+    <div id="trEmpty" class="empty">No trades yet — record a buy or sell above.</div>
+  </div>
+
+  <div class="box">
+    <h3>Crafted Components</h3>
+    <p class="hint">Ingots and strips you've already smelted and are holding.</p>
+    <table><thead><tr>
+      <th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th>
+    </tr></thead><tbody id="invInterBody"></tbody></table>
+    <div class="note" id="invTotal"></div>
   </div>
 </div>
 
@@ -642,14 +687,16 @@
         <div class="k"><label>Default labor</label><span class="step"><button type="button" onclick="stepField(this,-1)" aria-label="Decrease default labor">−</button><input id="defaultLabor" class="n w70" type="number" min="0" step="1"><button type="button" onclick="stepField(this,1)" aria-label="Increase default labor">+</button></span></div>
         <div class="k" style="align-self:end"><span class="dim" style="font-size:11px">Markups are per-customer →</span></div>
         <div class="k"><label>Rounding</label><label class="switch"><input type="checkbox" id="roundOn" onchange="data.settings.roundOn=this.checked; render()"><span class="track"></span><span class="swlbl">Whole numbers</span></label></div>
+        <div class="k"><label>Cost basis</label><label class="switch"><input type="checkbox" id="realCost" onchange="data.settings.realCost=this.checked; render()"><span class="track"></span><span class="swlbl">Use actual paid prices</span></label></div>
       </div>
       <div class="note">When on, sale prices round to whole numbers; off shows the exact price. Costs always show exact values.</div>
+      <div class="note"><strong>Cost basis</strong>: off, every cost, inventory value and profit uses each material's fixed calc price. On, it uses the weighted-average price you've actually paid in the Inventory trade log (falling back to the calc price for materials you haven't bought yet).</div>
     </div>
 
     <div class="box">
       <h3>Customers <span class="sp"><button class="b" onclick="addCustomer()">+ Customer</button></span></h3>
-      <p class="hint">Each customer is one markup — lower it for people you charge less. Chosen on the Craft page. The first row (Standard) sets the price shown in the Database.</p>
-      <table><thead><tr><th>Name</th><th class="n">Markup ×</th><th class="n">Quote</th><th>Notes</th><th></th></tr></thead>
+      <p class="hint">Each customer is one markup — lower it for people you charge less. Chosen on the Craft page. The first row (Standard) sets the price shown in the Database. <strong>Buyback</strong> is the credit rate for parts they bring — blank inherits the shop default.</p>
+      <table><thead><tr><th>Name</th><th class="n">Markup ×</th><th class="n">Buyback ×</th><th class="n">Quote</th><th>Notes</th><th></th></tr></thead>
         <tbody id="custBody"></tbody></table>
     </div>
 
@@ -692,7 +739,7 @@ let IS_DEMO = new URLSearchParams(location.search).has("demo");
 
 const DEFAULT = {
   settings: { currency:"g", defaultLabor:0, markup:2, markupFriend:1.5, roundOn:true, friend:false, customer:null,
-              stackBulk:true, bulkCountsMaterials:false, buyback:0.75, buybackBase:"cost",
+              stackBulk:true, bulkCountsMaterials:false, buyback:0.75, buybackBase:"cost", realCost:false,
               tiers:[{qty:5,pct:5},{qty:10,pct:10},{qty:25,pct:15}] },
   till: { revenue:0, cost:0, sales:0, items:0, purchases:0 },
   customers: [ {id:uid(),name:"Standard",markup:2,discount:0}, {id:uid(),name:"Friend",markup:1.5,discount:0} ],
@@ -799,7 +846,10 @@ const DEFAULT = {
   ],
   order: [],
   presets: [],
-  buyers: []
+  buyers: [],
+  // Individual material buy/sell records at fluctuating prices — see the Inventory "Trade Materials" box.
+  // {id, ts, mat, side:'buy'|'sell', qty, unit, total, note}. Fixed calc prices live on materials[].price.
+  trades: []
 };
 
 const KEY = "keisaal_calc_v7";
@@ -819,6 +869,19 @@ function buildDemo(){
     "Silver ingot":8, "Gold ingot":6, "Leather strip":40 };
   d.intermediates.forEach(x => { x.stock = ingotStock[x.name] ?? 0; });
   d.settings.defaultLabor = 0;   // no labor markup in the sample sheet
+  // A little trade history so the Inventory ledger, stats and sparklines show populated in preview.
+  const now = Date.now(), DAY = 86400000;
+  d.trades = [
+    { id:uid(), ts:now-6*DAY, mat:"Iron ore",     side:"buy",  qty:40, unit:0.9,  total:36,    note:"cheap batch" },
+    { id:uid(), ts:now-4*DAY, mat:"Iron ore",     side:"buy",  qty:30, unit:1.1,  total:33,    note:"" },
+    { id:uid(), ts:now-2*DAY, mat:"Iron ore",     side:"sell", qty:20, unit:1.8,  total:36,    note:"to Ragnar" },
+    { id:uid(), ts:now-1*DAY, mat:"Iron ore",     side:"buy",  qty:25, unit:1.25, total:31.25, note:"" },
+    { id:uid(), ts:now-5*DAY, mat:"Corundum ore", side:"buy",  qty:20, unit:1.8,  total:36,    note:"" },
+    { id:uid(), ts:now-3*DAY, mat:"Corundum ore", side:"buy",  qty:15, unit:2.3,  total:34.5,  note:"scarce week" },
+    { id:uid(), ts:now-1*DAY, mat:"Corundum ore", side:"sell", qty:10, unit:3.2,  total:32,    note:"" },
+    { id:uid(), ts:now-2*DAY, mat:"Silver ore",   side:"buy",  qty:12, unit:4.5,  total:54,    note:"" },
+    { id:uid(), ts:now-1*DAY, mat:"Silver ore",   side:"buy",  qty:8,  unit:5.4,  total:43.2,  note:"" }
+  ];
   return d;
 }
 
@@ -848,6 +911,8 @@ function fix(d){
   d.customers.forEach(c => { c.note ??= ""; c.qq ??= true; });
   d.buyers.forEach(b => { b.note ??= ""; b.profileId ??= null; b.prices ??= {}; });
   d.settings.buyer ??= null;
+  d.trades ||= [];                                    // fluctuating-price buy/sell ledger
+  d.settings.realCost ??= false;                      // value/cost at actual paid prices vs. fixed calc price
   d.materials.forEach(x => x.stock ??= 0);
   d.intermediates.forEach(x => x.stock ??= 0);
   return d;
@@ -866,9 +931,23 @@ function save(){
 }
 
 /* ═════════ Cost engine ═════════ */
+// Weighted-average price actually paid for a material, from its buy trades. null if never bought.
+function avgBuyCost(name){
+  let q = 0, t = 0;
+  (data.trades||[]).forEach(tr => { if (tr.mat === name && tr.side === "buy"){ q += +tr.qty||0; t += +tr.total||0; } });
+  return q > 0 ? t / q : null;
+}
+// The cost basis for a raw material everywhere: the manual calc price, or — when the
+// "actual paid prices" toggle is on and there's trade history — the weighted-average buy price.
+function matCost(name){
+  const raw = data.materials.find(x => x.name === name);
+  if (!raw) return 0;
+  if (data.settings.realCost){ const a = avgBuyCost(name); if (a != null) return a; }
+  return +raw.price || 0;
+}
 function unitCost(name, seen = new Set()){
   const raw = data.materials.find(x => x.name === name);
-  if (raw) return +raw.price || 0;
+  if (raw) return matCost(name);
   const it = data.intermediates.find(x => x.name === name);
   if (!it || seen.has(name)) return 0;          // missing, or cycle
   seen.add(name);
@@ -1006,6 +1085,20 @@ function stepPost(fine, coarse){
   return `<button type="button" onclick="stepField(this,1${fa})" aria-label="increase">+</button>` + c;
 }
 function activeBuyer(){ return (data.buyers||[]).find(b=>b.id===data.settings.buyer)||null; }
+// Buyback rate cascades buyer → customer profile → shop default (like markup, but a
+// specific buyer can override their profile). A blank rate on buyer/customer = inherit.
+const hasRate = x => x!=null && x!=="";
+function effectiveBuyback(){
+  const b=activeBuyer();      if(b && hasRate(b.buyback)) return +b.buyback||0;
+  const c=activeCustomer();   if(c && hasRate(c.buyback)) return +c.buyback||0;
+  return +data.settings.buyback||0;
+}
+// Where the Craft-strip rate control writes: the active buyer, else the active profile, else the shop default.
+function buybackTarget(){
+  const b=activeBuyer();     if(b) return { kind:"buyer",    obj:b, name:b.name, has:hasRate(b.buyback) };
+  const c=activeCustomer();  if(c && c.id!=null) return { kind:"customer", obj:c, name:c.name, has:hasRate(c.buyback) };
+  return { kind:"global", obj:data.settings, name:"shop default", has:true };
+}
 function fillBuyerSel(){
   const sel=document.getElementById("buyerSel"); if(!sel) return;
   const b=activeBuyer();
@@ -1177,8 +1270,11 @@ function partNeed(o,part){ const r=data.recipes.find(x=>x.name===o.item);
 function orderBrought(i,part,v){ const o=data.order[i]; o.brought=o.brought||{};
   o.brought[part]=Math.max(0, Math.min(partNeed(o,part), parseFloat(v)||0)); render(); }
 function stepBrought(i,part,d){ const o=data.order[i]; const cur=(o.brought||{})[part]||0; orderBrought(i,part,cur+d); }
-function setBuyback(v){ data.settings.buyback=Math.max(0, Math.round((parseFloat(v)||0)*100)/100); render(); }
-function stepBuyback(d){ setBuyback((+data.settings.buyback||0)+d*0.05); }
+// The Craft-strip control edits whoever the order is for: the buyer if one is picked, else the profile.
+function setBuyback(v){ const val=Math.max(0, Math.round((parseFloat(v)||0)*100)/100);
+  const t=buybackTarget(); if(t.kind==="global") data.settings.buyback=val; else t.obj.buyback=val; render(); }
+function stepBuyback(d){ setBuyback(effectiveBuyback()+d*0.05); }
+function clearBuyback(){ const t=buybackTarget(); if(t.kind!=="global"){ delete t.obj.buyback; render(); } }
 function setBuybackBase(b){ data.settings.buybackBase=(b==="retail"?"retail":"cost"); render(); }
 
 // Whole-order totals. Bulk discount keys off TOTAL item count, not any single line.
@@ -1200,7 +1296,7 @@ function lineBuyback(o, markup){
   const empty = { credit:0, savedCost:0, parts:[] };
   if(o.kind==='material') return empty;
   const r = data.recipes.find(x=>x.name===o.item); if(!r) return empty;
-  const rate = +data.settings.buyback||0;
+  const rate = effectiveBuyback();
   const retail = data.settings.buybackBase==="retail";
   const mk = (markup===undefined||markup===null) ? stdMarkup() : (+markup||0);
   const dem = +r.demand||0;
@@ -1369,6 +1465,8 @@ function clearSales(){ if(!confirm("Clear the sales log? Till totals are kept.")
 let buyerOpen=new Set();
 function toggleBuyer(id){ if(buyerOpen.has(id)) buyerOpen.delete(id); else buyerOpen.add(id); renderBuyers(); }
 function clearBuyerPrice(i,item){ const b=data.buyers[i]; if(b&&b.prices){ delete b.prices[item]; render(); } }
+function setBuyerBuyback(i,v){ v=(v==null?'':String(v).trim());
+  if(v===''){ delete data.buyers[i].buyback; } else { data.buyers[i].buyback=Math.max(0,parseFloat(v)||0); } render(); }
 function buyerStats(id){
   const st={rev:0,profit:0,n:0,last:0,first:0,items:{}};
   (data.sales||[]).forEach(s=>{ if((s.buyerId||"__walk")!==id) return;
@@ -1382,6 +1480,9 @@ function buyerDetailCell(b){
   const st=buyerStats(b.id); const i=data.buyers.indexOf(b);
   const items=Object.entries(st.items).sort((a,c)=>c[1].qty-a[1].qty);
   const top=items.length?items[0][0]:null;
+  const prof=(data.customers||[]).find(c=>c.id===b.profileId);
+  const bbInherit=(prof && hasRate(prof.buyback)) ? (+prof.buyback||0) : (+data.settings.buyback||0);
+  const bbFrom=prof?esc(prof.name)+" profile":"shop default";
   const avg=st.n?st.rev/st.n:0;
   const savedN=b.prices?Object.keys(b.prices).length:0;
   const irows=items.length? items.map(function(e){ var nm=e[0],d=e[1];
@@ -1392,7 +1493,10 @@ function buyerDetailCell(b){
   }).join(""): '<tr><td colspan="5" class="empty">No purchases yet.</td></tr>';
   return '<td colspan="8" style="background:var(--panel-2)"><div style="padding:8px 10px">'
     +'<div class="row" style="gap:8px;margin-bottom:6px"><span class="dim" style="font-size:11px">Name</span>'
-    +'<input class="bare" value="'+esc(b.name)+'" onchange="data.buyers['+i+'].name=this.value.trim()||\'Buyer\'; render()"></div>'
+    +'<input class="bare" value="'+esc(b.name)+'" onchange="data.buyers['+i+'].name=this.value.trim()||\'Buyer\'; render()">'
+    +'<span class="dim" style="font-size:11px;margin-left:8px">Buyback ×</span>'
+    +'<span class="step">'+stepPre()+'<input class="bare n w50" type="number" min="0" step="0.05" placeholder="'+bbInherit+'" title="Credit rate for parts this buyer brings. Blank = inherit '+bbFrom+' ('+bbInherit+')." value="'+(hasRate(b.buyback)?b.buyback:'')+'" onchange="setBuyerBuyback('+i+',this.value)">'+stepPost()+'</span>'
+    +'<span class="dim" style="font-size:11px">blank inherits '+bbFrom+' ('+bbInherit+')</span></div>'
     +'<div class="dim" style="font-size:12px;margin-bottom:6px">'+st.n+' order(s) · spent '+money(st.rev)+' · profit '+money(st.profit)+' · avg order '+money(avg)+(st.first?' · since '+new Date(st.first).toLocaleDateString():'')+(savedN?' · '+savedN+' saved price(s)':'')+'</div>'
     +'<table style="max-width:600px"><thead><tr><th>Item</th><th class="n">Bought</th><th class="n">Avg paid</th><th class="n">Total</th><th class="n">Your saved price</th></tr></thead><tbody>'+irows+'</tbody></table>'
     +'</div></td>';
@@ -1462,9 +1566,16 @@ function renderCraft(){
   const sel = document.getElementById("custSel");
   if (sel) sel.innerHTML = (data.customers||[]).map(c=>
     '<option value="'+c.id+'"'+(c.id===cust.id?' selected':'')+'>'+esc(c.name)+' (×'+c.markup+')</option>').join("");
-  // Buyback controls
+  // Buyback controls — rate reflects buyer → profile → default; edits write to whoever the order is for.
   const bbInput = document.getElementById("buybackRate");
-  if (bbInput && document.activeElement !== bbInput) bbInput.value = +data.settings.buyback||0;
+  if (bbInput && document.activeElement !== bbInput) bbInput.value = effectiveBuyback();
+  const tgt = buybackTarget();
+  const bbSrc = document.getElementById("buybackSrc");
+  if (bbSrc) bbSrc.innerHTML = tgt.kind==="global" ? "shop default"
+    : (tgt.has ? "set for <span style='color:var(--ink)'>"+esc(tgt.name)+"</span>"
+               : "inherited · edit to set for <span style='color:var(--ink)'>"+esc(tgt.name)+"</span>");
+  const bbReset = document.getElementById("buybackReset");
+  if (bbReset) bbReset.style.display = (tgt.kind!=="global" && tgt.has) ? "" : "none";
   const bbBase = data.settings.buybackBase==="retail" ? "retail" : "cost";
   document.querySelectorAll("#buybackSeg button").forEach(b=>b.classList.toggle("on", b.dataset.base===bbBase));
   const bbHint = document.getElementById("buybackHint");
@@ -1661,26 +1772,157 @@ function renderDatabase(){
   }).join("");
 }
 
-/* ═════════ Inventory ═════════ */
-function buyMat(i, v){
-  const n = parseFloat(v)||0;
-  if (n > 0){ data.materials[i].stock = (+data.materials[i].stock||0) + n; render(); }
+/* ═════════ Inventory · material trades ═════════ */
+let trSide = "buy";                                     // current Buy/Sell toggle in the trade box
+function setTradeSide(s){
+  trSide = s;
+  document.querySelectorAll("#trSideSeg button").forEach(b => b.classList.toggle("on", b.dataset.side === s));
+  prefillTradeUnit(true);
 }
+// Suggested unit price for a material+side: your last such trade, else its calc price.
+function suggestUnit(name, side){
+  const arr = (data.trades||[]).filter(t => t.mat === name && t.side === side);
+  if (arr.length) return +arr[arr.length-1].unit || 0;
+  const m = data.materials.find(x => x.name === name);
+  return m ? (+m.price||0) : 0;
+}
+// Fill the unit-price field with a suggestion. force = overwrite even if it holds a value
+// (used on material/side change); otherwise only fills when empty and not being edited.
+function prefillTradeUnit(force){
+  const sel = document.getElementById("trMat"), inp = document.getElementById("trUnit");
+  if (!sel || !inp) return;
+  if (!force && (inp.value !== "" || document.activeElement === inp)) { updTradeTotal(); return; }
+  inp.value = suggestUnit(sel.value, trSide);
+  updTradeTotal();
+}
+function updTradeTotal(){
+  const q = parseFloat((document.getElementById("trQty")||{}).value) || 0;
+  const u = parseFloat((document.getElementById("trUnit")||{}).value) || 0;
+  const el = document.getElementById("trTotal");
+  if (el) el.textContent = (q && u) ? (trSide === "buy" ? "pay " : "get ") + exact(q*u) : "";
+}
+function recordTrade(){
+  const name = (document.getElementById("trMat")||{}).value;
+  const q = parseFloat((document.getElementById("trQty")||{}).value) || 0;
+  const uRaw = (document.getElementById("trUnit")||{}).value;
+  const u = parseFloat(uRaw);
+  const note = ((document.getElementById("trNote")||{}).value || "").trim();
+  const m = data.materials.find(x => x.name === name);
+  if (!m){ alert("Pick a material."); return; }
+  if (!(q > 0)){ alert("Enter a quantity greater than 0."); return; }
+  if (uRaw === "" || isNaN(u) || u < 0){ alert("Enter a unit price."); return; }
+  data.trades.push({ id:uid(), ts:Date.now(), mat:name, side:trSide, qty:q, unit:u, total:q*u, note });
+  if (trSide === "buy"){ m.stock = (+m.stock||0) + q; data.till.purchases = (+data.till.purchases||0) + q*u; }
+  else { m.stock = Math.max(0, (+m.stock||0) - q); }
+  const nEl = document.getElementById("trNote"); if (nEl) nEl.value = "";
+  render();
+}
+// Deleting a trade undoes its stock and (for buys) spend effect, so slips are fully reversible.
+function deleteTrade(id){
+  const i = (data.trades||[]).findIndex(t => t.id === id); if (i < 0) return;
+  const t = data.trades[i], m = data.materials.find(x => x.name === t.mat);
+  if (m){
+    if (t.side === "buy"){ m.stock = Math.max(0, (+m.stock||0) - (+t.qty||0));
+                           data.till.purchases = Math.max(0, (+data.till.purchases||0) - (+t.total||0)); }
+    else { m.stock = (+m.stock||0) + (+t.qty||0); }
+  }
+  data.trades.splice(i, 1);
+  render();
+}
+function adoptCalc(i){
+  const m = data.materials[i]; if (!m) return;
+  const a = avgBuyCost(m.name); if (a == null) return;
+  m.price = Math.round(a*100)/100;
+  render();
+}
+// Buy (ember) and sell (green) unit prices over time, with the calc price as a dashed reference.
+function sparkline(name){
+  const ts = (data.trades||[]).filter(t => t.mat === name);
+  if (ts.length < 2) return '<span class="dim" style="font-size:11px">—</span>';
+  const W = 94, H = 22, pad = 3;
+  const units = ts.map(t => +t.unit||0);
+  const calc = +((data.materials.find(m => m.name === name)||{}).price) || 0;
+  let lo = Math.min(...units, calc), hi = Math.max(...units, calc);
+  if (hi - lo < 1e-6) hi = lo + 1;
+  const x = i => pad + (W-2*pad) * (i/(ts.length-1));
+  const y = v => H - pad - (H-2*pad) * ((v-lo)/(hi-lo));
+  const d = ts.map((t,i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(+t.unit||0).toFixed(1)).join(" ");
+  const dots = ts.map((t,i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(+t.unit||0).toFixed(1)}" r="1.8" fill="${t.side==="buy"?"var(--ember)":"var(--good)"}"/>`).join("");
+  const cy = y(calc).toFixed(1);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="vertical-align:middle" aria-hidden="true">`
+    + `<line x1="${pad}" y1="${cy}" x2="${W-pad}" y2="${cy}" stroke="var(--gold-2)" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/>`
+    + `<path d="${d}" fill="none" stroke="var(--dim)" stroke-width="1"/>${dots}</svg>`;
+}
+// Per-material buy/sell aggregates from the ledger. Each side → null or {n,qty,total,avg,min,max,last}.
+function matTradeStats(name){
+  const agg = arr => {
+    if (!arr.length) return null;
+    let q = 0, tot = 0, min = Infinity, max = -Infinity;
+    arr.forEach(t => { const u = +t.unit||0, x = +t.qty||0; q += x; tot += (+t.total || u*x);
+                       if (u < min) min = u; if (u > max) max = u; });
+    return { n:arr.length, qty:q, total:tot, avg:q>0?tot/q:0, min, max, last:+arr[arr.length-1].unit||0 };
+  };
+  const buys = [], sells = [];
+  (data.trades||[]).forEach(t => { if (t.mat === name) (t.side === "sell" ? sells : buys).push(t); });
+  return { buy:agg(buys), sell:agg(sells) };
+}
+function fmtTs(ts){
+  return new Date(ts).toLocaleString(undefined, { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+}
+
+/* ═════════ Inventory ═════════ */
 function renderInventory(){
+  // Trade-box material picker — rebuild options, keep selection, refresh the price suggestion.
+  const trSel = document.getElementById("trMat");
+  if (trSel){
+    const keep = trSel.value;
+    trSel.innerHTML = data.materials.map(m => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("");
+    if (keep && data.materials.some(m => m.name === keep)) trSel.value = keep;
+    prefillTradeUnit(false);
+  }
+  const rc = document.getElementById("realCost"); if (rc) rc.checked = data.settings.realCost === true;
+
   let rawVal = 0;
   document.getElementById("invBody").innerHTML = data.materials.map((m,i) => {
-    const v = (+m.stock||0) * (+m.price||0); rawVal += v;
+    const cost = matCost(m.name), v = (+m.stock||0) * cost; rawVal += v;
+    const s = matTradeStats(m.name), calc = +m.price||0, avgBuy = s.buy ? s.buy.avg : null;
+    let calcCell = exact(calc);
+    if (avgBuy != null && Math.abs(avgBuy - calc) > 0.005)
+      calcCell += ` <button class="brought-t" title="Adopt avg buy ${exact(avgBuy)} as the calc price" onclick="adoptCalc(${i})">→${exact(avgBuy)}</button>`;
     return `<tr>
       <td>${esc(m.name)}</td>
-      <td class="n dim">${exact(+m.price||0)}</td>
+      <td class="n dim">${calcCell}</td>
       <td class="n"><span class="step">${stepPre(null,10)}<input class="bare n w60" type="number" min="0" step="1" value="${+m.stock||0}"
             onchange="data.materials[${i}].stock=parseFloat(this.value)||0; render()">${stepPost(null,10)}</span></td>
       <td class="n">${exact(v)}</td>
-      <td class="n"><input class="n w60" type="number" min="0" step="1" placeholder="+"
-            onchange="buyMat(${i},this.value); this.value=''"></td>
+      <td class="n dim">${s.buy ? exact(s.buy.last) : "—"}</td>
+      <td class="n">${s.buy ? exact(s.buy.avg) : "—"}</td>
+      <td class="n dim">${s.sell ? exact(s.sell.last) : "—"}</td>
+      <td class="n">${s.sell ? exact(s.sell.avg) : "—"}</td>
+      <td>${sparkline(m.name)}</td>
     </tr>`;
   }).join("");
-  document.getElementById("invValue").textContent = "stock worth " + exact(rawVal);
+  document.getElementById("invValue").textContent =
+    (data.settings.realCost ? "stock worth " + exact(rawVal) + " · actual cost" : "stock worth " + exact(rawVal));
+
+  // Trade log — newest first.
+  const log = (data.trades||[]).slice().reverse();
+  document.getElementById("trBody").innerHTML = log.map(t => `<tr>
+      <td class="dim">${fmtTs(t.ts)}</td>
+      <td>${esc(t.mat)}</td>
+      <td class="${t.side==="buy"?"ember":"good"}">${t.side}</td>
+      <td class="n">${t.qty}</td>
+      <td class="n dim">${exact(t.unit)}</td>
+      <td class="n">${exact(t.total)}</td>
+      <td class="dim">${esc(t.note||"")}</td>
+      <td class="n"><button class="x" title="Delete trade (reverses stock &amp; spend)" onclick="deleteTrade('${t.id}')">✕</button></td>
+    </tr>`).join("");
+  document.getElementById("trEmpty").style.display = log.length ? "none" : "block";
+  document.getElementById("trCount").textContent = (data.trades||[]).length + " trades";
+  let spent = 0, got = 0;
+  (data.trades||[]).forEach(t => { if (t.side === "buy") spent += +t.total||0; else got += +t.total||0; });
+  document.getElementById("trTotals").textContent =
+    (data.trades||[]).length ? ` · bought ${exact(spent)} · sold ${exact(got)} · net ${exact(got-spent)}` : "";
 
   let intVal = 0;
   document.getElementById("invInterBody").innerHTML = data.intermediates.map((it,i) => {
@@ -2045,12 +2287,15 @@ function renderCustomers(){
     <tr>
       <td><input class="bare" value="${esc(c.name)}" onchange="data.customers[${i}].name=this.value.trim()||'Customer'; render()"></td>
       <td class="n"><span class="step">${stepPre()}<input class="bare n w50" type="number" min="0" step="0.1" value="${c.markup}" onchange="data.customers[${i}].markup=parseFloat(this.value)||0; render()">${stepPost()}</span></td>
+      <td class="n"><span class="step">${stepPre()}<input class="bare n w50" type="number" min="0" step="0.05" placeholder="${+data.settings.buyback||0}" title="Blank = shop default (${+data.settings.buyback||0})" value="${hasRate(c.buyback)?c.buyback:''}" onchange="setCustomerBuyback(${i},this.value)">${stepPost()}</span></td>
       <td class="n"><input type="checkbox" ${c.qq!==false?'checked':''} title="Show this profile's price column in Quick Quote" onchange="data.customers[${i}].qq=this.checked; render()" style="width:auto"></td>
       <td><input class="bare" style="width:100%;min-width:180px" placeholder="what they like, haggling, debts…" value="${esc(c.note||'')}" onchange="data.customers[${i}].note=this.value; render()"></td>
       <td style="width:24px">${i===0?'<span class="pill" title="Sets the Database price">base</span>':`<button class="x" onclick="delCustomer(${i})">✕</button>`}</td>
     </tr>`).join("");
 }
 function addCustomer(){ data.customers.push({id:uid(),name:"New customer",markup:2,note:"",qq:true}); render(); }
+function setCustomerBuyback(i,v){ v=(v==null?'':String(v).trim());
+  if(v===''){ delete data.customers[i].buyback; } else { data.customers[i].buyback=Math.max(0,parseFloat(v)||0); } render(); }
 function syncStackBox(){
   const sb=document.getElementById("stackBulk"); if(sb) sb.checked = data.settings.stackBulk !== false;
   const bm=document.getElementById("bulkMats"); if(bm) bm.checked = data.settings.bulkCountsMaterials === true;
