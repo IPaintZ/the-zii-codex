@@ -97,6 +97,32 @@
   button.x { background:none; border:none; color:var(--bad); cursor:pointer; padding:0 4px; font-size:13px; opacity:.55; }
   button.x:hover { opacity:1; }
 
+  /* Segmented two-way toggle (buyback credit base). */
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg button { background:var(--panel-2); border:none; color:var(--dim); font-family:inherit; font-size:11.5px;
+    padding:3px 9px; cursor:pointer; }
+  .seg button:hover { color:var(--ink); }
+  .seg button.on { background:var(--gold-2); color:#1c1710; font-weight:600; }
+
+  /* Order line: customer-brought parts. */
+  .itemname { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .brought-t { background:none; border:1px solid var(--line); color:var(--dim); border-radius:5px;
+    font-size:11px; padding:2px 7px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .brought-t:hover { border-color:var(--gold-2); color:var(--gold); }
+  .brought-t.on { border-color:var(--good); color:var(--good); background:rgba(111,174,95,.1); }
+  .brought-t .car { display:inline-block; font-size:9px; transition:transform .15s; }
+  .brought-t.open .car { transform:rotate(90deg); }
+  .broughtcell { padding:0 !important; }
+  .brought { background:var(--panel-2); border-left:2px solid var(--good); padding:9px 12px 10px; }
+  .brought .cap { font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--dim);
+    margin:0 0 7px; display:flex; align-items:center; gap:8px; }
+  .igrid { display:grid; grid-template-columns:1fr 70px 108px 84px 78px; gap:7px 10px; align-items:center; }
+  .igrid .h { font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--dim); }
+  .igrid .r { text-align:right; }
+  .igrid .nm { font-weight:600; }
+  .igrid .stepwrap { display:flex; justify-content:center; }
+  .strike { color:var(--dim); text-decoration:line-through; font-weight:400; }
+
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .gold { color:var(--gold); font-weight:700; }
   .steel { color:var(--steel); }
@@ -354,6 +380,23 @@
       <button class="b" onclick="loadPreset()" title="Add this preset's items to the order">Load</button>
       <button class="b" onclick="delPreset()" title="Delete selected preset">✕</button>
       <button class="b" onclick="savePreset()" title="Save the current order as a reusable preset">Save order as preset…</button>
+    </div>
+    <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)">
+      <label class="row" style="gap:5px" title="When a customer brings parts an item needs, the order price drops by this rate × each part's value. Set it per line with the ⛏ brought button.">
+        <span class="gold" style="font-size:11.5px">Buyback</span>
+        <span class="step">
+          <button type="button" onclick="stepBuyback(-1)" aria-label="Lower buyback rate">−</button>
+          <input id="buybackRate" class="n w50" type="number" min="0" step="0.05" onchange="setBuyback(this.value)">
+          <button type="button" onclick="stepBuyback(1)" aria-label="Raise buyback rate">+</button>
+        </span>
+        <span class="gold" style="font-size:11.5px">×</span>
+      </label>
+      <span class="dim" style="font-size:11.5px">of each part's</span>
+      <span class="seg" id="buybackSeg">
+        <button type="button" data-base="cost" onclick="setBuybackBase('cost')">material cost</button>
+        <button type="button" data-base="retail" onclick="setBuybackBase('retail')">retail value</button>
+      </span>
+      <span id="buybackHint" class="dim" style="font-size:11px"></span>
     </div>
     <div id="custNote" class="note" style="margin-top:6px"></div>
   </div>
@@ -649,7 +692,7 @@ let IS_DEMO = new URLSearchParams(location.search).has("demo");
 
 const DEFAULT = {
   settings: { currency:"g", defaultLabor:0, markup:2, markupFriend:1.5, roundOn:true, friend:false, customer:null,
-              stackBulk:true, bulkCountsMaterials:false,
+              stackBulk:true, bulkCountsMaterials:false, buyback:0.75, buybackBase:"cost",
               tiers:[{qty:5,pct:5},{qty:10,pct:10},{qty:25,pct:15}] },
   till: { revenue:0, cost:0, sales:0, items:0, purchases:0 },
   customers: [ {id:uid(),name:"Standard",markup:2,discount:0}, {id:uid(),name:"Friend",markup:1.5,discount:0} ],
@@ -798,6 +841,8 @@ function fix(d){
   d.settings.customer ??= d.customers[0].id;
   d.settings.stackBulk ??= true;
   d.settings.bulkCountsMaterials ??= false;
+  d.settings.buyback ??= 0.75;                        // credit rate for customer-supplied parts
+  d.settings.buybackBase ??= "cost";                  // "cost" | "retail"
   // Rounding is now an on/off switch; migrate old roundTo (0 meant "off").
   if (d.settings.roundOn === undefined) d.settings.roundOn = (+d.settings.roundTo||0) > 0;
   d.customers.forEach(c => { c.note ??= ""; c.qq ??= true; });
@@ -904,7 +949,7 @@ function resolveMaterial(typed){                                     // same mat
 function addToOrder(name, qty){
   const ex = data.order.find(o => o.item === name && o.kind !== 'material');
   if (ex) { ex.qty += qty; return; }
-  const line = { id:uid(), item:name, qty };
+  const line = { id:uid(), item:name, qty, brought:{} };
   const b = activeBuyer();
   if (b && b.prices && b.prices[name] != null) { line.override = +b.prices[name]; line.autoHaggle = true; }
   data.order.push(line);
@@ -1125,6 +1170,16 @@ function delPreset(){
 function orderDel(i){ data.order.splice(i,1); render(); }
 function orderQty(i,v){ data.order[i].qty = Math.max(0, parseFloat(v)||0); render(); }
 function orderOverride(i,v){ const o=data.order[i]; o.override=(v===""||v==null)?null:(parseFloat(v)||0); o.autoHaggle=false; render(); }
+// Buyback: which parts the customer supplied on this line.
+function toggleBrought(i){ const o=data.order[i]; o.broughtOpen=!o.broughtOpen; render(); }
+function partNeed(o,part){ const r=data.recipes.find(x=>x.name===o.item);
+  const l=r&&(r.lines||[]).find(x=>x.ingredient===part); return l?(+l.qty||0)*(+o.qty||0):0; }
+function orderBrought(i,part,v){ const o=data.order[i]; o.brought=o.brought||{};
+  o.brought[part]=Math.max(0, Math.min(partNeed(o,part), parseFloat(v)||0)); render(); }
+function stepBrought(i,part,d){ const o=data.order[i]; const cur=(o.brought||{})[part]||0; orderBrought(i,part,cur+d); }
+function setBuyback(v){ data.settings.buyback=Math.max(0, Math.round((parseFloat(v)||0)*100)/100); render(); }
+function stepBuyback(d){ setBuyback((+data.settings.buyback||0)+d*0.05); }
+function setBuybackBase(b){ data.settings.buybackBase=(b==="retail"?"retail":"cost"); render(); }
 
 // Whole-order totals. Bulk discount keys off TOTAL item count, not any single line.
 function linePrice(o, markup){
@@ -1138,15 +1193,41 @@ function linePrice(o, markup){
   const c=r?calc(r,markup):{price:0,mat:0};
   return { r, mat:c.mat, formula:c.price, unit: has?(+o.override||0):c.price, overridden:has };
 }
+// Buyback: parts the customer supplies knock money off the line. Credit per part =
+// unit value × rate, where value is my make-cost ("cost" base) or the marked-up
+// retail contribution ("retail" base). savedCost = what I no longer have to source.
+function lineBuyback(o, markup){
+  const empty = { credit:0, savedCost:0, parts:[] };
+  if(o.kind==='material') return empty;
+  const r = data.recipes.find(x=>x.name===o.item); if(!r) return empty;
+  const rate = +data.settings.buyback||0;
+  const retail = data.settings.buybackBase==="retail";
+  const mk = (markup===undefined||markup===null) ? stdMarkup() : (+markup||0);
+  const dem = +r.demand||0;
+  const br = o.brought||{};
+  let credit=0, savedCost=0; const parts=[];
+  (r.lines||[]).forEach(l=>{
+    const need = (+l.qty||0) * (+o.qty||0);
+    const b = Math.max(0, Math.min(+br[l.ingredient]||0, need));
+    const uc = unitCost(l.ingredient);
+    const perUnit = retail ? uc*mk*dem : uc;           // part's value (rate applied to the credit, not shown here)
+    const cr = b*perUnit*rate;
+    credit += cr; savedCost += b*uc;
+    parts.push({ name:l.ingredient, need, brought:b, uc, perUnit, credit:cr });
+  });
+  return { credit, savedCost, parts };
+}
 function orderTotals(cust){
   const markup = cust ? cust.markup : stdMarkup();
   const countMats = data.settings.bulkCountsMaterials === true;   // do raw-material lines join the bulk discount?
-  let sub=0, cost=0, qtyTotal=0, discBase=0;
+  let sub=0, cost=0, qtyTotal=0, discBase=0, buyback=0;
   data.order.forEach(o=>{ const lp=linePrice(o,markup);
     const isMat = lp.kind==='material';
     if(isMat){ if(!lp.found) return; } else if(!lp.r) return;
     const val = lp.unit*o.qty;
     sub += val; cost += lp.mat*o.qty;
+    const bb = lineBuyback(o, markup);                            // customer-supplied parts
+    buyback += bb.credit; cost -= bb.savedCost;
     if(!isMat || countMats){ qtyTotal += o.qty; discBase += val; }  // materials count only when enabled
   });
   const isBase = !cust || !data.customers[0] || cust.id==null || cust.id===data.customers[0].id;
@@ -1154,8 +1235,9 @@ function orderTotals(cust){
   const rawBulk = tierFor(qtyTotal);
   const bulkPct = (stack || isBase) ? rawBulk : 0;
   const disc = discBase*bulkPct/100;
-  return { sub, disc, pct:bulkPct, bulkPct, custPct:0,
-           bulkSuppressed:(rawBulk>0 && bulkPct===0), total:sub-disc, cost, qtyTotal };
+  return { sub, disc, pct:bulkPct, bulkPct, custPct:0, buyback,
+           bulkSuppressed:(rawBulk>0 && bulkPct===0),
+           total:Math.max(0, sub-disc-buyback), cost:Math.max(0,cost), qtyTotal };
 }
 // Max units craftable from current stock (spends held intermediates first, rest from raw).
 function maxCraftable(name){
@@ -1197,7 +1279,12 @@ function planConsumption(){
   data.order.forEach(o=>{
     if(o.kind==='material'){ if(data.materials.find(x=>x.name===o.item)) raw[o.item]=(raw[o.item]||0)+(+o.qty||0); return; }
     const r=data.recipes.find(x=>x.name===o.item);
-    if(r)(r.lines||[]).forEach(l=>need(l.ingredient,(+l.qty||0)*o.qty)); });
+    const br=o.brought||{};
+    if(r)(r.lines||[]).forEach(l=>{
+      const total=(+l.qty||0)*o.qty;                              // parts the customer brought
+      const supplied=Math.max(0, Math.min(+br[l.ingredient]||0, total));
+      const rem=total-supplied; if(rem>1e-9) need(l.ingredient, rem);
+    }); });
   return { inter, raw };
 }
 // Checkout = the order was crafted and sold: consume stock, bank the sale, clear order.
@@ -1375,6 +1462,13 @@ function renderCraft(){
   const sel = document.getElementById("custSel");
   if (sel) sel.innerHTML = (data.customers||[]).map(c=>
     '<option value="'+c.id+'"'+(c.id===cust.id?' selected':'')+'>'+esc(c.name)+' (×'+c.markup+')</option>').join("");
+  // Buyback controls
+  const bbInput = document.getElementById("buybackRate");
+  if (bbInput && document.activeElement !== bbInput) bbInput.value = +data.settings.buyback||0;
+  const bbBase = data.settings.buybackBase==="retail" ? "retail" : "cost";
+  document.querySelectorAll("#buybackSeg button").forEach(b=>b.classList.toggle("on", b.dataset.base===bbBase));
+  const bbHint = document.getElementById("buybackHint");
+  if (bbHint) bbHint.textContent = bbBase==="cost" ? "— you keep your margin" : "— markup passes to the buyer";
   data.order.forEach((o,i) => {
     if (o.kind==='material'){
       const lp = linePrice(o, cust.markup);
@@ -1401,9 +1495,17 @@ function renderCraft(){
       `<tr><td class="bad">${esc(o.item)} — missing</td><td class="n" colspan="4"></td>
         <td><button class="x" onclick="orderDel(${i})">✕</button></td></tr>`); return; }
     const lp = linePrice(o, cust.markup);
+    const bb = lineBuyback(o, cust.markup);
+    const gross = lp.unit*o.qty, net = Math.max(0, gross-bb.credit);
+    const nBrought = bb.parts.reduce((s,p)=>s+p.brought,0);
+    const open = !!o.broughtOpen;
+    const canBuyback = (r.lines||[]).length>0;
+    const exp = canBuyback ? `<button class="brought-t${open?' open':''}${nBrought>0?' on':''}" onclick="toggleBrought(${i})"
+          title="Record parts the customer supplies — the price drops by the buyback credit">
+          <span class="car">▸</span> ⛏ brought${nBrought>0?' <span class="pill" style="background:rgba(111,174,95,.15);color:var(--good);border-color:var(--good)">'+nBrought+'</span>':''}</button>` : '';
     body.insertAdjacentHTML("beforeend", `
       <tr>
-        <td>${esc(o.item)}</td>
+        <td><div class="itemname"><span>${esc(o.item)}</span>${exp}</div></td>
         <td class="n"><input class="bare n w50" type="number" min="0" step="1" value="${o.qty}"
               onchange="orderQty(${i},this.value)"></td>
         <td class="n dim">${exact(lp.mat)}</td>
@@ -1411,9 +1513,29 @@ function renderCraft(){
               title="${lp.overridden?'Haggled price — clear to restore '+money(lp.formula):'Formula price — type a number to haggle'}"
               placeholder="${money(lp.formula)}" value="${lp.overridden?lp.unit:''}"
               onchange="orderOverride(${i},this.value)"></td>
-        <td class="n gold">${money(lp.unit*o.qty)}</td>
+        <td class="n gold">${bb.credit>0?`<span class="strike">${money(gross)}</span> `:''}${money(net)}${bb.credit>0?`<div class="good" style="font-size:10px;font-weight:400">−${money(bb.credit)} buyback</div>`:''}</td>
         <td><button class="x" onclick="orderDel(${i})">✕</button></td>
       </tr>`);
+    if (open){
+      const baseWord = data.settings.buybackBase==="retail" ? "retail value" : "material cost";
+      body.insertAdjacentHTML("beforeend", `
+        <tr><td colspan="6" class="broughtcell"><div class="brought">
+          <div class="cap">⛏ Parts the buyer is bringing
+            <span class="dim" style="margin-left:auto">credit = brought × ${baseWord} × ${+data.settings.buyback||0}</span></div>
+          <div class="igrid">
+            <span class="h">Part</span><span class="h r">Needs</span><span class="h" style="text-align:center">Brings</span><span class="h r">${data.settings.buybackBase==="retail"?"Retail/ea":"Cost/ea"}</span><span class="h r">Credit</span>
+            ${bb.parts.map(p=>`
+              <span class="nm">${esc(p.name)}</span>
+              <span class="r dim">${p.need}</span>
+              <span class="stepwrap"><span class="step"><button type="button" onclick="stepBrought(${i},'${esc(p.name).replace(/'/g,"\\'")}',-1)">−</button>
+                <input class="bare n w50" type="number" min="0" max="${p.need}" value="${p.brought}"
+                  onchange="orderBrought(${i},'${esc(p.name).replace(/'/g,"\\'")}',this.value)">
+                <button type="button" onclick="stepBrought(${i},'${esc(p.name).replace(/'/g,"\\'")}',1)">+</button></span></span>
+              <span class="r dim">${exact(p.perUnit)}</span>
+              <span class="r ${p.credit>0?'good':'dim'}">${p.credit>0?'−'+exact(p.credit):'—'}</span>`).join("")}
+          </div>
+        </div></td></tr>`);
+    }
   });
   if (has){
     const t = orderTotals(cust), profit = t.total - t.cost;
@@ -1422,6 +1544,7 @@ function renderCraft(){
       <tr class="tot"><td colspan="4">Subtotal${cust.name!=="Standard"?' <span class="pill">'+esc(cust.name)+'</span>':''}</td><td class="n">${money(t.sub)}</td><td></td></tr>
       ${t.disc>0?`<tr><td colspan="4" class="good">${dl}</td><td class="n good">−${money(t.disc)}</td><td></td></tr>`:""}
       ${t.bulkSuppressed?`<tr><td colspan="6" class="dim" style="font-size:11px">Bulk discount off for ${esc(cust.name)} (their markup is the deal). Toggle in Settings › Bulk Discount.</td></tr>`:""}
+      ${t.buyback>0?`<tr><td colspan="4" class="good">Buyback credit · customer-supplied parts</td><td class="n good">−${money(t.buyback)}</td><td></td></tr>`:""}
       <tr class="tot"><td colspan="4" style="font-size:14px">Total</td>
           <td class="n gold" style="font-size:15px">${money(t.total)}</td><td></td></tr>
       <tr><td colspan="4" class="dim">Material cost ${exact(t.cost)} · Profit</td>
