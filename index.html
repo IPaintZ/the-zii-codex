@@ -290,7 +290,8 @@ const LK = {
   token: "keisaal_gh_token",
   notes: "keisaal_code_notes",
   code:  "keisaal_access_code",
-  tool:  "keisaal_last_tool"
+  tool:  "keisaal_last_tool",
+  master:"keisaal_master"        // admin passphrase used as a personal, never-expiring master key
 };
 const ADMIN_PASS_HASH = "a09708942b0318a21356b6a4c78bc81038352e482db89bcfe7f360ecac9c3c27";
 
@@ -391,7 +392,7 @@ function showGate(tool, msg){
   gmsg(msg || "", msg ? "err" : "dim");
   const i = document.getElementById("gateCode"); if (i) i.focus();
 }
-function lockNow(){ localStorage.removeItem(LK.code); document.getElementById("gateCode").value=""; grantedTools=[]; showGate(selectedTool); }
+function lockNow(){ localStorage.removeItem(LK.code); localStorage.removeItem(LK.master); document.getElementById("gateCode").value=""; grantedTools=[]; showGate(selectedTool); }
 
 /* Switch tools from the running strip. Free in demo; otherwise needs the code to grant it. */
 function pillClick(other){
@@ -404,6 +405,14 @@ function pillClick(other){
 async function gateUnlock(){
   const code = document.getElementById("gateCode").value;
   if (!normCode(code)){ gmsg("Enter your code.", "err"); return; }
+  /* Admin passphrase doubles as a personal master key: all tools, never expires. */
+  if (await sha256hex(code) === ADMIN_PASS_HASH){
+    localStorage.setItem(LK.master, "1");
+    grantedTools = TOOL_IDS.slice(); demo = false;
+    gmsg("Master access — welcome.", "ok");
+    enterApp(selectedTool);
+    return;
+  }
   gmsg("Checking…", "dim");
   let status;
   try { status = await fetchStatus(); }
@@ -425,6 +434,8 @@ function startDemo(){ demo = true; grantedTools = TOOL_IDS.slice(); enterApp(sel
 async function bootGate(){
   buildToolMenu(); buildGenScope(); applyTheme(selectedTool);
   document.body.classList.add("locked");
+  /* Master key: skip the weekly-code check entirely, works even if status.json is unreachable. */
+  if (localStorage.getItem(LK.master) === "1"){ grantedTools = TOOL_IDS.slice(); enterApp(selectedTool); return; }
   let status;
   try { status = await fetchStatus(); }
   catch(e){ gmsg("Can't reach the access list — check your connection and reload.", "err");
@@ -444,7 +455,7 @@ async function bootGate(){
 /* Tools can ask the shell to lock (their 🔒 button) or return to the gate (demo "back"). */
 window.addEventListener("message", e => {
   const d = e.data || {};
-  if (d.keisaal === "lock"){ localStorage.removeItem(LK.code); grantedTools=[]; showGate(selectedTool); }
+  if (d.keisaal === "lock"){ localStorage.removeItem(LK.code); localStorage.removeItem(LK.master); grantedTools=[]; showGate(selectedTool); }
   else if (d.keisaal === "gate"){ showGate(selectedTool); }
 });
 document.addEventListener("click", e => {
