@@ -206,6 +206,12 @@
   .dd-row.active,.dd-row:hover{background:var(--panel-2)}
   .dd-empty{padding:8px 10px;color:var(--dim);font-size:12px}
   .dd-head{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.4px;padding:6px 10px}
+  .mig-ov{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
+  .mig-box{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 20px; max-width:420px; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+  .mig-box h3{ margin:0 0 8px; color:var(--gold); font-variant:small-caps; letter-spacing:.5px; font-size:15px; }
+  .mig-box p{ color:var(--ink); font-size:13px; line-height:1.5; margin:0 0 10px; }
+  .mig-actions{ display:flex; gap:8px; margin:14px 0 6px; }
+  .mig-fine{ color:var(--dim); font-size:11px; margin:6px 0 0; }
 </style>
 </head>
 <body>
@@ -618,6 +624,7 @@
       <button class="b" onclick="document.getElementById('impF').click()">⬆ Import</button>
       <input id="impF" type="file" accept="application/json" style="display:none" onchange="importData(this)">
       <button class="b" onclick="resetAll()">↺ Reset to defaults</button>
+      <button class="b" onclick="restoreBackup()">⤸ Restore previous book</button>
       <span class="pill" id="saveState">saved</span>
     </div>
     <div class="note">Data auto-saves in this browser only. Export before switching devices or clearing cache.</div>
@@ -630,6 +637,7 @@
 /* ═════════ Data ═════════ */
 const uid = () => Math.random().toString(36).slice(2,9);
 const L = (ingredient, qty) => ({ ingredient, qty });
+const CATALOG_VERSION = 2;   // bump when a new baked catalog ships; triggers the one-click backup+migrate
 
 // Preview mode: yoursite/?demo (or the gate's "see a live demo" link) opens a sandboxed
 // tour on fixed sample numbers. It never reads or writes the real book (localStorage) and
@@ -637,65 +645,363 @@ const L = (ingredient, qty) => ({ ingredient, qty });
 let IS_DEMO = new URLSearchParams(location.search).has("demo");
 
 const DEFAULT = {
+  catalogVersion: CATALOG_VERSION,
   settings: { currency:"g", defaultLabor:0, markup:2, markupFriend:1.5, roundOn:true, friend:false, customer:null,
               stackBulk:true, bulkCountsMaterials:false, buyback:0.75, buybackBase:"cost", realCost:false,
               tiers:[{qty:5,pct:5},{qty:10,pct:10},{qty:25,pct:15}] },
   till: { revenue:0, cost:0, sales:0, items:0, purchases:0 },
   customers: [ {id:uid(),name:"Standard",markup:2,discount:0}, {id:uid(),name:"Friend",markup:1.5,discount:0} ],
   sales: [],
+  // ── Crafting catalog: extracted from the Keizaal mod via the recipe-extraction
+  // pipeline (xEdit COBJ winning-override -> CSV -> converter). Prices/values are
+  // left blank; each user fills their own. Every recipe carries a src: tag.
   materials: [
-    { id:uid(), name:"Flax",       price:0, stock:0 },
-    { id:uid(), name:"Wool",       price:0, stock:0 },
-    { id:uid(), name:"Cotton",     price:0, stock:0 },
+    { id:uid(), name:"Bear Pelt", price:0, stock:0 },
+    { id:uid(), name:"Corundum Ore", price:0, stock:0 },
+    { id:uid(), name:"Firewood", price:0, stock:0 },
+    { id:uid(), name:"Gold Ore", price:0, stock:0 },
+    { id:uid(), name:"Iron Armor", price:0, stock:0 },
+    { id:uid(), name:"Iron Ore", price:0, stock:0 },
+    { id:uid(), name:"Leather", price:0, stock:0 },
+    { id:uid(), name:"Leather Armor", price:0, stock:0 },
+    { id:uid(), name:"Lesser Soul Gem", price:0, stock:0 },
     { id:uid(), name:"Linen Wrap", price:0, stock:0 },
-    { id:uid(), name:"Fine Silk",  price:0, stock:0 },
-    { id:uid(), name:"Leather",    price:0, stock:0 },
-    { id:uid(), name:"Dye",        price:0, stock:0 }
+    { id:uid(), name:"Quicksilver Ore", price:0, stock:0 },
+    { id:uid(), name:"Sabre Cat Pelt", price:0, stock:0 },
+    { id:uid(), name:"Sabre Cat Snow Pelt", price:0, stock:0 },
+    { id:uid(), name:"Sabre Cat Tooth", price:0, stock:0 },
+    { id:uid(), name:"Silver Ore", price:0, stock:0 },
+    { id:uid(), name:"Snow Bear Pelt", price:0, stock:0 },
+    { id:uid(), name:"Tundra Cotton", price:0, stock:0 },
+    { id:uid(), name:"Vale Sabre Cat Hide", price:0, stock:0 },
+    { id:uid(), name:"Yellow Mountain Flower", price:0, stock:0 },
   ],
   intermediates: [
-    { id:uid(), name:"Thread",        yield:4, labor:0, stock:0, lines:[ L("Flax",1) ] },
-    { id:uid(), name:"Linen Cloth",   yield:1, labor:0, stock:0, lines:[ L("Linen Wrap",2), L("Thread",1) ] },
-    { id:uid(), name:"Woolen Cloth",  yield:1, labor:0, stock:0, lines:[ L("Wool",3), L("Thread",1) ] },
-    { id:uid(), name:"Cotton Cloth",  yield:1, labor:0, stock:0, lines:[ L("Cotton",3), L("Thread",1) ] },
-    { id:uid(), name:"Silk Bolt",     yield:1, labor:0, stock:0, lines:[ L("Fine Silk",3), L("Thread",1) ] },
-    { id:uid(), name:"Leather Strip", yield:4, labor:0, stock:0, lines:[ L("Leather",1) ] },
-    { id:uid(), name:"Padded Lining", yield:1, labor:0, stock:0, lines:[ L("Cotton Cloth",1), L("Woolen Cloth",1) ] }
+    { id:uid(), name:"Charcoal", yield:1, labor:0, stock:0, lines:[ L("Firewood",4) ] },
+    { id:uid(), name:"Coke", yield:1, labor:0, stock:0, lines:[ L("Firewood",12) ] },
+    { id:uid(), name:"Corundum Ingot", yield:1, labor:0, stock:0, lines:[ L("Corundum Ore",8), L("Poor Charcoal",8) ] },
+    { id:uid(), name:"Gold Ingot", yield:1, labor:0, stock:0, lines:[ L("Gold Ore",6), L("Charcoal",6) ] },
+    { id:uid(), name:"Iron Ingot", yield:1, labor:0, stock:0, lines:[ L("Iron Ore",6), L("Poor Charcoal",6) ] },
+    { id:uid(), name:"Leather Strips", yield:4, labor:0, stock:0, lines:[ L("Leather",1) ] },
+    { id:uid(), name:"Poor Charcoal", yield:1, labor:0, stock:0, lines:[ L("Firewood",2) ] },
+    { id:uid(), name:"Quicksilver Ingot", yield:1, labor:0, stock:0, lines:[ L("Quicksilver Ore",6), L("Coke",6) ] },
+    { id:uid(), name:"Silver Ingot", yield:1, labor:0, stock:0, lines:[ L("Silver Ore",6), L("Charcoal",6) ] },
+    { id:uid(), name:"Thread", yield:1, labor:0, stock:0, lines:[ L("Yellow Mountain Flower",5) ] },
   ],
-  // Placeholder tailoring database — swap for your server's real recipes anytime.
-  // Same shape as the Smithy: variant families can share a base recipe; demand nudges luxury pieces.
   recipes: [
-    { id:uid(), name:"Commoner's Tunic", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",2), L("Thread",1) ] },
-    { id:uid(), name:"Belted Tunic", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",2), L("Leather Strip",1), L("Thread",1) ] },
-    { id:uid(), name:"Farmer's Clothes", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",2), L("Woolen Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Barkeep's Clothes", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",2), L("Cotton Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Laborer's Clothes", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",1), L("Woolen Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Hooded Robes", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",3), L("Thread",2), L("Dye",1) ] },
-    { id:uid(), name:"Monk's Robes", value:null, labor:null, demand:1, lines:[ L("Woolen Cloth",3), L("Thread",2) ] },
-    { id:uid(), name:"Novice Robes", value:null, labor:null, demand:1.1, lines:[ L("Woolen Cloth",2), L("Cotton Cloth",1), L("Thread",2), L("Dye",1) ] },
-    { id:uid(), name:"Adept Robes", value:null, labor:null, demand:1.15, lines:[ L("Silk Bolt",1), L("Woolen Cloth",2), L("Thread",2), L("Dye",1) ] },
-    { id:uid(), name:"Mage Robes", value:null, labor:null, demand:1.2, lines:[ L("Silk Bolt",2), L("Woolen Cloth",1), L("Thread",2), L("Dye",1) ] },
-    { id:uid(), name:"Archmage's Robes", value:null, labor:null, demand:1.4, lines:[ L("Silk Bolt",3), L("Cotton Cloth",1), L("Dye",2), L("Thread",2) ] },
-    { id:uid(), name:"Fine Clothes", value:null, labor:null, demand:1.1, lines:[ L("Woolen Cloth",3), L("Silk Bolt",1), L("Dye",1) ] },
-    { id:uid(), name:"Merchant's Clothes", value:null, labor:null, demand:1, lines:[ L("Cotton Cloth",2), L("Woolen Cloth",1), L("Dye",1) ] },
-    { id:uid(), name:"Noble's Robe", value:null, labor:null, demand:1.3, lines:[ L("Silk Bolt",3), L("Dye",1), L("Thread",2) ] },
-    { id:uid(), name:"Wedding Dress", value:null, labor:null, demand:1.5, lines:[ L("Silk Bolt",4), L("Linen Cloth",1), L("Thread",2) ] },
-    { id:uid(), name:"Traveler's Cloak", value:null, labor:null, demand:1, lines:[ L("Woolen Cloth",2), L("Leather Strip",1), L("Thread",1) ] },
-    { id:uid(), name:"Hooded Cloak", value:null, labor:null, demand:1, lines:[ L("Woolen Cloth",2), L("Linen Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Fur-lined Cloak", value:null, labor:null, demand:1.2, lines:[ L("Woolen Cloth",2), L("Leather",2), L("Thread",1) ] },
-    { id:uid(), name:"Hood", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Woolen Hood", value:null, labor:null, demand:1, lines:[ L("Woolen Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Cap", value:null, labor:null, demand:1, lines:[ L("Cotton Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Wide-brim Hat", value:null, labor:null, demand:1, lines:[ L("Woolen Cloth",1), L("Leather Strip",1), L("Thread",1) ] },
-    { id:uid(), name:"Mittens", value:null, labor:null, demand:1, lines:[ L("Woolen Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Leather Gloves", value:null, labor:null, demand:1, lines:[ L("Leather Strip",2), L("Thread",1) ] },
-    { id:uid(), name:"Fine Gloves", value:null, labor:null, demand:1.1, lines:[ L("Silk Bolt",1), L("Leather Strip",1), L("Thread",1) ] },
-    { id:uid(), name:"Shoes", value:null, labor:null, demand:1, lines:[ L("Leather Strip",2), L("Linen Cloth",1) ] },
-    { id:uid(), name:"Leather Boots", value:null, labor:null, demand:1, lines:[ L("Leather Strip",3), L("Thread",1) ] },
-    { id:uid(), name:"Fine Boots", value:null, labor:null, demand:1.1, lines:[ L("Leather Strip",2), L("Silk Bolt",1), L("Thread",1) ] },
-    { id:uid(), name:"Sash", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",1), L("Dye",1) ] },
-    { id:uid(), name:"Scarf", value:null, labor:null, demand:1, lines:[ L("Woolen Cloth",1), L("Thread",1) ] },
-    { id:uid(), name:"Apron", value:null, labor:null, demand:1, lines:[ L("Linen Cloth",1), L("Leather Strip",1) ] },
-    { id:uid(), name:"Padded Gambeson", value:null, labor:null, demand:1.1, lines:[ L("Padded Lining",2), L("Leather Strip",2), L("Thread",2) ] }
+    { id:uid(), name:"Adept Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Adept Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather Strips",1), L("Thread",4) ] },
+    { id:uid(), name:"Alik'r Hood", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",3) ] },
+    { id:uid(), name:"Apprentice Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Archmage's Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",2) ] },
+    { id:uid(), name:"Archmage's Hood", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",3) ] },
+    { id:uid(), name:"Archmage's Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Arkay Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Azura Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Belted Tunic", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",3) ] },
+    { id:uid(), name:"Black Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Black Priest Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",3) ] },
+    { id:uid(), name:"Black Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Blacksmith's Apron", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",3) ] },
+    { id:uid(), name:"Blue Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Blue Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Boiled Leather Cuirass", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather Armor",1), L("Iron Ingot",1), L("Leather Strips",4) ] },
+    { id:uid(), name:"Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Boy's Blue Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Boy's Green Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Boy's Grey Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Boy's Red Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Boy's Yellow Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Brown Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Brown Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Chef's Hat", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Chef's Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Clothes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",4) ] },
+    { id:uid(), name:"College Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",4), L("Thread",6) ] },
+    { id:uid(), name:"College of Winterhold Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Common Clothes 01", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 02", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 03", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 04", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 05", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 06", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 07", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 08", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 09", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 10", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 11", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 12", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 13", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 14", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 15", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 16", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 17", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 18", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 19", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 20", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 21", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 22", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 23", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 24", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 25", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 26", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 27", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 28", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 29", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 30", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 31", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 32", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 33", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 34", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 35", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 36", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 37", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 38", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 39", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 40", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 41", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Clothes 42", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",1), L("Leather",1) ] },
+    { id:uid(), name:"Common Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",3) ] },
+    { id:uid(), name:"Common Robes 03", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 05", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 06", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 07", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 08", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 09", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 12", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 14", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 15", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 16", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 17", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 20", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 21", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes 22", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes Hooded 01", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes Hooded 02", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes Hooded 04", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes Hooded 10", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes Hooded 11", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes Hooded 13", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Common Robes Hooded 18", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather",2) ] },
+    { id:uid(), name:"Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Cuffed Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",3) ] },
+    { id:uid(), name:"Cultist Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Cultist Gloves", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Cultist Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",4) ] },
+    { id:uid(), name:"Daedric Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Dark Alik'r Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",3) ] },
+    { id:uid(), name:"Dark Brotherhood Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Dark Hammerfell Garb", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",4) ] },
+    { id:uid(), name:"Dark Redguard Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Dawngaurd Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Dibella Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Divines Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Dunmer Hooded Outfit", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Dunmer Outfit", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Dunmer Shoes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Embellished Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Embroidered Garment", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Emperor's Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Expert Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather Strips",1), L("Thread",4) ] },
+    { id:uid(), name:"Exquisite Cloak", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Quicksilver Ingot",2), L("Thread",10) ] },
+    { id:uid(), name:"Falkreath Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Fastened Scarf", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",10) ] },
+    { id:uid(), name:"Fine Armguards", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather Strips",2), L("Leather",2) ] },
+    { id:uid(), name:"Fine Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",3) ] },
+    { id:uid(), name:"Fine Clothes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Fine Clothes Arcana", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Aureate Death", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Bardic", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Blood Moon", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Blood Pact", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Blue Moon", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Burnished", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Charcoal", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Darkmoon", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Deepwood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Fuscia", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Ilinalta", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Poison Ivy", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Red Violet", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Seashell", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Spring Pink", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Ulvenwald", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Violet Kiss", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Clothes Wolfsbane", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Silver Ingot",2), L("Gold Ingot",2), L("Leather",2), L("Thread",16) ] },
+    { id:uid(), name:"Fine Hat", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Fine Raiment", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Footwraps", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1) ] },
+    { id:uid(), name:"Fur Cloak (Black)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Bear Pelt",1), L("Gold Ingot",1) ] },
+    { id:uid(), name:"Fur Cloak (Brown)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Sabre Cat Pelt",1), L("Gold Ingot",1) ] },
+    { id:uid(), name:"Fur Cloak (Snowy Sabre)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Sabre Cat Snow Pelt",1), L("Gold Ingot",1) ] },
+    { id:uid(), name:"Fur Cloak (Vale Sabre)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Gold Ingot",1), L("Vale Sabre Cat Hide",1) ] },
+    { id:uid(), name:"Fur Cloak (White)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Snow Bear Pelt",1), L("Gold Ingot",1) ] },
+    { id:uid(), name:"Fur-Trimmed Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Fur-lined Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",3) ] },
+    { id:uid(), name:"Gathered Scarf", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Thread",10) ] },
+    { id:uid(), name:"Gilded Wristguards", value:null, labor:null, demand:1, src:"mod", lines:[ L("Gold Ingot",1), L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Girl's Blue Dress", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Girl's Green Dress", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Girl's Grey Dress", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Girl's Red Dress", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Girl's Yellow Dress", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Gloves", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Glowdust Gem Backpack", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Lesser Soul Gem",1), L("Gold Ingot",1), L("Leather Strips",2), L("Leather",2) ] },
+    { id:uid(), name:"Green Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Green Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Grey Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Grey Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Greybeard's Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Greybeard's Hood", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Greybeard's Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hammerfell Garb", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",4) ] },
+    { id:uid(), name:"Hat", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Heavy Quilted Surcoat 01", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",12), L("Leather",2) ] },
+    { id:uid(), name:"Hjaalmarch Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Hooded Archmage's Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Hooded Arkay Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Azura Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Black Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Blue Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Brown Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Dibella Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Divines Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Green Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Grey Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Julianos Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Kynareth Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Mara Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Monk Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Monk Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Necromancer Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Red Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Talos Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Hooded Thalmor Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",4) ] },
+    { id:uid(), name:"Jester's Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Jester's Clothes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Jester's Gloves", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Jester's Hat", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Julianos Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Kynareth Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Leather", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Sabre Cat Snow Pelt",4) ] },
+    { id:uid(), name:"Leather Cape", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2) ] },
+    { id:uid(), name:"Leather Doublet", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",1), L("Leather Armor",1) ] },
+    { id:uid(), name:"Linen Cape (Black)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Linen Cape (Blue)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Linen Cape (Green)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Linen Cape (Purple)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Linen Cape (Red)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Linen Cape (White)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Linen Cape (Yellow)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Loose Neck Gaiter", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather Strips",2), L("Thread",10) ] },
+    { id:uid(), name:"Mage Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2) ] },
+    { id:uid(), name:"Mage Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",3) ] },
+    { id:uid(), name:"Mage Robes Variant", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",3) ] },
+    { id:uid(), name:"Mara Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Markarth Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Master Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather Strips",1), L("Thread",4) ] },
+    { id:uid(), name:"Miner's Clothes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Monk Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Monk Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Monk Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Moth Priest Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Moth Priest Sandals", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Mourner's Clothes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Mourner's Hat", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Mythic Dawn Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Mythic Dawn Gloves", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Mythic Dawn Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Mythic Dawn Hooded Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Mythic Dawn Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Necromancer Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Necromancer Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Noble Clothes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Novice Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Novice Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather Strips",1), L("Thread",4) ] },
+    { id:uid(), name:"Orange Mage Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",3) ] },
+    { id:uid(), name:"Pale Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Patchwork Satchel", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",10) ] },
+    { id:uid(), name:"Pleated Shoes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",3) ] },
+    { id:uid(), name:"Priest Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",3) ] },
+    { id:uid(), name:"Priest Sandals", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",2) ] },
+    { id:uid(), name:"Prisoner's Cuffs", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1) ] },
+    { id:uid(), name:"Psijic Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",2) ] },
+    { id:uid(), name:"Psijic Gloves", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",2) ] },
+    { id:uid(), name:"Psijic Hood", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",3) ] },
+    { id:uid(), name:"Psijic Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Quilted Mantle", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Thread",10) ] },
+    { id:uid(), name:"Quilted Surcoat 01", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",12), L("Leather",2) ] },
+    { id:uid(), name:"Quilted Surcoat 02", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",12), L("Leather",2) ] },
+    { id:uid(), name:"Quilted Tunic", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",12), L("Leather",2) ] },
+    { id:uid(), name:"Quilted Tunic and Green Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",12), L("Leather",2) ] },
+    { id:uid(), name:"Quilted Tunic and White Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",12), L("Leather",2) ] },
+    { id:uid(), name:"Quilted Tunic with Surcoat", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",12), L("Leather",2) ] },
+    { id:uid(), name:"Ragged Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1) ] },
+    { id:uid(), name:"Ragged Cap", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1) ] },
+    { id:uid(), name:"Ragged Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1) ] },
+    { id:uid(), name:"Ragged Trousers", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1) ] },
+    { id:uid(), name:"Red Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Red Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Redguard Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Refined Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Reinforced Backpack", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Corundum Ingot",1), L("Leather Strips",3), L("Leather",2), L("Thread",10) ] },
+    { id:uid(), name:"Reinforced Backpack & Lantern", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",2), L("Corundum Ingot",1), L("Firewood",2), L("Leather Strips",4), L("Leather",3) ] },
+    { id:uid(), name:"Reinforced Mantle", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Thread",10) ] },
+    { id:uid(), name:"Reinforced Satchel", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Quicksilver Ingot",1), L("Leather Strips",3), L("Leather",2) ] },
+    { id:uid(), name:"Riften Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Robed Iron Armor", value:null, labor:null, demand:1, src:"mod", lines:[ L("Iron Armor",1), L("Leather Strips",2), L("Leather",1) ] },
+    { id:uid(), name:"Roughspun Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1) ] },
+    { id:uid(), name:"Rugged Cape", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",10) ] },
+    { id:uid(), name:"Rugged Mask", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Shoes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Short Cloth Cape", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Thread",10) ] },
+    { id:uid(), name:"Short Woven Scarf", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",10) ] },
+    { id:uid(), name:"Shrouded Hand Wraps", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Shrouded Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Shrouded Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Shrouded Shoes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Solitude Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Stormcloak Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Sturdy Pouch (Left)", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Quicksilver Ingot",1), L("Leather Strips",1), L("Thread",5) ] },
+    { id:uid(), name:"Sturdy Pouch (Right)", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Quicksilver Ingot",1), L("Leather Strips",1), L("Thread",5) ] },
+    { id:uid(), name:"Talos Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Tavern Clothes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Telvanni Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",4) ] },
+    { id:uid(), name:"Telvanni Shoes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Temple Priest Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Temple Priest Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",3) ] },
+    { id:uid(), name:"Temple Priest Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Thalmor Gloves", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",2), L("Thread",1) ] },
+    { id:uid(), name:"Thalmor Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",3) ] },
+    { id:uid(), name:"Thalmor Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",4) ] },
+    { id:uid(), name:"Tied Linen Pouch (Left)", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",10) ] },
+    { id:uid(), name:"Tied Linen Pouch (Right)", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",10) ] },
+    { id:uid(), name:"Toothlock Satchel", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Sabre Cat Tooth",1), L("Leather Strips",2), L("Thread",5) ] },
+    { id:uid(), name:"Trader's Resource", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",2), L("Firewood",2), L("Leather Strips",4), L("Thread",5) ] },
+    { id:uid(), name:"Trader's Resource & Lantern", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",4), L("Firewood",3), L("Leather Strips",4), L("Thread",5) ] },
+    { id:uid(), name:"Traveller Robes Black", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Black Hooded", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Brown", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",1) ] },
+    { id:uid(), name:"Traveller Robes Brown Hooded", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Grey", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Grey Hooded", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Red", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Red Hooded", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Tan", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",3) ] },
+    { id:uid(), name:"Traveller Robes Tan Hooded", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Tundra Cotton",5), L("Leather Strips",2) ] },
+    { id:uid(), name:"Ulfric's Armguards", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather Strips",2), L("Leather",2) ] },
+    { id:uid(), name:"Ulfric's Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2), L("Thread",3) ] },
+    { id:uid(), name:"Ulfric's Clothes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",5) ] },
+    { id:uid(), name:"Vaermina Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Vampire Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Vampire Gloves", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Leather",1), L("Thread",1) ] },
+    { id:uid(), name:"Vampire Hood", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",2) ] },
+    { id:uid(), name:"Vampire Robes", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",4) ] },
+    { id:uid(), name:"Wedding Dress", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",5) ] },
+    { id:uid(), name:"Wedding Sandals", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather Strips",2), L("Leather",1) ] },
+    { id:uid(), name:"Wedding Wreath", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1), L("Yellow Mountain Flower",5) ] },
+    { id:uid(), name:"Whiterun Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
+    { id:uid(), name:"Winterhold Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
   ],
   order: [],
   presets: [],
@@ -1795,19 +2101,7 @@ function renderInventory(){
 /* ═════════ Add tab ═════════ */
 // Verified vanilla recipes. Sources: UESP / Fextralife / Fandom, cross-checked.
 // Steel armor set additionally corroborated by the in-game Rugged Steel Armor screenshot.
-const PACK = [
-  ["Linen Shirt",         [["Linen Cloth",2],["Thread",1]]],
-  ["Wool Leggings",       [["Woolen Cloth",2],["Thread",1]]],
-  ["Quilted Vest",        [["Padded Lining",1],["Linen Cloth",1],["Thread",1]]],
-  ["Patched Cloak",       [["Woolen Cloth",1],["Linen Cloth",1],["Thread",1]]],
-  ["Fur Hood",            [["Woolen Cloth",1],["Leather",1],["Thread",1]]],
-  ["Winter Cloak",        [["Woolen Cloth",3],["Leather",2],["Thread",2]]],
-  ["Riding Boots",        [["Leather Strip",3],["Woolen Cloth",1],["Thread",1]]],
-  ["Silk Gloves",         [["Silk Bolt",1],["Thread",1]]],
-  ["Ceremonial Sash",     [["Silk Bolt",1],["Dye",1]]],
-  ["Apprentice Hood",     [["Cotton Cloth",1],["Dye",1],["Thread",1]]],
-  ["Embroidered Robes",   [["Silk Bolt",2],["Cotton Cloth",1],["Dye",2],["Thread",2]]]
-];
+const PACK = DEFAULT.recipes.map(r => [r.name, (r.lines||[]).map(l => [l.ingredient, l.qty])]);
 function renderPack(){
   const missing = PACK.filter(([n]) => !data.recipes.some(r => norm(r.name) === norm(n)));
   const el = document.getElementById("packList");
@@ -2185,6 +2479,80 @@ function resetAll(){
   data = fix(structuredClone(DEFAULT)); bindSettings(); render();
 }
 
+/* ═════════ Catalog migration (one-click, price-preserving) ═════════ */
+// Fresh books ship stamped at CATALOG_VERSION and skip this. Older saved books
+// (no stamp) get a one-click "back up & update" prompt on load.
+function adoptCatalog(){
+  const nz = norm;
+  const oMat={}, oInt={}, oRec={};
+  (data.materials||[]).forEach(m => oMat[nz(m.name)] = m);
+  (data.intermediates||[]).forEach(x => oInt[nz(x.name)] = x);
+  (data.recipes||[]).forEach(r => oRec[nz(r.name)] = r);
+  const fresh = structuredClone(DEFAULT);
+  const nameSet = a => new Set(a.map(o => nz(o.name)));
+
+  const nM = nameSet(fresh.materials);
+  data.materials = fresh.materials.map(m => { const o=oMat[nz(m.name)]; return o ? {...m, price:o.price, stock:o.stock} : m; })
+    .concat((data.materials||[]).filter(m => !nM.has(nz(m.name))));
+
+  const nI = nameSet(fresh.intermediates);
+  data.intermediates = fresh.intermediates.map(x => { const o=oInt[nz(x.name)]; return o ? {...x, labor:o.labor, stock:o.stock} : x; })
+    .concat((data.intermediates||[]).filter(x => !nI.has(nz(x.name))));
+
+  const nR = nameSet(fresh.recipes);
+  data.recipes = fresh.recipes.map(r => { const o=oRec[nz(r.name)]; return o ? {...r, value:o.value, labor:o.labor, demand:o.demand} : r; })
+    .concat((data.recipes||[]).filter(r => !nR.has(nz(r.name))));    // keep user's custom items
+
+  data.catalogVersion = CATALOG_VERSION;
+  data = fix(data);
+  save();
+}
+function backupThenMigrate(ov){
+  try { localStorage.setItem(KEY + "__backup", JSON.stringify(data)); } catch(e){}      // 1) in-browser snapshot
+  try {                                                                                   // 2) file download (user gesture)
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+    a.download = "keizaal-tailor-book-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+  } catch(e){}
+  adoptCatalog(); bindSettings(); render();                                               // 3) migrate + refresh
+  if (ov) ov.remove();
+  alert("Catalog updated to the Keizaal database.\nA backup of your previous book was downloaded and also kept in this browser (Settings \u2192 Restore previous book).");
+}
+function maybeMigrate(){
+  if (IS_DEMO) return;
+  if ((data.catalogVersion||0) >= CATALOG_VERSION) return;
+  const hasWork = (data.recipes||[]).some(r => r.value != null)
+               || (data.materials||[]).some(m => +m.price > 0)
+               || (data.trades||[]).length || (data.sales||[]).length || (data.smelts||[]).length;
+  if (!hasWork){ adoptCatalog(); render(); return; }      // nothing entered yet -> silent
+  showMigrateModal();
+}
+function showMigrateModal(){
+  const ov = document.createElement("div");
+  ov.className = "mig-ov";
+  ov.innerHTML =
+    '<div class="mig-box">'
+    + '<h3>Recipe database update</h3>'
+    + '<p>A new Keizaal tailoring catalog is ready. We\'ll first save a backup of your current book, then load the new catalog. <strong>Your entered prices are kept.</strong></p>'
+    + '<div class="mig-actions">'
+    + '<button class="b pri" id="migGo">\u2b07 Back up &amp; update</button>'
+    + '<button class="b" id="migLater">Not now</button>'
+    + '</div>'
+    + '<p class="mig-fine">A copy is also saved inside this browser \u2014 restore it any time from Settings \u2192 Backup &amp; Restore.</p>'
+    + '</div>';
+  document.body.appendChild(ov);
+  document.getElementById("migGo").onclick = () => backupThenMigrate(ov);
+  document.getElementById("migLater").onclick = () => ov.remove();
+}
+function restoreBackup(){
+  let r=null; try { r = localStorage.getItem(KEY + "__backup"); } catch(e){}
+  if (!r){ alert("No in-browser backup found."); return; }
+  if (!confirm("Restore your previous book? This replaces the current catalog and prices with the pre-update backup.")) return;
+  try { data = fix(JSON.parse(r)); bindSettings(); render(); alert("Previous book restored."); }
+  catch(e){ alert("Backup could not be read."); }
+}
+
 /* ═════════ Render ═════════ */
 function render(){
   classifyAll();
@@ -2216,6 +2584,7 @@ bindSettings();
    the preview banner; its "Back to login" asks the shell to re-gate. */
 if (IS_DEMO) document.body.classList.add("demo");
 render();
+maybeMigrate();
 </script>
 </body>
 </html>
