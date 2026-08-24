@@ -14,6 +14,14 @@
         "tailor",
         "traders"
       ]
+    },
+    "d2c5c8f46534905ef6626037c3abe480fca32fe2eef44fab18c62848bb74402b": {
+      "thru": 4,
+      "tools": [
+        "smithy",
+        "tailor",
+        "traders"
+      ]
     }
   }
 }
