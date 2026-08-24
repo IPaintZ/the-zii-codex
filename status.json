@@ -13,12 +13,6 @@
         "smithy",
         "tailor"
       ]
-    },
-    "f83c7cf83737e4e9e41c5ec10b78800f4213505329b2ef566f9313b5aeea54da": {
-      "thru": 1,
-      "tools": [
-        "smithy"
-      ]
     }
   }
 }
