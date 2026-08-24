@@ -108,6 +108,8 @@
   .admin-tbl th { color:var(--dim); font-size:10px; text-transform:uppercase; letter-spacing:.4px; }
   .admin-tbl td.mono { font-family:Consolas,monospace; color:var(--dim); }
   .admin-tbl td.n, .admin-tbl th.n { text-align:right; }
+  .admin-tbl td .mono { font-family:Consolas,monospace; }
+  .admin-tbl tr.hit td { background:color-mix(in srgb, var(--accent) 18%, transparent); }
   .badge { font-size:10px; padding:1px 6px; border-radius:8px; }
   .badge.ok { background:rgba(111,174,95,.18); color:var(--good); }
   .badge.exp { background:rgba(208,106,90,.18); color:var(--bad); }
@@ -246,12 +248,17 @@
           <button class="b pri" onclick="genCode()">Generate</button>
         </div>
         <div id="genOut" class="codegen-out" style="display:none"></div>
-        <p class="hint" style="margin-top:8px">The plaintext code shows once — copy it to the buyer now. Only its hash is stored/published. Then <em>Publish</em> to activate it.</p>
+        <p class="hint" style="margin-top:8px">Copy the plaintext to the buyer now. Only its hash is published; the plaintext is also kept privately in the table below on <em>this device</em>. Then <em>Publish</em> to activate it.</p>
       </div>
 
       <div class="admin-sec">
         <h4>Active codes <span id="codeCount" class="dim" style="font-size:11px"></span></h4>
-        <table class="admin-tbl"><thead><tr><th>Note</th><th>Unlocks</th><th>Hash</th><th class="n">Thru wk</th><th>Status</th><th></th></tr></thead>
+        <div class="row" style="margin-bottom:8px">
+          <span class="dim" style="font-size:11px">find a code:</span>
+          <input id="lookupCode" placeholder="paste a code to locate its row" spellcheck="false" oninput="lookupCode()" style="flex:1;min-width:160px">
+          <span id="lookupMsg" class="dim" style="font-size:11px"></span>
+        </div>
+        <table class="admin-tbl"><thead><tr><th>Note</th><th>Code</th><th>Unlocks</th><th>Hash</th><th class="n">Thru wk</th><th>Status</th><th></th></tr></thead>
           <tbody id="codeRows"></tbody></table>
         <div class="row" style="margin-top:10px">
           <button class="b" onclick="downloadBackup()">Download backup</button>
@@ -289,6 +296,7 @@ const LK = {
   cfg:   "keisaal_gh_cfg",
   token: "keisaal_gh_token",
   notes: "keisaal_code_notes",
+  plain: "keisaal_code_plain",       // admin-only: plaintext of codes generated on this device, keyed by hash
   code:  "keisaal_access_code",
   tool:  "keisaal_last_tool",
   master:"keisaal_master"        // admin passphrase used as a personal, never-expiring master key
@@ -302,6 +310,7 @@ let genSel = new Set(["smithy"]);   // which tools a newly generated code unlock
 let ghState = { week:1, codes:{} };
 let ghSha = null;
 let codeNotes = jparse(localStorage.getItem(LK.notes)) || {};
+let codePlain = jparse(localStorage.getItem(LK.plain)) || {};   // hash -> plaintext, kept only on this admin device
 
 function jparse(s){ try { return JSON.parse(s); } catch(e){ return null; } }
 async function sha256hex(str){
@@ -556,6 +565,7 @@ async function genCode(){
   const h = await sha256hex(normCode(code));
   ghState.codes[h] = { thru:(+ghState.week||1) + weeks - 1, tools };
   if (note){ codeNotes[h] = note; localStorage.setItem(LK.notes, JSON.stringify(codeNotes)); }
+  codePlain[h] = code; localStorage.setItem(LK.plain, JSON.stringify(codePlain));
   const out = document.getElementById("genOut");
   out.style.display = "flex";
   out.innerHTML = `<span>${code}</span><button class="b" onclick="navigator.clipboard.writeText('${code}')">Copy</button>`;
@@ -563,8 +573,19 @@ async function genCode(){
   renderCodes();
   ghmsg("Code added (" + tools.map(t=>TOOLS[t].short).join(" & ") + ", thru week " + ghState.codes[h].thru + ") — Publish to activate.", "dim");
 }
-function removeCode(h){ delete ghState.codes[h]; delete codeNotes[h]; localStorage.setItem(LK.notes, JSON.stringify(codeNotes)); renderCodes(); ghmsg("Removed — Publish to apply.", "dim"); }
-function killAll(){ if (!confirm("Remove ALL access codes? Everyone is locked out of both tools after you Publish.")) return; ghState.codes = {}; renderCodes(); ghmsg("All codes cleared — Publish to apply.", "dim"); }
+function removeCode(h){ delete ghState.codes[h]; delete codeNotes[h]; delete codePlain[h]; localStorage.setItem(LK.notes, JSON.stringify(codeNotes)); localStorage.setItem(LK.plain, JSON.stringify(codePlain)); renderCodes(); ghmsg("Removed — Publish to apply.", "dim"); }
+function killAll(){ if (!confirm("Remove ALL access codes? Everyone is locked out of both tools after you Publish.")) return; ghState.codes = {}; codePlain = {}; localStorage.setItem(LK.plain, JSON.stringify(codePlain)); renderCodes(); ghmsg("All codes cleared — Publish to apply.", "dim"); }
+function copyPlain(h){ if (codePlain[h]) navigator.clipboard.writeText(codePlain[h]); }
+async function lookupCode(){
+  const raw = document.getElementById("lookupCode").value;
+  const msg = document.getElementById("lookupMsg");
+  document.querySelectorAll("#codeRows tr.hit").forEach(tr => tr.classList.remove("hit"));
+  if (!normCode(raw)){ msg.textContent = ""; return; }
+  const h = await sha256hex(normCode(raw));
+  const tr = document.querySelector(`#codeRows tr[data-h="${h}"]`);
+  if (tr){ tr.classList.add("hit"); tr.scrollIntoView({block:"nearest"}); msg.textContent = "found: " + (codeNotes[h] || "no note"); msg.style.color = "var(--good)"; }
+  else { msg.textContent = "no matching code"; msg.style.color = ""; }
+}
 function toolBadges(tools){ return tools.map(t => `<span class="tbadge ${t}">${TOOLS[t]?TOOLS[t].icon+' '+TOOLS[t].short:t}</span>`).join(""); }
 function renderCodes(){
   document.getElementById("wkNow").textContent = ghState.week;
@@ -573,14 +594,18 @@ function renderCodes(){
   document.getElementById("codeCount").textContent = "· " + rows.length + " total";
   document.getElementById("codeRows").innerHTML = rows.map(h => {
     const e = normEntry(ghState.codes[h]); const active = e.thru >= ghState.week;
-    return `<tr><td>${esc(codeNotes[h]||"—")}</td><td>${toolBadges(e.tools)}</td><td class="mono">${h.slice(0,10)}…</td>`+
+    const plain = codePlain[h];
+    const codeCell = plain
+      ? `<span class="mono">${esc(plain)}</span> <button class="b" onclick="copyPlain('${h}')">copy</button>`
+      : `<span class="dim" title="Generated on another device — plaintext not stored here">unknown</span>`;
+    return `<tr data-h="${h}"><td>${esc(codeNotes[h]||"—")}</td><td>${codeCell}</td><td>${toolBadges(e.tools)}</td><td class="mono">${h.slice(0,10)}…</td>`+
            `<td class="n">${e.thru}</td>`+
            `<td><span class="badge ${active?"ok":"exp"}">${active?"active":"expired"}</span></td>`+
            `<td><button class="b" onclick="removeCode('${h}')">✕</button></td></tr>`;
-  }).join("") || `<tr><td colspan="6" class="dim">No codes yet.</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="dim">No codes yet.</td></tr>`;
 }
 function downloadBackup(){
-  const blob = new Blob([JSON.stringify({ status:ghState, notes:codeNotes }, null, 2)], { type:"application/json" });
+  const blob = new Blob([JSON.stringify({ status:ghState, notes:codeNotes, codes:codePlain }, null, 2)], { type:"application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "keizaal-status-backup.json"; a.click(); URL.revokeObjectURL(a.href);
 }
 
