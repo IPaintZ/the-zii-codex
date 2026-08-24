@@ -637,7 +637,7 @@
 /* ═════════ Data ═════════ */
 const uid = () => Math.random().toString(36).slice(2,9);
 const L = (ingredient, qty) => ({ ingredient, qty });
-const CATALOG_VERSION = 2;   // bump when a new baked catalog ships; triggers the one-click backup+migrate
+const CATALOG_VERSION = 3;   // bump when a new baked catalog ships; triggers the one-click backup+migrate
 
 // Preview mode: yoursite/?demo (or the gate's "see a live demo" link) opens a sandboxed
 // tour on fixed sample numbers. It never reads or writes the real book (localStorage) and
@@ -660,10 +660,8 @@ const DEFAULT = {
     { id:uid(), name:"Corundum Ore", price:0, stock:0 },
     { id:uid(), name:"Firewood", price:0, stock:0 },
     { id:uid(), name:"Gold Ore", price:0, stock:0 },
-    { id:uid(), name:"Iron Armor", price:0, stock:0 },
     { id:uid(), name:"Iron Ore", price:0, stock:0 },
     { id:uid(), name:"Leather", price:0, stock:0 },
-    { id:uid(), name:"Leather Armor", price:0, stock:0 },
     { id:uid(), name:"Lesser Soul Gem", price:0, stock:0 },
     { id:uid(), name:"Linen Wrap", price:0, stock:0 },
     { id:uid(), name:"Quicksilver Ore", price:0, stock:0 },
@@ -705,7 +703,6 @@ const DEFAULT = {
     { id:uid(), name:"Blacksmith's Apron", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",3) ] },
     { id:uid(), name:"Blue Cowl", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
     { id:uid(), name:"Blue Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
-    { id:uid(), name:"Boiled Leather Cuirass", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather Armor",1), L("Iron Ingot",1), L("Leather Strips",4) ] },
     { id:uid(), name:"Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",1), L("Thread",1) ] },
     { id:uid(), name:"Boy's Blue Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
     { id:uid(), name:"Boy's Green Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",2) ] },
@@ -885,7 +882,6 @@ const DEFAULT = {
     { id:uid(), name:"Kynareth Robes", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",4) ] },
     { id:uid(), name:"Leather", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Sabre Cat Snow Pelt",4) ] },
     { id:uid(), name:"Leather Cape", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather",2) ] },
-    { id:uid(), name:"Leather Doublet", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",1), L("Leather Armor",1) ] },
     { id:uid(), name:"Linen Cape (Black)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
     { id:uid(), name:"Linen Cape (Blue)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
     { id:uid(), name:"Linen Cape (Green)", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
@@ -949,7 +945,6 @@ const DEFAULT = {
     { id:uid(), name:"Reinforced Mantle", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Thread",10) ] },
     { id:uid(), name:"Reinforced Satchel", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Quicksilver Ingot",1), L("Leather Strips",3), L("Leather",2) ] },
     { id:uid(), name:"Riften Guard Cloak", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",2) ] },
-    { id:uid(), name:"Robed Iron Armor", value:null, labor:null, demand:1, src:"mod", lines:[ L("Iron Armor",1), L("Leather Strips",2), L("Leather",1) ] },
     { id:uid(), name:"Roughspun Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Thread",1) ] },
     { id:uid(), name:"Rugged Cape", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",10) ] },
     { id:uid(), name:"Rugged Mask", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Thread",5) ] },
@@ -2491,13 +2486,10 @@ function adoptCatalog(){
   const fresh = structuredClone(DEFAULT);
   const nameSet = a => new Set(a.map(o => nz(o.name)));
 
-  const nM = nameSet(fresh.materials);
-  data.materials = fresh.materials.map(m => { const o=oMat[nz(m.name)]; return o ? {...m, price:o.price, stock:o.stock} : m; })
-    .concat((data.materials||[]).filter(m => !nM.has(nz(m.name))));
+  // catalog is authoritative for materials/intermediates; apply the user's prices by name.
+  data.materials = fresh.materials.map(m => { const o=oMat[nz(m.name)]; return o ? {...m, price:o.price, stock:o.stock} : m; });
 
-  const nI = nameSet(fresh.intermediates);
-  data.intermediates = fresh.intermediates.map(x => { const o=oInt[nz(x.name)]; return o ? {...x, labor:o.labor, stock:o.stock} : x; })
-    .concat((data.intermediates||[]).filter(x => !nI.has(nz(x.name))));
+  data.intermediates = fresh.intermediates.map(x => { const o=oInt[nz(x.name)]; return o ? {...x, labor:o.labor, stock:o.stock} : x; });
 
   const nR = nameSet(fresh.recipes);
   data.recipes = fresh.recipes.map(r => { const o=oRec[nz(r.name)]; return o ? {...r, value:o.value, labor:o.labor, demand:o.demand} : r; })

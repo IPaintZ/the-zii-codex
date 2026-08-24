@@ -666,7 +666,7 @@
 /* ═════════ Data ═════════ */
 const uid = () => Math.random().toString(36).slice(2,9);
 const L = (ingredient, qty) => ({ ingredient, qty });
-const CATALOG_VERSION = 2;   // bump when a new baked catalog ships; triggers the one-click backup+migrate
+const CATALOG_VERSION = 3;   // bump when a new baked catalog ships; triggers the one-click backup+migrate
 
 // Preview mode: yoursite/?demo (or the gate's "see a live demo" link) opens a sandboxed
 // tour on fixed sample numbers. It never reads or writes the real book (localStorage) and
@@ -685,12 +685,6 @@ const DEFAULT = {
   // pipeline (xEdit COBJ winning-override -> CSV -> converter). Prices/values are
   // left blank; each user fills their own. Every recipe carries a src: tag.
   materials: [
-    { id:uid(), name:"Aetherium Crest", price:0, stock:0 },
-    { id:uid(), name:"Ancient Nord Battle Axe", price:0, stock:0 },
-    { id:uid(), name:"Ancient Nord Bow", price:0, stock:0 },
-    { id:uid(), name:"Ancient Nord Greatsword", price:0, stock:0 },
-    { id:uid(), name:"Ancient Nord Sword", price:0, stock:0 },
-    { id:uid(), name:"Ancient Nord War Axe", price:0, stock:0 },
     { id:uid(), name:"Bear Pelt", price:0, stock:0 },
     { id:uid(), name:"Bone Hawk Claw", price:0, stock:0 },
     { id:uid(), name:"Bone Hawk Feathers", price:0, stock:0 },
@@ -699,17 +693,13 @@ const DEFAULT = {
     { id:uid(), name:"Chaurus Chitin", price:0, stock:0 },
     { id:uid(), name:"Chitin Plate", price:0, stock:0 },
     { id:uid(), name:"Corundum Ore", price:0, stock:0 },
-    { id:uid(), name:"Crossbow", price:0, stock:0 },
     { id:uid(), name:"Daedra Heart", price:0, stock:0 },
     { id:uid(), name:"Deer Hide", price:0, stock:0 },
     { id:uid(), name:"Diamond", price:0, stock:0 },
     { id:uid(), name:"Dragon Bone", price:0, stock:0 },
     { id:uid(), name:"Dragon Scales", price:0, stock:0 },
-    { id:uid(), name:"Dwarven Bolt", price:0, stock:0 },
-    { id:uid(), name:"Dwarven Crossbow", price:0, stock:0 },
     { id:uid(), name:"Ebony Ore", price:0, stock:0 },
     { id:uid(), name:"Emerald", price:0, stock:0 },
-    { id:uid(), name:"Fire Salts", price:0, stock:0 },
     { id:uid(), name:"Firewood", price:0, stock:0 },
     { id:uid(), name:"Flawless Amethyst", price:0, stock:0 },
     { id:uid(), name:"Flawless Diamond", price:0, stock:0 },
@@ -717,13 +707,11 @@ const DEFAULT = {
     { id:uid(), name:"Flawless Garnet", price:0, stock:0 },
     { id:uid(), name:"Flawless Ruby", price:0, stock:0 },
     { id:uid(), name:"Flawless Sapphire", price:0, stock:0 },
-    { id:uid(), name:"Frost Salts", price:0, stock:0 },
     { id:uid(), name:"Garnet", price:0, stock:0 },
     { id:uid(), name:"Giant Bracers (Unfitted)", price:0, stock:0 },
     { id:uid(), name:"Giant Clothes (Unfitted)", price:0, stock:0 },
     { id:uid(), name:"Giant Legwraps (Unfitted)", price:0, stock:0 },
     { id:uid(), name:"Gold Ore", price:0, stock:0 },
-    { id:uid(), name:"Hide Armor", price:0, stock:0 },
     { id:uid(), name:"Iron Ore", price:0, stock:0 },
     { id:uid(), name:"Large Decorative Dwemer Strut", price:0, stock:0 },
     { id:uid(), name:"Leather", price:0, stock:0 },
@@ -732,16 +720,10 @@ const DEFAULT = {
     { id:uid(), name:"Moonstone Ore", price:0, stock:0 },
     { id:uid(), name:"Netch Jelly", price:0, stock:0 },
     { id:uid(), name:"Netch Leather", price:0, stock:0 },
-    { id:uid(), name:"Old Helmet", price:0, stock:0 },
     { id:uid(), name:"Orichalcum Ore", price:0, stock:0 },
     { id:uid(), name:"Pelt of Karhu", price:0, stock:0 },
     { id:uid(), name:"Quicksilver Ore", price:0, stock:0 },
     { id:uid(), name:"Ruby", price:0, stock:0 },
-    { id:uid(), name:"Rust Armor", price:0, stock:0 },
-    { id:uid(), name:"Rust Boots", price:0, stock:0 },
-    { id:uid(), name:"Rust Gauntlets", price:0, stock:0 },
-    { id:uid(), name:"Rust Helmet", price:0, stock:0 },
-    { id:uid(), name:"Rust Shield", price:0, stock:0 },
     { id:uid(), name:"Sabre Cat Pelt", price:0, stock:0 },
     { id:uid(), name:"Sabre Cat Tooth", price:0, stock:0 },
     { id:uid(), name:"Sapphire", price:0, stock:0 },
@@ -749,7 +731,6 @@ const DEFAULT = {
     { id:uid(), name:"Silver Ore", price:0, stock:0 },
     { id:uid(), name:"Small Antlers", price:0, stock:0 },
     { id:uid(), name:"Stalhrim", price:0, stock:0 },
-    { id:uid(), name:"Steel Bolt", price:0, stock:0 },
     { id:uid(), name:"Void Salts", price:0, stock:0 },
   ],
   intermediates: [
@@ -772,9 +753,6 @@ const DEFAULT = {
     { id:uid(), name:"Steel Ingot", yield:1, labor:0, stock:0, lines:[ L("Corundum Ore",3), L("Iron Ore",3), L("Charcoal",6) ] },
   ],
   recipes: [
-    { id:uid(), name:"Aetherial Crown", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Gold Ingot",2), L("Flawless Sapphire",2), L("Dwarven Metal Ingot",2), L("Aetherium Crest",1) ] },
-    { id:uid(), name:"Aetherial Shield", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Refined Malachite",2), L("Dwarven Metal Ingot",4), L("Aetherium Crest",1) ] },
-    { id:uid(), name:"Aetherial Staff", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Ebony Ingot",2), L("Gold Ingot",1), L("Dwarven Metal Ingot",2), L("Aetherium Crest",1) ] },
     { id:uid(), name:"Ancient Falmer Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Refined Moonstone",1), L("Refined Malachite",2), L("Leather Strips",2), L("Leather",1) ] },
     { id:uid(), name:"Ancient Falmer Crown", value:null, labor:null, demand:1, src:"mod", lines:[ L("Refined Moonstone",1), L("Refined Malachite",2), L("Leather Strips",1), L("Leather",1) ] },
     { id:uid(), name:"Ancient Falmer Cuirass", value:null, labor:null, demand:1, src:"mod", lines:[ L("Refined Moonstone",2), L("Refined Malachite",4), L("Leather Strips",3), L("Leather",1) ] },
@@ -952,14 +930,6 @@ const DEFAULT = {
     { id:uid(), name:"Elven Sword", value:null, labor:null, demand:1, src:"vanilla", lines:[ L("Iron Ingot",1), L("Refined Moonstone",1), L("Quicksilver Ingot",1), L("Leather Strips",1) ] },
     { id:uid(), name:"Elven War Axe", value:null, labor:null, demand:1, src:"vanilla", lines:[ L("Iron Ingot",1), L("Refined Moonstone",1), L("Quicksilver Ingot",1), L("Leather Strips",2) ] },
     { id:uid(), name:"Elven Warhammer", value:null, labor:null, demand:1, src:"vanilla", lines:[ L("Iron Ingot",2), L("Refined Moonstone",2), L("Quicksilver Ingot",1), L("Leather Strips",3) ] },
-    { id:uid(), name:"Enhanced Crossbow", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Corundum Ingot",2), L("Crossbow",1) ] },
-    { id:uid(), name:"Enhanced Dwarven Crossbow", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Quicksilver Ingot",2), L("Dwarven Crossbow",1) ] },
-    { id:uid(), name:"Exploding Dwarven Bolt of Fire", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Fire Salts",1), L("Dwarven Bolt",10) ] },
-    { id:uid(), name:"Exploding Dwarven Bolt of Ice", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Frost Salts",1), L("Dwarven Bolt",10) ] },
-    { id:uid(), name:"Exploding Dwarven Bolt of Shock", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Void Salts",1), L("Dwarven Bolt",10) ] },
-    { id:uid(), name:"Exploding Steel Bolt of Fire", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Fire Salts",1), L("Steel Bolt",10) ] },
-    { id:uid(), name:"Exploding Steel Bolt of Ice", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Frost Salts",1), L("Steel Bolt",10) ] },
-    { id:uid(), name:"Exploding Steel Bolt of Shock", value:null, labor:null, demand:1, src:"dawnguard", lines:[ L("Void Salts",1), L("Steel Bolt",10) ] },
     { id:uid(), name:"Falmer Armor", value:null, labor:null, demand:1, src:"mod", lines:[ L("Chaurus Chitin",2), L("Leather Strips",3) ] },
     { id:uid(), name:"Falmer Arrow", value:null, labor:null, demand:1, src:"mod", lines:[ L("Chaurus Chitin",1), L("Firewood",1) ] },
     { id:uid(), name:"Falmer Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Chaurus Chitin",1), L("Leather Strips",2) ] },
@@ -1114,7 +1084,6 @@ const DEFAULT = {
     { id:uid(), name:"Leather Helmet", value:null, labor:null, demand:1, src:"vanilla", lines:[ L("Leather Strips",1), L("Leather",2) ] },
     { id:uid(), name:"Long Bow", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Firewood",8), L("Leather Strips",2), L("Leather",1) ] },
     { id:uid(), name:"Mail Tunic", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",1), L("Iron Ingot",2), L("Leather Strips",4) ] },
-    { id:uid(), name:"Mail and Hide Armor", value:null, labor:null, demand:1, src:"mod", lines:[ L("Hide Armor",1), L("Iron Ingot",2), L("Leather Strips",4) ] },
     { id:uid(), name:"Mail and Jacket", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",1), L("Iron Ingot",2), L("Leather Strips",4) ] },
     { id:uid(), name:"Mail and Surcoat", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",1), L("Iron Ingot",2), L("Leather Strips",4) ] },
     { id:uid(), name:"Moon Monk's Boots", value:null, labor:null, demand:1, src:"mod", lines:[ L("Leather Strips",5), L("Leather",10) ] },
@@ -1151,11 +1120,6 @@ const DEFAULT = {
     { id:uid(), name:"Noble Ebony Gauntlets", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ebony Ingot",2), L("Leather Strips",2) ] },
     { id:uid(), name:"Noble Ebony Helmet", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ebony Ingot",3), L("Leather Strips",2) ] },
     { id:uid(), name:"Noble Ebony Shield", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ebony Ingot",4), L("Leather Strips",1) ] },
-    { id:uid(), name:"Nord Hero Battle Axe", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ancient Nord Battle Axe",1), L("Steel Ingot",3), L("Leather Strips",3) ] },
-    { id:uid(), name:"Nord Hero Bow", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ancient Nord Bow",1), L("Steel Ingot",3) ] },
-    { id:uid(), name:"Nord Hero Greatsword", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ancient Nord Greatsword",1), L("Steel Ingot",3), L("Leather Strips",3) ] },
-    { id:uid(), name:"Nord Hero Sword", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ancient Nord Sword",1), L("Steel Ingot",2), L("Leather Strips",2) ] },
-    { id:uid(), name:"Nord Hero War Axe", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Ancient Nord War Axe",1), L("Steel Ingot",2), L("Leather Strips",2) ] },
     { id:uid(), name:"Nordic Arrow", value:null, labor:null, demand:1, src:"dragonborn", lines:[ L("Steel Ingot",1), L("Quicksilver Ingot",1), L("Firewood",1) ] },
     { id:uid(), name:"Nordic Battleaxe", value:null, labor:null, demand:1, src:"dragonborn", lines:[ L("Steel Ingot",5), L("Quicksilver Ingot",1), L("Leather Strips",2) ] },
     { id:uid(), name:"Nordic Bow", value:null, labor:null, demand:1, src:"dragonborn", lines:[ L("Steel Ingot",3), L("Quicksilver Ingot",1) ] },
@@ -1210,14 +1174,7 @@ const DEFAULT = {
     { id:uid(), name:"Northern Steel Helmet", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Steel Ingot",2), L("Leather Strips",2) ] },
     { id:uid(), name:"Northern Studded Armor", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",3), L("Leather",4) ] },
     { id:uid(), name:"Oiled Mail Hauberk", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",1), L("Iron Ingot",2), L("Leather Strips",4) ] },
-    { id:uid(), name:"Oiled Mail and Hide Armor", value:null, labor:null, demand:1, src:"mod", lines:[ L("Hide Armor",1), L("Iron Ingot",2), L("Leather Strips",4) ] },
     { id:uid(), name:"Oiled Mail and Jacket", value:null, labor:null, demand:1, src:"mod", lines:[ L("Linen Wrap",1), L("Iron Ingot",2), L("Leather Strips",4) ] },
-    { id:uid(), name:"Old Armor", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",2), L("Leather Strips",2), L("Leather",2), L("Rust Armor",1) ] },
-    { id:uid(), name:"Old Boots", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Leather",1), L("Rust Boots",1) ] },
-    { id:uid(), name:"Old Captain Helmet", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Leather",1), L("Old Helmet",1) ] },
-    { id:uid(), name:"Old Gauntlets", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Leather",1), L("Rust Gauntlets",1) ] },
-    { id:uid(), name:"Old Helmet", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Leather",1), L("Rust Helmet",1) ] },
-    { id:uid(), name:"Old Shield", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Iron Ingot",1), L("Leather Strips",2), L("Leather",1), L("Rust Shield",1) ] },
     { id:uid(), name:"Orcish Armor", value:null, labor:null, demand:1, src:"vanilla", lines:[ L("Iron Ingot",1), L("Orichalcum Ingot",4), L("Leather Strips",3) ] },
     { id:uid(), name:"Orcish Arrow", value:null, labor:null, demand:1, src:"keizaal", lines:[ L("Orichalcum Ingot",1), L("Firewood",1) ] },
     { id:uid(), name:"Orcish Battleaxe", value:null, labor:null, demand:1, src:"vanilla", lines:[ L("Iron Ingot",1), L("Orichalcum Ingot",4), L("Leather Strips",2) ] },
@@ -3042,13 +2999,10 @@ function adoptCatalog(){
   const fresh = structuredClone(DEFAULT);
   const nameSet = a => new Set(a.map(o => nz(o.name)));
 
-  const nM = nameSet(fresh.materials);
-  data.materials = fresh.materials.map(m => { const o=oMat[nz(m.name)]; return o ? {...m, price:o.price, stock:o.stock} : m; })
-    .concat((data.materials||[]).filter(m => !nM.has(nz(m.name))));
+  // catalog is authoritative for materials/intermediates; apply the user's prices by name.
+  data.materials = fresh.materials.map(m => { const o=oMat[nz(m.name)]; return o ? {...m, price:o.price, stock:o.stock} : m; });
 
-  const nI = nameSet(fresh.intermediates);
-  data.intermediates = fresh.intermediates.map(x => { const o=oInt[nz(x.name)]; return o ? {...x, labor:o.labor, stock:o.stock} : x; })
-    .concat((data.intermediates||[]).filter(x => !nI.has(nz(x.name))));
+  data.intermediates = fresh.intermediates.map(x => { const o=oInt[nz(x.name)]; return o ? {...x, labor:o.labor, stock:o.stock} : x; });
 
   const nR = nameSet(fresh.recipes);
   data.recipes = fresh.recipes.map(r => { const o=oRec[nz(r.name)]; return o ? {...r, value:o.value, labor:o.labor, demand:o.demand} : r; })
