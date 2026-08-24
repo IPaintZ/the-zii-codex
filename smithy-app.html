@@ -423,6 +423,35 @@
   </div>
 
   <div class="box">
+    <h3>Smelting <span class="sp"><span class="pill">ore → ingot</span></span></h3>
+    <p class="hint">Log a smelt: pick a component, choose how many batches you ran, and Smelt. This
+      <strong>subtracts the ores &amp; fuel</strong> from your materials and <strong>adds the finished
+      ingots</strong> to Crafted Components below.</p>
+    <div class="row" style="align-items:flex-end">
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Component</span>
+        <select id="smMat" style="min-width:150px" onchange="updSmeltPreview()"></select></label>
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Batches</span>
+        <span class="step">
+          <button type="button" class="c2" onclick="stepField(this,-1,10)" aria-label="minus 10">−−</button>
+          <button type="button" onclick="stepField(this,-1)" aria-label="decrease">−</button>
+          <input id="smQty" class="n w60" type="number" min="1" step="1" value="1" oninput="updSmeltPreview()">
+          <button type="button" onclick="stepField(this,1)" aria-label="increase">+</button>
+          <button type="button" class="c2" onclick="stepField(this,1,10)" aria-label="plus 10">++</button>
+        </span></label>
+      <button class="b pri" onclick="doSmelt()" style="margin-bottom:1px" title="Consume the inputs and add the smelted output to inventory">🔥 Smelt</button>
+    </div>
+    <div id="smInfo" class="note" style="margin-top:8px"></div>
+  </div>
+
+  <div class="box">
+    <h3>Smelt Log <span class="sp"><span class="pill" id="smCount"></span></span></h3>
+    <table><thead><tr>
+      <th>When</th><th>Made</th><th class="n">Qty</th><th>Consumed</th><th></th>
+    </tr></thead><tbody id="smBody"></tbody></table>
+    <div id="smEmpty" class="empty">No smelts yet — log one above.</div>
+  </div>
+
+  <div class="box">
     <h3>Crafted Components</h3>
     <p class="hint">Ingots and strips you've already smelted and are holding.</p>
     <table><thead><tr>
@@ -811,6 +840,7 @@ function fix(d){
   d.buyers.forEach(b => { b.note ??= ""; b.profileId ??= null; b.prices ??= {}; });
   d.settings.buyer ??= null;
   d.trades ||= [];                                    // fluctuating-price buy/sell ledger
+  d.smelts ||= [];                                    // smelting log (ore → ingot production)
   d.settings.realCost ??= false;                      // value/cost at actual paid prices vs. fixed calc price
   d.materials.forEach(x => x.stock ??= 0);
   d.intermediates.forEach(x => x.stock ??= 0);
@@ -1836,6 +1866,98 @@ function renderInventory(){
   }).join("");
   document.getElementById("invTotal").innerHTML =
     `Raw ${exact(rawVal)} + components ${exact(intVal)} = <span class="gold">${exact(rawVal+intVal)}</span> total holdings`;
+
+  renderSmelt();
+}
+
+/* ═════════ Smelting ═════════ */
+// A smelt turns one component's recipe inputs into finished stock. One "batch" runs the
+// recipe once: it consumes each line × batches and yields (yield × batches) of the output.
+// Inputs are deducted from wherever they live — raw materials or, for tiered components, the
+// held stock of the sub-component — mirroring how the game actually consumes them.
+function smeltPlan(it, batches){
+  const y = +it.yield || 1;
+  const inputs = (it.lines||[]).map(l => {
+    const need = (+l.qty||0) * batches;
+    const raw = data.materials.find(m => m.name === l.ingredient);
+    const inter = raw ? null : data.intermediates.find(x => x.name === l.ingredient);
+    const have = raw ? (+raw.stock||0) : inter ? (+inter.stock||0) : 0;
+    return { name:l.ingredient, need, have, exists:!!(raw||inter), short:need > have + 1e-9 };
+  });
+  return { out:y * batches, inputs };
+}
+function updSmeltPreview(){
+  const sel = document.getElementById("smMat"); if(!sel) return;
+  const info = document.getElementById("smInfo");
+  const it = data.intermediates.find(x => x.name === sel.value);
+  if(!it){ info.innerHTML = '<span class="dim">Add a component with a recipe in the Recipes tab to smelt.</span>'; return; }
+  const batches = Math.max(1, Math.floor(+document.getElementById("smQty").value||1));
+  const p = smeltPlan(it, batches);
+  if(!p.inputs.length){ info.innerHTML = '<span class="dim">'+esc(it.name)+' has no recipe lines — nothing to consume. Set its inputs in the Recipes tab.</span>'; return; }
+  const parts = p.inputs.map(inp => {
+    const cls = !inp.exists ? "bad" : inp.short ? "ember" : "";
+    const tag = !inp.exists ? " (unknown)" : inp.short ? " (have "+inp.have+")" : "";
+    return '<span class="'+cls+'">'+inp.need+"× "+esc(inp.name)+tag+"</span>";
+  }).join(", ");
+  const anyShort = p.inputs.some(i => i.short || !i.exists);
+  info.innerHTML = 'Produces <span class="gold">'+p.out+"× "+esc(it.name)+'</span> · consumes '+parts
+    + (anyShort ? ' <span class="ember">— short on stock (will floor at 0)</span>' : '');
+}
+function doSmelt(){
+  const sel = document.getElementById("smMat");
+  const it = data.intermediates.find(x => x.name === sel.value);
+  if(!it){ alert("Pick a component to smelt."); return; }
+  const batches = Math.max(1, Math.floor(+document.getElementById("smQty").value||1));
+  const p = smeltPlan(it, batches);
+  if(!p.inputs.length){ alert(it.name+" has no recipe lines to consume. Set its inputs in the Recipes tab first."); return; }
+  const short = p.inputs.filter(i => i.short || !i.exists)
+    .map(i => "  "+i.name+": need "+i.need+", have "+(i.exists? i.have : 0)+(i.exists?"":" (unknown)"));
+  let msg = "Smelt "+batches+" batch(es) → "+p.out+"× "+it.name
+    +"\n\nConsumes:\n"+p.inputs.map(i => "  "+i.need+"× "+i.name).join("\n");
+  if(short.length) msg += "\n\n⚠ Short on stock (will floor at 0):\n"+short.join("\n");
+  msg += "\n\nProceed? This updates your inventory.";
+  if(!confirm(msg)) return;
+  // Apply: deduct inputs, add output.
+  p.inputs.forEach(inp => {
+    const raw = data.materials.find(m => m.name === inp.name);
+    const target = raw || data.intermediates.find(x => x.name === inp.name);
+    if(target) target.stock = Math.max(0, (+target.stock||0) - inp.need);
+  });
+  it.stock = (+it.stock||0) + p.out;
+  data.smelts.push({ id:uid(), ts:Date.now(), out:it.name, qty:p.out, batches,
+    consumed:p.inputs.map(i => ({ name:i.name, qty:i.need })) });
+  render();
+}
+function undoSmelt(id){
+  const i = (data.smelts||[]).findIndex(s => s.id === id); if(i < 0) return;
+  const s = data.smelts[i];
+  if(!confirm("Undo this smelt? Restores the consumed inputs and removes the produced "+s.qty+"× "+s.out+".")) return;
+  const it = data.intermediates.find(x => x.name === s.out);
+  if(it) it.stock = Math.max(0, (+it.stock||0) - s.qty);
+  (s.consumed||[]).forEach(c => {
+    const raw = data.materials.find(m => m.name === c.name);
+    const target = raw || data.intermediates.find(x => x.name === c.name);
+    if(target) target.stock = (+target.stock||0) + c.qty;
+  });
+  data.smelts.splice(i, 1); render();
+}
+function renderSmelt(){
+  const sel = document.getElementById("smMat"); if(!sel) return;
+  const keep = sel.value;
+  sel.innerHTML = data.intermediates.map(it => `<option value="${esc(it.name)}">${esc(it.name)}</option>`).join("");
+  if(keep && data.intermediates.some(it => it.name === keep)) sel.value = keep;
+  updSmeltPreview();
+
+  const log = (data.smelts||[]).slice().reverse();
+  document.getElementById("smBody").innerHTML = log.map(s => `<tr>
+      <td class="dim">${fmtTs(s.ts)}</td>
+      <td class="steel">${esc(s.out)}</td>
+      <td class="n">${s.qty}</td>
+      <td class="dim">${(s.consumed||[]).map(c => c.qty+"× "+esc(c.name)).join(", ")}</td>
+      <td class="n"><button class="x" title="Undo — restores inputs, removes output" onclick="undoSmelt('${s.id}')">↺</button></td>
+    </tr>`).join("");
+  document.getElementById("smEmpty").style.display = log.length ? "none" : "block";
+  document.getElementById("smCount").textContent = (data.smelts||[]).length + " smelt(s)";
 }
 
 /* ═════════ Add tab ═════════ */
