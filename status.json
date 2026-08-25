@@ -12,7 +12,9 @@
       "tools": [
         "smithy",
         "tailor",
-        "traders"
+        "traders",
+        "alchemy",
+        "cooking"
       ]
     },
     "d2c5c8f46534905ef6626037c3abe480fca32fe2eef44fab18c62848bb74402b": {
@@ -20,7 +22,9 @@
       "tools": [
         "smithy",
         "tailor",
-        "traders"
+        "traders",
+        "alchemy",
+        "cooking"
       ]
     }
   }
