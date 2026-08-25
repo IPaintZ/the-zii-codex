@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Keizaal Cook — Mockup A · Full Kitchen</title>
+<style>
+  :root {
+    --bg:#16130f; --panel:#211c16; --panel-2:#2b241b; --panel-3:#332a1f; --line:#3d3325;
+    --ink:#ece3d2; --dim:#a99b81; --gold:#e0913c; --gold-2:#b96f28;
+    --ember:#c85a2e; --good:#6fae5f; --bad:#d06a5a; --steel:#8fb3c9;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; font-size:13px; line-height:1.4; background:var(--bg); color:var(--ink); }
+  .top { border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:20; }
+  .top-in { max-width:1180px; margin:0 auto; padding:0 14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .brand { font-variant:small-caps; letter-spacing:.5px; color:var(--gold); font-size:16px; font-weight:700; padding:9px 0; white-space:nowrap; }
+  .brand .mk { font-size:10px; color:var(--dim); font-variant:normal; letter-spacing:.3px; margin-left:6px; padding:1px 6px; border:1px solid var(--line); border-radius:9px; }
+  nav { display:flex; gap:2px; margin-left:auto; flex-wrap:wrap; }
+  nav button { background:none; border:none; border-bottom:2px solid transparent; color:var(--dim); padding:10px 13px; cursor:pointer; font-size:13px; font-family:inherit; }
+  nav button:hover { color:var(--ink); }
+  nav button.on { color:var(--gold); border-bottom-color:var(--gold); font-weight:600; }
+  main { max-width:1180px; margin:0 auto; padding:14px; }
+  .tab { display:none; } .tab.on { display:block; }
+  .box { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+  .box > h3 { margin:0 0 9px; font-size:13px; color:var(--gold); font-variant:small-caps; letter-spacing:.5px; display:flex; align-items:center; gap:8px; }
+  .box > h3 .sp { margin-left:auto; display:flex; gap:6px; align-items:center; }
+  .hint { color:var(--dim); font-size:11.5px; margin:-4px 0 9px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
+  @media(max-width:860px){ .cols { grid-template-columns:1fr; } nav { width:100%; } }
+
+  table { width:100%; border-collapse:collapse; }
+  th,td { padding:4px 7px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+  th { color:var(--dim); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; font-weight:600; cursor:default; white-space:nowrap; }
+  th.s { cursor:pointer; } th.s:hover { color:var(--gold); }
+  td.n,th.n { text-align:right; } tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover { background:var(--panel-2); }
+
+  input,select { background:var(--panel-2); border:1px solid var(--line); color:var(--ink); border-radius:5px; padding:3px 6px; font-size:12.5px; font-family:inherit; width:100%; }
+  input:focus,select:focus { outline:none; border-color:var(--gold-2); }
+  input.n { text-align:right; }
+  input.bare { background:none; border-color:transparent; padding:2px 4px; }
+  input.bare:hover { border-color:var(--line); }
+  input.bare:focus { background:var(--panel-2); border-color:var(--gold-2); }
+  .w50{width:50px}.w60{width:60px}.w70{width:70px}.w80{width:80px}
+  input[type=number]{ -moz-appearance:textfield; }
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  .step { display:inline-flex; align-items:stretch; gap:4px; vertical-align:middle; }
+  .step > input { text-align:right; }
+  .step > button { flex:none; width:26px; padding:0; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:5px; cursor:pointer; font-size:15px; line-height:1; font-family:inherit; }
+  .step > button:hover { border-color:var(--gold-2); color:var(--gold); }
+  .step > input.bare { border-color:var(--line); background:var(--panel-2); }
+
+  .switch { display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+  .switch > input { position:absolute; opacity:0; width:0; height:0; }
+  .switch .track { flex:none; position:relative; width:34px; height:18px; border-radius:10px; background:var(--panel-3); border:1px solid var(--line); transition:background .15s,border-color .15s; }
+  .switch .track::after { content:""; position:absolute; top:1px; left:1px; width:14px; height:14px; border-radius:50%; background:var(--dim); transition:transform .15s,background .15s; }
+  .switch > input:checked + .track { background:var(--gold-2); border-color:var(--gold); }
+  .switch > input:checked + .track::after { transform:translateX(16px); background:#1c1710; }
+  .switch .swlbl { font-size:12.5px; }
+
+  button.b { background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:4px 9px; cursor:pointer; font-size:12px; font-family:inherit; white-space:nowrap; }
+  button.b:hover { border-color:var(--gold-2); color:var(--gold); }
+  button.b.pri { background:var(--gold-2); color:#1c1710; border-color:var(--gold); font-weight:600; }
+  button.b.pri:hover { background:var(--gold); }
+  button.x { background:none; border:none; color:var(--bad); cursor:pointer; padding:0 4px; font-size:13px; opacity:.55; }
+  button.x:hover { opacity:1; }
+
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg button { background:var(--panel-2); border:none; color:var(--dim); font-family:inherit; font-size:11.5px; padding:3px 9px; cursor:pointer; }
+  .seg button:hover { color:var(--ink); }
+  .seg button.on { background:var(--gold-2); color:#1c1710; font-weight:600; }
+
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .gold { color:var(--gold); font-weight:700; }
+  .steel { color:var(--steel); } .good { color:var(--good); } .bad { color:var(--bad); } .ember { color:var(--ember); } .dim { color:var(--dim); }
+  .pill { font-size:10px; padding:1px 6px; border-radius:9px; background:var(--panel-3); color:var(--dim); border:1px solid var(--line); white-space:nowrap; }
+  .pill.bench { border-color:var(--gold-2); color:var(--gold); }
+
+  details { border:1px solid var(--line); border-radius:6px; margin-bottom:5px; background:var(--panel-2); }
+  details[open] { border-color:var(--gold-2); }
+  summary { padding:5px 9px; cursor:pointer; display:flex; align-items:center; gap:9px; list-style:none; font-size:12.5px; }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:"▸"; color:var(--dim); font-size:10px; }
+  details[open] summary::before { content:"▾"; color:var(--gold); }
+  summary .nm { font-weight:600; }
+  summary .sp { margin-left:auto; display:flex; gap:10px; align-items:center; }
+  .body { padding:8px 10px 10px 24px; border-top:1px solid var(--line); }
+  .ing { display:grid; grid-template-columns:1fr 58px 66px 22px; gap:6px; align-items:center; margin-bottom:4px; }
+  .ing .c { text-align:right; color:var(--dim); font-size:12px; }
+  .ing-h { display:grid; grid-template-columns:1fr 58px 66px 22px; gap:6px; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; }
+  .ing-h span:nth-child(2),.ing-h span:nth-child(3){ text-align:right; }
+  .knobs { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+  .k label:not(.switch) { display:block; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
+  .note { font-size:11.5px; color:var(--dim); margin-top:7px; }
+  .empty { color:var(--dim); font-size:12px; padding:8px 2px; }
+  .bar { height:4px; background:var(--panel-3); border-radius:2px; overflow:hidden; min-width:44px; }
+  .bar i { display:block; height:100%; background:var(--good); }
+  .bar i.low { background:var(--ember); } .bar i.out { background:var(--bad); }
+
+  .tot td { border-top:1px solid var(--gold-2); border-bottom:none; font-weight:700; padding-top:7px; }
+  .dd{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:50;background:var(--panel);border:1px solid var(--gold-2);border-radius:8px;max-height:320px;overflow:auto}
+  .dd-row{padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .dd-row:last-child{border-bottom:none}
+  .dd-row.active,.dd-row:hover{background:var(--panel-2)}
+  .dd-empty{padding:8px 10px;color:var(--dim);font-size:12px}
+  .till { display:flex; gap:22px; flex-wrap:wrap; }
+  .till .cell .lab { font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--dim); }
+  .till .cell .val { font-size:19px; font-weight:700; }
+</style>
+</head>
+<body>
+
+<div class="top"><div class="top-in">
+  <div class="brand">🍲 Keizaal Cook <span class="mk">Mockup A · Full Kitchen</span></div>
+  <nav>
+    <button id="t-cook"     class="on" onclick="tab('cook')">Cook</button>
+    <button id="t-cookbook" onclick="tab('cookbook')">Cookbook</button>
+    <button id="t-pantry"   onclick="tab('pantry')">Pantry</button>
+    <button id="t-sales"    onclick="tab('sales')">Sales</button>
+    <button id="t-recipes"  onclick="tab('recipes')">Recipes</button>
+    <button id="t-settings" onclick="tab('settings')">Settings</button>
+  </nav>
+</div></div>
+
+<main>
+
+<!-- ══ COOK ══ -->
+<div id="tab-cook" class="tab on">
+  <div class="box">
+    <h3>Quick Quote <span class="sp"><span class="pill">instant price, no order</span></span></h3>
+    <div class="row">
+      <span style="position:relative;display:block;flex:1;min-width:240px">
+        <input id="qqItem" autocomplete="off" placeholder="Type a dish…" style="width:100%" oninput="openQQ();renderQuote()" onblur="setTimeout(()=>ddClose('qqDD'),150)">
+        <div id="qqDD" class="dd" style="display:none"></div>
+      </span>
+      <button class="b" onclick="document.getElementById('qqItem').value='';ddClose('qqDD');renderQuote()">Clear</button>
+    </div>
+    <div id="qqResult" class="note"></div>
+  </div>
+
+  <div class="box">
+    <h3>New Order</h3>
+    <div class="row">
+      <span style="position:relative;display:inline-block;min-width:240px">
+        <input id="addItem" autocomplete="off" placeholder="Type a dish…" style="width:100%" oninput="openOrderDD()" onblur="setTimeout(()=>ddClose('addDD'),150)">
+        <div id="addDD" class="dd" style="display:none"></div>
+      </span>
+      <span class="step">
+        <button type="button" onclick="stepField('addQty',-1)">−</button>
+        <input id="addQty" class="n w60" type="number" min="1" step="1" value="1" onkeydown="if(event.key==='Enter')orderAdd()">
+        <button type="button" onclick="stepField('addQty',1)">+</button>
+      </span>
+      <button class="b pri" onclick="orderAdd()">+ Add</button>
+      <button class="b" onclick="orderClear()">Clear</button>
+      <label class="row" style="gap:5px;margin-left:8px">Buyer
+        <select id="custSel" style="width:auto" onchange="data.settings.customer=this.value; render()"></select></label>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="box">
+      <h3>Order <span class="sp"><span class="pill" id="orderCount">0 dishes</span>
+        <button class="b pri" onclick="checkout()" title="Sell order &amp; deduct ingredients from pantry">✓ Checkout</button></span></h3>
+      <table id="orderTbl">
+        <thead><tr><th>Dish</th><th class="n">Qty</th><th class="n">Cost</th><th class="n">Price</th><th class="n">Line</th><th></th></tr></thead>
+        <tbody id="orderBody"></tbody>
+      </table>
+      <div id="orderEmpty" class="empty">No dishes yet — add one above.</div>
+    </div>
+
+    <div class="box">
+      <h3>Ingredients Needed <span class="sp"><button class="b" id="buyBtn" style="display:none" onclick="buyShortfalls()">Buy missing</button></span></h3>
+      <p class="hint">Raw ingredients for the order (milled flour expanded to wheat), checked against pantry stock.</p>
+      <table><thead><tr><th>Ingredient</th><th class="n">Need</th><th class="n">Have</th><th class="n">Short</th><th class="n">Buy cost</th></tr></thead>
+        <tbody id="needBody"></tbody></table>
+      <div id="needEmpty" class="empty">Add dishes to see what you'll need.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COOKBOOK ══ -->
+<div id="tab-cookbook" class="tab">
+  <div class="box">
+    <h3>Cookbook
+      <span class="sp">
+        <select id="cbBench" style="width:120px" onchange="renderCookbook()"></select>
+        <input id="cbSearch" placeholder="Search…" style="width:130px" oninput="renderCookbook()">
+        <span class="pill" id="cbCount"></span>
+      </span>
+    </h3>
+    <p class="hint">Every dish you can make, with live cost and your price. Click a column to sort. Station shown per dish.</p>
+    <table><thead><tr>
+      <th class="s" onclick="cbSort('name')">Dish</th>
+      <th class="s" onclick="cbSort('bench')">Station</th>
+      <th class="s n" onclick="cbSort('canmake')">Can make</th>
+      <th class="s n" onclick="cbSort('mat')">Ingredients</th>
+      <th class="s n" onclick="cbSort('labor')">Labor</th>
+      <th class="s n" onclick="cbSort('price')">Your price</th>
+    </tr></thead><tbody id="cbBody"></tbody></table>
+  </div>
+</div>
+
+<!-- ══ PANTRY ══ -->
+<div id="tab-pantry" class="tab">
+  <div class="box">
+    <h3>Mill &amp; Prep <span class="sp"><span class="pill">wheat → flour</span></span></h3>
+    <p class="hint">Log a prep batch (e.g. milling wheat into flour): pick a component, choose batches, and Prep. Consumes the inputs and adds the output to your pantry.</p>
+    <div class="row" style="align-items:flex-end">
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Component</span>
+        <select id="prepSel" style="min-width:150px" onchange="updPrepPreview()"></select></label>
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Batches</span>
+        <span class="step"><button type="button" onclick="stepField('prepQty',-1)">−</button>
+          <input id="prepQty" class="n w60" type="number" min="1" step="1" value="1" oninput="updPrepPreview()">
+          <button type="button" onclick="stepField('prepQty',1)">+</button></span></label>
+      <button class="b pri" onclick="doPrep()" title="Consume inputs, add output to pantry">🔪 Prep</button>
+      <span id="prepInfo" class="dim" style="font-size:12px"></span>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>Ingredients <span class="sp"><span class="pill" id="invValue"></span></span></h3>
+    <p class="hint">Your raw stock. <strong>Calc price</strong> is the fixed cost basis (edit in Recipes). Record a buy or sell to move stock.</p>
+    <div class="row" style="align-items:flex-end;margin-bottom:8px">
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Ingredient</span>
+        <select id="trMat" style="min-width:150px"></select></label>
+      <span class="seg" id="trSideSeg" style="margin-bottom:1px">
+        <button type="button" data-side="buy" class="on" onclick="setTradeSide('buy')">Buy</button>
+        <button type="button" data-side="sell" onclick="setTradeSide('sell')">Sell</button></span>
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Qty</span>
+        <span class="step"><button type="button" onclick="stepField('trQty',-1)">−</button>
+          <input id="trQty" class="n w60" type="number" min="0" step="1" value="1"><button type="button" onclick="stepField('trQty',1)">+</button></span></label>
+      <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Unit price</span>
+        <span class="step"><button type="button" onclick="stepField('trUnit',-1)">−</button>
+          <input id="trUnit" class="n w70" type="number" min="0" step="0.5" value="0"><button type="button" onclick="stepField('trUnit',1)">+</button></span></label>
+      <button class="b pri" onclick="recordTrade()" style="margin-bottom:1px">Record</button>
+    </div>
+    <table><thead><tr><th>Ingredient</th><th class="n">Calc price</th><th class="n">Stock</th><th class="n">Value</th></tr></thead>
+      <tbody id="invBody"></tbody></table>
+  </div>
+
+  <div class="box">
+    <h3>Prepped Components</h3>
+    <p class="hint">Flour and other prep you've already made and are holding.</p>
+    <table><thead><tr><th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th></tr></thead>
+      <tbody id="invInterBody"></tbody></table>
+  </div>
+</div>
+
+<!-- ══ SALES ══ -->
+<div id="tab-sales" class="tab">
+  <div class="box">
+    <h3>Till <span class="sp"><button class="b" onclick="resetTill()">Reset totals</button></span></h3>
+    <div class="till" id="tillRow"></div>
+    <div class="note">Revenue, cost and profit accumulate across every checkout.</div>
+  </div>
+  <div class="box">
+    <h3>Sales Log <span class="sp"><span class="pill" id="salesCount"></span><button class="b" onclick="clearSales()">Clear log</button></span></h3>
+    <table><thead><tr><th>When</th><th>Buyer</th><th>Dishes</th><th class="n">Revenue</th><th class="n">Profit</th><th></th></tr></thead>
+      <tbody id="salesBody"></tbody></table>
+    <div id="salesEmpty" class="empty">No sales yet — check out an order on the Cook tab.</div>
+  </div>
+</div>
+
+<!-- ══ RECIPES ══ -->
+<div id="tab-recipes" class="tab">
+  <div class="box">
+    <h3>Add <span class="sp"></span></h3>
+    <div class="row">
+      <button class="b" onclick="addRecipe()">+ Dish</button>
+      <button class="b" onclick="addIntermediate()">+ Component</button>
+      <button class="b" onclick="addMaterial()">+ Ingredient</button>
+      <span class="dim" style="font-size:11.5px">New rows appear in the sections below.</span>
+    </div>
+  </div>
+  <div class="box">
+    <h3>Raw Ingredients <span class="sp"><button class="b" onclick="addMaterial()">+ Ingredient</button></span></h3>
+    <table><thead><tr><th>Name</th><th class="n">Price / unit</th><th></th></tr></thead>
+      <tbody id="matBody"></tbody></table>
+  </div>
+  <div class="box">
+    <h3 class="steel">Components <span class="sp"><button class="b" onclick="addIntermediate()">+ Component</button></span></h3>
+    <p class="hint"><strong>Yield</strong> = units produced per batch. Cost/unit = (ingredients + labor) ÷ yield.</p>
+    <div id="interList"></div>
+  </div>
+  <div class="box">
+    <h3>Dishes <span class="sp"><button class="b" onclick="addRecipe()">+ Dish</button></span></h3>
+    <p class="hint">Price = (ingredients + labor) × markup × demand, then rounded.</p>
+    <div id="itemList"></div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS ══ -->
+<div id="tab-settings" class="tab">
+  <div class="cols">
+    <div class="box">
+      <h3>Pricing</h3>
+      <div class="knobs">
+        <div class="k"><label>Currency</label><input id="currency" class="w60"></div>
+        <div class="k"><label>Default labor</label><span class="step"><button type="button" onclick="stepField('defaultLabor',-1)">−</button><input id="defaultLabor" class="n w70" type="number" min="0" step="1"><button type="button" onclick="stepField('defaultLabor',1)">+</button></span></div>
+        <div class="k"><label>Rounding</label><label class="switch"><input type="checkbox" id="roundOn" onchange="data.settings.roundOn=this.checked; render()"><span class="track"></span><span class="swlbl">Whole numbers</span></label></div>
+      </div>
+      <div class="note">When on, sale prices round to whole numbers; off shows the exact price. Costs always show exact values.</div>
+    </div>
+    <div class="box">
+      <h3>Buyers <span class="sp"><button class="b" onclick="addCustomer()">+ Buyer</button></span></h3>
+      <p class="hint">Each buyer is one markup. The first row (Innkeeper) sets the price shown in the Cookbook.</p>
+      <table><thead><tr><th>Name</th><th class="n">Markup ×</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="custBody"></tbody></table>
+    </div>
+  </div>
+  <div class="box">
+    <h3>Backup &amp; Restore</h3>
+    <div class="row">
+      <button class="b" onclick="exportData()">⬇ Export</button>
+      <button class="b" onclick="document.getElementById('impF').click()">⬆ Import</button>
+      <input id="impF" type="file" accept="application/json" style="display:none" onchange="importData(this)">
+      <button class="b" onclick="resetAll()">↺ Reset to defaults</button>
+      <span class="pill" id="saveState">saved</span>
+    </div>
+    <div class="note">Mockup data auto-saves in this browser under its own key — it never touches your real Smithy/Tailor books. When you resupply the cooking CSV, the real catalog drops into these same three sections.</div>
+  </div>
+</div>
+
+</main>
+
+<script>
+/* ═════════ Shared cooking engine (identical model to Smithy/Tailor) ═════════ */
+const uid = () => Math.random().toString(36).slice(2,9);
+const L = (ingredient, qty) => ({ ingredient, qty });
+const KEY = "keisaal_cook_mockA";
+
+// Representative placeholder catalog — realistic Keizaal/Hearthfire cooking.
+// Structured exactly like the Tailor catalog so a real CSV drops straight in.
+const DEFAULT = {
+  settings:{ currency:"g", defaultLabor:5, roundOn:true, customer:null },
+  till:{ revenue:0, cost:0, sales:0, items:0 },
+  customers:[ {id:uid(),name:"Innkeeper",markup:2}, {id:uid(),name:"Regular",markup:1.6} ],
+  sales:[],
+  // ── Raw materials (31) ──
+  materials:[
+    { id:uid(), name:"Ale", price:0, stock:0 },
+    { id:uid(), name:"Ash Yam", price:0, stock:0 },
+    { id:uid(), name:"Bread", price:0, stock:0 },
+    { id:uid(), name:"Cabbage", price:0, stock:0 },
+    { id:uid(), name:"Carrot", price:0, stock:0 },
+    { id:uid(), name:"Chicken's Egg", price:0, stock:0 },
+    { id:uid(), name:"Clam Meat", price:0, stock:0 },
+    { id:uid(), name:"Garlic", price:0, stock:0 },
+    { id:uid(), name:"Green Apple", price:0, stock:0 },
+    { id:uid(), name:"Honeycomb", price:0, stock:0 },
+    { id:uid(), name:"Horker Meat", price:0, stock:0 },
+    { id:uid(), name:"Horse Meat", price:0, stock:0 },
+    { id:uid(), name:"Jazbay Grapes", price:0, stock:0 },
+    { id:uid(), name:"Jug of Milk", price:0, stock:0 },
+    { id:uid(), name:"Juniper Berries", price:0, stock:0 },
+    { id:uid(), name:"Lavender", price:0, stock:0 },
+    { id:uid(), name:"Leek", price:0, stock:0 },
+    { id:uid(), name:"Leg of Goat", price:0, stock:0 },
+    { id:uid(), name:"Mammoth Snout", price:0, stock:0 },
+    { id:uid(), name:"Moon Sugar", price:0, stock:0 },
+    { id:uid(), name:"Mudcrab Legs", price:0, stock:0 },
+    { id:uid(), name:"Pheasant Breast", price:0, stock:0 },
+    { id:uid(), name:"Potato", price:0, stock:0 },
+    { id:uid(), name:"Raw Beef", price:0, stock:0 },
+    { id:uid(), name:"Raw Rabbit Leg", price:0, stock:0 },
+    { id:uid(), name:"Red Apple", price:0, stock:0 },
+    { id:uid(), name:"Salmon Meat", price:0, stock:0 },
+    { id:uid(), name:"Salt Pile", price:0, stock:0 },
+    { id:uid(), name:"Snowberries", price:0, stock:0 },
+    { id:uid(), name:"Tomato", price:0, stock:0 },
+    { id:uid(), name:"Wheat", price:0, stock:0 },
+  ],
+  // ── Intermediates (6): crafted & consumed by another recipe ──
+  intermediates:[
+    { id:uid(), name:"Butter", yield:1, labor:0, stock:0, lines:[ L("Jug of Milk",1) ] },
+    { id:uid(), name:"Chicken Breast", yield:1, labor:0, stock:0, lines:[ L("Pheasant Breast",1) ] },
+    { id:uid(), name:"Eidar Cheese Wheel", yield:1, labor:0, stock:0, lines:[ L("Jug of Milk",5) ] },
+    { id:uid(), name:"Goat Cheese Wheel", yield:1, labor:0, stock:0, lines:[ L("Jug of Milk",5) ] },
+    { id:uid(), name:"Sack of Flour", yield:1, labor:0, stock:0, lines:[ L("Wheat",2) ] },
+    { id:uid(), name:"Venison", yield:1, labor:0, stock:0, lines:[ L("Raw Beef",1) ] },
+  ],
+  // ── Dishes (39) ──
+  recipes:[
+    { id:uid(), name:"Apple Cabbage Stew", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Salt Pile",1), L("Red Apple",1), L("Cabbage",1) ] },
+    { id:uid(), name:"Beef Stew", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Salt Pile",1), L("Garlic",1), L("Carrot",1), L("Raw Beef",1) ] },
+    { id:uid(), name:"Cabbage Potato Soup", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Salt Pile",1), L("Cabbage",1), L("Potato",1), L("Leek",1) ] },
+    { id:uid(), name:"Cabbage Soup", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Salt Pile",1), L("Cabbage",1) ] },
+    { id:uid(), name:"Clam Chowder", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Potato",1), L("Clam Meat",1), L("Jug of Milk",1), L("Butter",1) ] },
+    { id:uid(), name:"Cooked Beef", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Raw Beef",1) ] },
+    { id:uid(), name:"Eidar Cheese Wedge", value:null, labor:null, demand:1, yield:6, bench:"Cookpot", src:"keizaal", lines:[ L("Eidar Cheese Wheel",1) ] },
+    { id:uid(), name:"Elsweyr Fondue", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Ale",1), L("Eidar Cheese Wheel",1), L("Moon Sugar",1) ] },
+    { id:uid(), name:"Goat Cheese Wedge", value:null, labor:null, demand:1, yield:8, bench:"Cookpot", src:"keizaal", lines:[ L("Goat Cheese Wheel",1) ] },
+    { id:uid(), name:"Grilled Chicken Breast", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Chicken Breast",1) ] },
+    { id:uid(), name:"Honey", value:null, labor:null, demand:1, yield:2, bench:"Cookpot", src:"keizaal", lines:[ L("Honeycomb",1) ] },
+    { id:uid(), name:"Horker Loaf", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Horker Meat",1) ] },
+    { id:uid(), name:"Horker Stew", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Garlic",1), L("Lavender",1), L("Tomato",1), L("Horker Meat",1) ] },
+    { id:uid(), name:"Horker and Ash Yam Stew", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Garlic",1), L("Horker Meat",1), L("Ash Yam",1) ] },
+    { id:uid(), name:"Horse Haunch", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Horse Meat",1) ] },
+    { id:uid(), name:"Leg of Goat Roast", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Leg of Goat",1) ] },
+    { id:uid(), name:"Mammoth Steak", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Mammoth Snout",1) ] },
+    { id:uid(), name:"Pheasant Roast", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Pheasant Breast",1) ] },
+    { id:uid(), name:"Potato Soup", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Salt Pile",1), L("Potato",1) ] },
+    { id:uid(), name:"Rabbit Haunch", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Raw Rabbit Leg",1) ] },
+    { id:uid(), name:"Salmon Steak", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"hearthfire", lines:[ L("Salt Pile",1), L("Salmon Meat",1) ] },
+    { id:uid(), name:"Steamed Mudcrab Legs", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Butter",1), L("Mudcrab Legs",1) ] },
+    { id:uid(), name:"Tomato Soup", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Salt Pile",1), L("Garlic",1), L("Tomato",1), L("Leek",1) ] },
+    { id:uid(), name:"Vegetable Soup", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Cabbage",1), L("Potato",1), L("Tomato",1), L("Leek",1) ] },
+    { id:uid(), name:"Venison Chop", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"vanilla", lines:[ L("Salt Pile",1), L("Venison",1) ] },
+    { id:uid(), name:"Venison Stew", value:null, labor:null, demand:1, yield:1, bench:"Cookpot", src:"keizaal", lines:[ L("Salt Pile",1), L("Potato",1), L("Venison",1), L("Leek",1) ] },
+    { id:uid(), name:"Apple Dumpling", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Red Apple",1), L("Green Apple",1), L("Sack of Flour",1) ] },
+    { id:uid(), name:"Apple Pie", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Chicken's Egg",1), L("Salt Pile",1), L("Red Apple",2), L("Green Apple",2), L("Sack of Flour",1), L("Butter",1) ] },
+    { id:uid(), name:"Braided Bread", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Salt Pile",1), L("Sack of Flour",1) ] },
+    { id:uid(), name:"Bread", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Chicken's Egg",1), L("Salt Pile",1), L("Jug of Milk",1), L("Sack of Flour",1) ] },
+    { id:uid(), name:"Chicken Dumpling", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Salt Pile",1), L("Garlic",1), L("Leek",1), L("Chicken Breast",1), L("Sack of Flour",1) ] },
+    { id:uid(), name:"Garlic Bread", value:null, labor:null, demand:1, yield:2, bench:"Oven", src:"keizaal", lines:[ L("Garlic",1), L("Bread",1), L("Butter",1) ] },
+    { id:uid(), name:"Hardtack Bread", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Sack of Flour",1) ] },
+    { id:uid(), name:"Jazbay Crostata", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Jazbay Grapes",2), L("Sack of Flour",1), L("Butter",1) ] },
+    { id:uid(), name:"Juniper Berry Crostata", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Juniper Berries",3), L("Sack of Flour",1), L("Butter",1) ] },
+    { id:uid(), name:"Lavender Dumpling", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Snowberries",2), L("Lavender",1), L("Moon Sugar",1), L("Sack of Flour",1) ] },
+    { id:uid(), name:"Potato Bread", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Chicken's Egg",1), L("Salt Pile",1), L("Potato",1), L("Jug of Milk",1), L("Sack of Flour",1) ] },
+    { id:uid(), name:"Snowberry Crostata", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Snowberries",2), L("Sack of Flour",1), L("Butter",1) ] },
+    { id:uid(), name:"Sweet Roll", value:null, labor:null, demand:1, yield:1, bench:"Oven", src:"keizaal", lines:[ L("Chicken's Egg",1), L("Salt Pile",1), L("Jug of Milk",1), L("Sack of Flour",1), L("Butter",1) ] },
+  ],
+};
+
+/* ── State ── */
+let data = load();
+let order = [];        // [{name, qty}]
+let tradeSide = "buy";
+let cbSortKey = "name", cbSortDir = 1;
+
+function load(){
+  try { const raw = localStorage.getItem(KEY); if(raw) return JSON.parse(raw); } catch(e){}
+  return structuredClone(DEFAULT);
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(data)); flashSaved(); } catch(e){} }
+function flashSaved(){ const s=document.getElementById("saveState"); if(s){ s.textContent="saved ✓"; setTimeout(()=>s.textContent="saved",900); } }
+
+/* ── Lookups ── */
+const mat  = n => data.materials.find(m=>m.name===n);
+const inter= n => data.intermediates.find(i=>i.name===n);
+const cur  = () => data.settings.currency || "g";
+function g(v){ return (Math.round(v*100)/100).toLocaleString(undefined,{maximumFractionDigits:2}) + cur(); }
+function round(v){ return data.settings.roundOn ? Math.round(v) : Math.round(v*100)/100; }
+function currentCustomer(){ return data.customers.find(c=>c.id===data.settings.customer) || data.customers[0]; }
+
+/* ── Costing (recursive expand of components) ── */
+function ingUnit(name){                       // fixed calc cost of one unit of an ingredient (raw or component)
+  const m = mat(name); if(m) return +m.price||0;
+  const i = inter(name); if(i) return interUnit(i);
+  return 0;
+}
+function interUnit(i){
+  let c=0; for(const l of i.lines) c += ingUnit(l.ingredient)*l.qty;
+  c += (+i.labor||0); return c/(i.yield||1);
+}
+function recipeMat(r){ let c=0; for(const l of r.lines) c += ingUnit(l.ingredient)*l.qty; return c; }
+function recipeLabor(r){ return (r.labor==null || r.labor==="") ? (+data.settings.defaultLabor||0) : +r.labor; }
+function recipeYield(r){ return (+r.yield>0) ? +r.yield : 1; }                    // servings produced per cook (OutputCount)
+function unitCost(r){ return (recipeMat(r)+recipeLabor(r)) / recipeYield(r); }     // cost per serving
+function recipePrice(r, markup){
+  markup = markup ?? currentCustomer().markup;
+  return round(unitCost(r) * markup * (r.demand||1));                             // price is per serving
+}
+// Expand a dish to raw materials only (components resolved to their raw inputs).
+function rawNeeds(name, qty, acc){
+  const i = inter(name);
+  if(i){ for(const l of i.lines) rawNeeds(l.ingredient, qty*l.qty/(i.yield||1), acc); return; }
+  acc[name] = (acc[name]||0) + qty;
+}
+// Producing `qty` servings runs ceil(qty / yield) batches; each batch consumes the full line list.
+function dishRaw(r, qty, acc){ const b=Math.ceil(qty/recipeYield(r)); for(const l of r.lines) rawNeeds(l.ingredient, l.qty*b, acc); }
+function canMake(r){
+  let m = Infinity;
+  for(const l of r.lines){
+    const src = mat(l.ingredient) || inter(l.ingredient);
+    const have = src ? (+src.stock||0) : 0;
+    m = Math.min(m, Math.floor(have / l.qty));
+  }
+  return (m===Infinity?0:m) * recipeYield(r);   // in servings
+}
+
+/* ═════════ Rendering ═════════ */
+function tab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("on"));
+  document.getElementById("tab-"+name).classList.add("on");
+  document.getElementById("t-"+name).classList.add("on");
+}
+
+function render(){
+  save();
+  syncCustomers(); renderQuote(); renderOrder(); renderNeeds(); renderCookbook();
+  renderPantry(); renderSales(); renderRecipes(); renderSettings();
+}
+
+function syncCustomers(){
+  const sel = document.getElementById("custSel");
+  if(!data.settings.customer) data.settings.customer = data.customers[0].id;
+  sel.innerHTML = data.customers.map(c=>`<option value="${c.id}">${c.name} (×${c.markup})</option>`).join("");
+  sel.value = data.settings.customer;
+}
+
+/* ── Cook: quote + order ── */
+function dishMatch(q){ q=q.toLowerCase(); return data.recipes.filter(r=>r.name.toLowerCase().includes(q)); }
+function ddClose(id){ const d=document.getElementById(id); if(d) d.style.display="none"; }
+function openQQ(){
+  const v=document.getElementById("qqItem").value, dd=document.getElementById("qqDD");
+  if(!v){ dd.style.display="none"; return; }
+  const list=dishMatch(v).slice(0,8);
+  dd.innerHTML = list.length? list.map(r=>`<div class="dd-row" onclick="pickQQ('${r.name.replace(/'/g,"\\'")}')">${r.name} <span class="dim">· ${g(recipePrice(r))}</span></div>`).join("") : `<div class="dd-empty">No dish found</div>`;
+  dd.style.display="block";
+}
+function pickQQ(n){ document.getElementById("qqItem").value=n; ddClose("qqDD"); renderQuote(); }
+function renderQuote(){
+  const v=document.getElementById("qqItem").value.trim().toLowerCase();
+  const r=data.recipes.find(x=>x.name.toLowerCase()===v);
+  const out=document.getElementById("qqResult");
+  if(!r){ out.innerHTML=""; return; }
+  const c=currentCustomer();
+  const y=recipeYield(r), yt=y>1?` ÷ ${y} servings`:"";
+  out.innerHTML = `<strong class="ink">${r.name}</strong> <span class="pill bench">${r.bench}</span> — (ingredients ${g(recipeMat(r))} + labor ${g(recipeLabor(r))})${yt} × ${c.markup} (${c.name}) → <span class="gold">${g(recipePrice(r))}</span>/serving. You can make <strong>${canMake(r)}</strong> servings now.`;
+}
+function openOrderDD(){
+  const v=document.getElementById("addItem").value, dd=document.getElementById("addDD");
+  if(!v){ dd.style.display="none"; return; }
+  const list=dishMatch(v).slice(0,8);
+  dd.innerHTML = list.length? list.map(r=>`<div class="dd-row" onclick="pickOrder('${r.name.replace(/'/g,"\\'")}')">${r.name}</div>`).join("") : `<div class="dd-empty">No dish found</div>`;
+  dd.style.display="block";
+}
+function pickOrder(n){ document.getElementById("addItem").value=n; ddClose("addDD"); }
+function orderAdd(){
+  const n=document.getElementById("addItem").value.trim();
+  const r=data.recipes.find(x=>x.name.toLowerCase()===n.toLowerCase()); if(!r) return;
+  const qty=Math.max(1,+document.getElementById("addQty").value||1);
+  const ex=order.find(o=>o.name===r.name); if(ex) ex.qty+=qty; else order.push({name:r.name, qty});
+  document.getElementById("addItem").value=""; document.getElementById("addQty").value=1;
+  renderOrder(); renderNeeds();
+}
+function orderClear(){ order=[]; renderOrder(); renderNeeds(); }
+function renderOrder(){
+  const body=document.getElementById("orderBody"), empty=document.getElementById("orderEmpty");
+  const c=currentCustomer();
+  document.getElementById("orderCount").textContent = order.reduce((a,o)=>a+o.qty,0)+" dishes";
+  if(!order.length){ body.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  let tc=0,tp=0;
+  body.innerHTML = order.map(o=>{
+    const r=data.recipes.find(x=>x.name===o.name); if(!r) return "";
+    const cost=unitCost(r)*o.qty, price=recipePrice(r,c.markup), line=price*o.qty;
+    tc+=cost; tp+=line;
+    return `<tr><td>${r.name}</td><td class="n">${o.qty}</td><td class="n dim">${g(cost)}</td><td class="n">${g(price)}</td><td class="n gold">${g(line)}</td>
+      <td class="n"><button class="x" onclick="orderRemove('${r.name.replace(/'/g,"\\'")}')">✕</button></td></tr>`;
+  }).join("") + `<tr class="tot"><td>Total</td><td></td><td class="n dim">${g(tc)}</td><td></td><td class="n gold">${g(tp)}</td><td></td></tr>`;
+}
+function orderRemove(n){ order=order.filter(o=>o.name!==n); renderOrder(); renderNeeds(); }
+function renderNeeds(){
+  const body=document.getElementById("needBody"), empty=document.getElementById("needEmpty");
+  const acc={}; order.forEach(o=>{ const r=data.recipes.find(x=>x.name===o.name); if(r) dishRaw(r,o.qty,acc); });
+  const names=Object.keys(acc).sort();
+  if(!names.length){ body.innerHTML=""; empty.style.display="block"; document.getElementById("buyBtn").style.display="none"; return; }
+  empty.style.display="none";
+  let anyShort=false;
+  body.innerHTML = names.map(n=>{
+    const need=Math.ceil(acc[n]), have=+((mat(n)||{}).stock||0), short=Math.max(0,need-have);
+    if(short>0) anyShort=true;
+    const buy = short*((mat(n)||{}).price||0);
+    return `<tr><td>${n}</td><td class="n">${need}</td><td class="n">${have}</td>
+      <td class="n ${short>0?'bad':'good'}">${short>0?short:'—'}</td><td class="n dim">${short>0?g(buy):'—'}</td></tr>`;
+  }).join("");
+  document.getElementById("buyBtn").style.display = anyShort? "inline-block":"none";
+}
+function buyShortfalls(){
+  const acc={}; order.forEach(o=>{ const r=data.recipes.find(x=>x.name===o.name); if(r) dishRaw(r,o.qty,acc); });
+  Object.keys(acc).forEach(n=>{ const m=mat(n); if(m){ const short=Math.max(0,Math.ceil(acc[n])-(+m.stock||0)); m.stock=(+m.stock||0)+short; } });
+  render();
+}
+function checkout(){
+  if(!order.length) return;
+  const acc={}; order.forEach(o=>{ const r=data.recipes.find(x=>x.name===o.name); if(r) dishRaw(r,o.qty,acc); });
+  Object.keys(acc).forEach(n=>{ const m=mat(n); if(m) m.stock=Math.max(0,(+m.stock||0)-Math.ceil(acc[n])); });
+  const c=currentCustomer();
+  let rev=0,cost=0,items=0;
+  order.forEach(o=>{ const r=data.recipes.find(x=>x.name===o.name); if(!r) return;
+    rev += recipePrice(r,c.markup)*o.qty; cost += unitCost(r)*o.qty; items+=o.qty; });
+  data.till.revenue+=rev; data.till.cost+=cost; data.till.sales++; data.till.items+=items;
+  data.sales.unshift({ id:uid(), ts:Date.now(), buyer:c.name, dishes:order.map(o=>o.qty+"× "+o.name).join(", "), rev, profit:rev-cost });
+  order=[]; render();
+}
+
+/* ── Cookbook ── */
+function benches(){ return [...new Set(data.recipes.map(r=>r.bench))].sort(); }
+function cbSort(k){ if(cbSortKey===k) cbSortDir*=-1; else { cbSortKey=k; cbSortDir=1; } renderCookbook(); }
+function renderCookbook(){
+  const bSel=document.getElementById("cbBench");
+  if(bSel && !bSel.dataset.init){ bSel.innerHTML=`<option value="">All stations</option>`+benches().map(b=>`<option>${b}</option>`).join(""); bSel.dataset.init=1; }
+  const bench=bSel?bSel.value:"", q=(document.getElementById("cbSearch").value||"").toLowerCase();
+  let rows=data.recipes.filter(r=>(!bench||r.bench===bench)&&r.name.toLowerCase().includes(q));
+  const key=cbSortKey;
+  rows.sort((a,b)=>{
+    const va = key==="name"?a.name : key==="bench"?a.bench : key==="canmake"?canMake(a) : key==="mat"?recipeMat(a) : key==="labor"?recipeLabor(a) : recipePrice(a);
+    const vb = key==="name"?b.name : key==="bench"?b.bench : key==="canmake"?canMake(b) : key==="mat"?recipeMat(b) : key==="labor"?recipeLabor(b) : recipePrice(b);
+    return (va>vb?1:va<vb?-1:0)*cbSortDir;
+  });
+  document.getElementById("cbCount").textContent = rows.length+" dishes";
+  document.getElementById("cbBody").innerHTML = rows.map(r=>{
+    const cm=canMake(r), y=recipeYield(r);
+    return `<tr><td>${r.name}${y>1?` <span class="pill">makes ${y}</span>`:''}</td><td><span class="pill bench">${r.bench}</span></td>
+      <td class="n ${cm>0?'good':'dim'}">${cm}</td><td class="n dim">${g(recipeMat(r))}</td>
+      <td class="n dim">${g(recipeLabor(r))}</td><td class="n gold">${g(recipePrice(r))}</td></tr>`;
+  }).join("");
+}
+
+/* ── Pantry: prep + trades ── */
+function updPrepPreview(){
+  const sel=document.getElementById("prepSel"), info=document.getElementById("prepInfo");
+  const it=inter(sel.value); if(!it){ info.textContent=""; return; }
+  const b=Math.max(1,+document.getElementById("prepQty").value||1);
+  info.innerHTML = `→ makes <span class="gold">${b*(it.yield||1)}× ${it.name}</span>, uses ` + it.lines.map(l=>`${l.qty*b}× ${l.ingredient}`).join(", ");
+}
+function doPrep(){
+  const it=inter(document.getElementById("prepSel").value); if(!it) return;
+  const b=Math.max(1,+document.getElementById("prepQty").value||1);
+  it.lines.forEach(l=>{ const m=mat(l.ingredient)||inter(l.ingredient); if(m) m.stock=Math.max(0,(+m.stock||0)-l.qty*b); });
+  it.stock=(+it.stock||0)+b*(it.yield||1);
+  render();
+}
+function setTradeSide(s){ tradeSide=s; document.querySelectorAll("#trSideSeg button").forEach(b=>b.classList.toggle("on",b.dataset.side===s)); }
+function recordTrade(){
+  const m=mat(document.getElementById("trMat").value); if(!m) return;
+  const q=Math.max(0,+document.getElementById("trQty").value||0);
+  m.stock = tradeSide==="buy" ? (+m.stock||0)+q : Math.max(0,(+m.stock||0)-q);
+  render();
+}
+function renderPantry(){
+  const ps=document.getElementById("prepSel");
+  if(ps){ const keep=ps.value; ps.innerHTML=data.intermediates.map(i=>`<option>${i.name}</option>`).join(""); if(keep) ps.value=keep; updPrepPreview(); }
+  const tm=document.getElementById("trMat");
+  if(tm){ const keep=tm.value; tm.innerHTML=data.materials.map(m=>`<option>${m.name}</option>`).join(""); if(keep) tm.value=keep; }
+  let val=0;
+  document.getElementById("invBody").innerHTML = data.materials.map(m=>{
+    const v=(+m.stock||0)*(+m.price||0); val+=v;
+    return `<tr><td>${m.name}</td><td class="n dim">${g(+m.price||0)}</td><td class="n">${+m.stock||0}</td><td class="n">${g(v)}</td></tr>`;
+  }).join("");
+  document.getElementById("invValue").textContent = "stock value "+g(val);
+  let iv=0;
+  document.getElementById("invInterBody").innerHTML = data.intermediates.map(i=>{
+    const v=(+i.stock||0)*interUnit(i); iv+=v;
+    return `<tr><td>${i.name}</td><td class="n dim">${g(interUnit(i))}</td><td class="n">${+i.stock||0}</td><td class="n">${g(v)}</td></tr>`;
+  }).join("");
+}
+
+/* ── Sales ── */
+function renderSales(){
+  const t=data.till;
+  document.getElementById("tillRow").innerHTML = [
+    ["Revenue", g(t.revenue), "gold"], ["Cost", g(t.cost), "dim"],
+    ["Profit", g(t.revenue-t.cost), "good"], ["Sales", t.sales, ""], ["Dishes", t.items, ""]
+  ].map(([l,v,cls])=>`<div class="cell"><div class="lab">${l}</div><div class="val ${cls}">${v}</div></div>`).join("");
+  const body=document.getElementById("salesBody"), empty=document.getElementById("salesEmpty");
+  document.getElementById("salesCount").textContent=(data.sales.length)+" sales";
+  if(!data.sales.length){ body.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  body.innerHTML = data.sales.map(s=>`<tr><td class="dim">${new Date(s.ts).toLocaleString()}</td><td>${s.buyer}</td><td>${s.dishes}</td>
+    <td class="n gold">${g(s.rev)}</td><td class="n good">${g(s.profit)}</td>
+    <td class="n"><button class="x" onclick="delSale('${s.id}')">✕</button></td></tr>`).join("");
+}
+function delSale(id){ data.sales=data.sales.filter(s=>s.id!==id); render(); }
+function clearSales(){ if(confirm("Clear the sales log?")){ data.sales=[]; render(); } }
+function resetTill(){ data.till={revenue:0,cost:0,sales:0,items:0}; render(); }
+
+/* ── Recipes editor ── */
+function addMaterial(){ data.materials.push({id:uid(),name:"New Ingredient",price:0,stock:0}); render(); tab('recipes'); }
+function addIntermediate(){ data.intermediates.push({id:uid(),name:"New Component",yield:1,labor:0,stock:0,lines:[]}); render(); tab('recipes'); }
+function addRecipe(){ data.recipes.push({id:uid(),name:"New Dish",value:null,labor:null,demand:1,yield:1,bench:"Cookpot",src:"custom",lines:[]}); render(); tab('recipes'); }
+function renderRecipes(){
+  document.getElementById("matBody").innerHTML = data.materials.map(m=>`<tr>
+    <td><input class="bare" value="${m.name}" onchange="m_('${m.id}','name',this.value)"></td>
+    <td class="n"><input class="bare n w80" type="number" step="0.5" value="${m.price}" onchange="m_('${m.id}','price',this.value)"></td>
+    <td class="n"><button class="x" onclick="del('materials','${m.id}')">✕</button></td></tr>`).join("");
+  document.getElementById("interList").innerHTML = data.intermediates.map(i=>`
+    <details><summary><span class="nm">${i.name}</span><span class="sp"><span class="dim">yield ${i.yield}</span><span class="gold">${g(interUnit(i))}/unit</span></span></summary>
+    <div class="body">
+      <div class="row" style="margin-bottom:6px">
+        <label class="k" style="margin:0">Name <input class="w80" style="width:150px" value="${i.name}" onchange="i_('${i.id}','name',this.value)"></label>
+        <label class="k" style="margin:0">Yield <input class="n w60" type="number" min="1" value="${i.yield}" onchange="i_('${i.id}','yield',this.value)"></label>
+        <label class="k" style="margin:0">Labor <input class="n w60" type="number" min="0" value="${i.labor}" onchange="i_('${i.id}','labor',this.value)"></label>
+      </div>
+      <div class="ing-h"><span>Ingredient</span><span>Qty</span><span>Cost</span><span></span></div>
+      ${i.lines.map((l,ix)=>lineRow('i',i.id,ix,l)).join("")}
+      <button class="b" style="margin-top:5px" onclick="addLine('intermediates','${i.id}')">+ ingredient</button>
+    </div></details>`).join("");
+  document.getElementById("itemList").innerHTML = data.recipes.map(r=>`
+    <details><summary><span class="nm">${r.name}</span><span class="pill bench">${r.bench}</span><span class="sp"><span class="dim">make ${canMake(r)}</span><span class="gold">${g(recipePrice(r))}</span></span></summary>
+    <div class="body">
+      <div class="row" style="margin-bottom:6px">
+        <label class="k" style="margin:0">Name <input style="width:170px" value="${r.name}" onchange="r_('${r.id}','name',this.value)"></label>
+        <label class="k" style="margin:0">Station <input class="w80" style="width:90px" value="${r.bench}" onchange="r_('${r.id}','bench',this.value)"></label>
+        <label class="k" style="margin:0">Labor <input class="n w60" type="number" min="0" placeholder="def" value="${r.labor??''}" onchange="r_('${r.id}','labor',this.value)"></label>
+        <label class="k" style="margin:0">Yield <input class="n w60" type="number" min="1" value="${recipeYield(r)}" onchange="r_('${r.id}','yield',this.value)"></label>
+        <label class="k" style="margin:0">Demand × <input class="n w60" type="number" step="0.05" value="${r.demand}" onchange="r_('${r.id}','demand',this.value)"></label>
+      </div>
+      <div class="ing-h"><span>Ingredient</span><span>Qty</span><span>Cost</span><span></span></div>
+      ${r.lines.map((l,ix)=>lineRow('r',r.id,ix,l)).join("")}
+      <button class="b" style="margin-top:5px" onclick="addLine('recipes','${r.id}')">+ ingredient</button>
+    </div></details>`).join("");
+}
+function lineRow(t,id,ix,l){
+  const opts=[...data.materials.map(m=>m.name),...data.intermediates.map(i=>i.name)];
+  return `<div class="ing">
+    <select onchange="line_('${t}','${id}',${ix},'ingredient',this.value)">${opts.map(o=>`<option ${o===l.ingredient?'selected':''}>${o}</option>`).join("")}</select>
+    <input class="n" type="number" min="0" value="${l.qty}" onchange="line_('${t}','${id}',${ix},'qty',this.value)">
+    <span class="c">${g(ingUnit(l.ingredient)*l.qty)}</span>
+    <button class="x" onclick="delLine('${t}','${id}',${ix})">✕</button></div>`;
+}
+function m_(id,k,v){ const m=data.materials.find(x=>x.id===id); m[k]=(k==='name')?v:+v; render(); }
+function i_(id,k,v){ const i=data.intermediates.find(x=>x.id===id); i[k]=(k==='name')?v:+v; render(); }
+function r_(id,k,v){ const r=data.recipes.find(x=>x.id===id); r[k]=(k==='name'||k==='bench')?v:(k==='labor'&&v==='')?null:+v; render(); }
+function line_(t,id,ix,k,v){ const c=(t==='i'?data.intermediates:data.recipes).find(x=>x.id===id); c.lines[ix][k]=(k==='ingredient')?v:+v; render(); }
+function addLine(coll,id){ const c=data[coll].find(x=>x.id===id); c.lines.push(L(data.materials[0].name,1)); render(); }
+function delLine(t,id,ix){ const c=(t==='i'?data.intermediates:data.recipes).find(x=>x.id===id); c.lines.splice(ix,1); render(); }
+function del(coll,id){ data[coll]=data[coll].filter(x=>x.id!==id); render(); }
+
+/* ── Settings ── */
+function renderSettings(){
+  document.getElementById("currency").value=data.settings.currency;
+  document.getElementById("defaultLabor").value=data.settings.defaultLabor;
+  document.getElementById("roundOn").checked=data.settings.roundOn;
+  document.getElementById("custBody").innerHTML = data.customers.map((c,ix)=>`<tr>
+    <td><input class="bare" value="${c.name}" onchange="c_('${c.id}','name',this.value)"></td>
+    <td class="n"><input class="bare n w60" type="number" step="0.05" value="${c.markup}" onchange="c_('${c.id}','markup',this.value)"></td>
+    <td><input class="bare" value="${c.notes||''}" placeholder="—" onchange="c_('${c.id}','notes',this.value)"></td>
+    <td class="n">${ix===0?'':`<button class="x" onclick="delCust('${c.id}')">✕</button>`}</td></tr>`).join("");
+}
+function c_(id,k,v){ const c=data.customers.find(x=>x.id===id); c[k]=(k==='markup')?+v:v; render(); }
+function addCustomer(){ data.customers.push({id:uid(),name:"New Buyer",markup:1.5}); render(); }
+function delCust(id){ data.customers=data.customers.filter(c=>c.id!==id); if(data.settings.customer===id) data.settings.customer=data.customers[0].id; render(); }
+
+/* ── Misc ── */
+function stepField(id,dir){ const el=document.getElementById(id); el.value=Math.max(0,(+el.value||0)+dir); el.dispatchEvent(new Event('input')); }
+function exportData(){ const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="keizaal-cook-mockA.json"; a.click(); }
+function importData(inp){ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=e=>{ try{ data=JSON.parse(e.target.result); order=[]; render(); }catch(err){ alert("Bad file"); } }; rd.readAsText(f); }
+function resetAll(){ if(confirm("Reset this mockup to its default cooking catalog?")){ data=structuredClone(DEFAULT); order=[]; render(); } }
+
+// bind settings inputs
+document.getElementById("currency").addEventListener("change",e=>{ data.settings.currency=e.target.value; render(); });
+document.getElementById("defaultLabor").addEventListener("change",e=>{ data.settings.defaultLabor=+e.target.value; render(); });
+
+render();
+</script>
+</body>
+</html>
