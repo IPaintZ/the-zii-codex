@@ -1083,6 +1083,37 @@ function save(){
     if (s){ s.textContent = "NOT SAVING — open the file directly"; s.style.color = "var(--bad)"; }
   }
 }
+// Debounced persistence: typing/stepping no longer JSON.stringifies the whole
+// book on every event. Flushed on tab-hide/unload so nothing is lost.
+let _saveTimer = null;
+function saveDebounced(){
+  if (IS_DEMO){ save(); return; }
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => { _saveTimer = null; save(); }, 250);
+}
+function flushSave(){ if (_saveTimer){ clearTimeout(_saveTimer); _saveTimer = null; } save(); }
+addEventListener("pagehide", flushSave);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushSave(); });
+
+/* ═════════ Render-pass caches (perf) ═════════
+   The recursive cost engine used to run linear data.*.find() at every node,
+   on every recipe, on every render. During a render pass we build O(1) name
+   maps once and memoize unitCost()/maxCraftable() by name. Outside a pass the
+   helpers fall back to live .find() so one-off computations stay correct. */
+let _pass = false, _matMap = null, _interMap = null, _recMap = null,
+    _ucMemo = null, _mcMemo = null, _rawStockCache = null, _baseInterCache = null;
+function beginPass(){
+  _pass = true;
+  _matMap = new Map();   data.materials.forEach(m => { if (!_matMap.has(m.name)) _matMap.set(m.name, m); });
+  _interMap = new Map(); data.intermediates.forEach(it => { if (!_interMap.has(it.name)) _interMap.set(it.name, it); });
+  _recMap = new Map();   data.recipes.forEach(r => { if (!_recMap.has(r.name)) _recMap.set(r.name, r); });
+  _ucMemo = new Map(); _mcMemo = new Map();
+  _rawStockCache = null; _baseInterCache = null;
+}
+function endPass(){ _pass = false; }
+function findMat(n){   return _pass ? _matMap.get(n)   : data.materials.find(x => x.name === n); }
+function findInter(n){ return _pass ? _interMap.get(n) : data.intermediates.find(x => x.name === n); }
+function findRec(n){   return _pass ? _recMap.get(n)   : data.recipes.find(x => x.name === n); }
 
 /* ═════════ Cost engine ═════════ */
 // Weighted-average price actually paid for a material, from its buy trades. null if never bought.
@@ -1094,20 +1125,23 @@ function avgBuyCost(name){
 // The cost basis for a raw material everywhere: the manual calc price, or — when the
 // "actual paid prices" toggle is on and there's trade history — the weighted-average buy price.
 function matCost(name){
-  const raw = data.materials.find(x => x.name === name);
+  const raw = findMat(name);
   if (!raw) return 0;
   if (data.settings.realCost){ const a = avgBuyCost(name); if (a != null) return a; }
   return +raw.price || 0;
 }
 function unitCost(name, seen = new Set()){
-  const raw = data.materials.find(x => x.name === name);
-  if (raw) return matCost(name);
-  const it = data.intermediates.find(x => x.name === name);
+  if (_pass && _ucMemo.has(name)) return _ucMemo.get(name);
+  const raw = findMat(name);
+  if (raw){ const v = matCost(name); if (_pass) _ucMemo.set(name, v); return v; }
+  const it = findInter(name);
   if (!it || seen.has(name)) return 0;          // missing, or cycle
   seen.add(name);
   const ing = (it.lines||[]).reduce((s,l) => s + unitCost(l.ingredient, seen) * (+l.qty||0), 0);
   const y = +it.yield || 1;
-  return (ing + (+it.labor||0)) / (y > 0 ? y : 1);
+  const v = (ing + (+it.labor||0)) / (y > 0 ? y : 1);
+  if (_pass) _ucMemo.set(name, v);
+  return v;
 }
 function stdMarkup(){ return (data.customers && data.customers[0]) ? (+data.customers[0].markup||0) : (+data.settings.markup||2); }
 function activeCustomer(){
@@ -1123,9 +1157,9 @@ function calc(r, markup){
 }
 // Recursively reduce anything down to raw materials.
 function explode(name, qty, acc = {}, seen = new Set()){
-  const raw = data.materials.find(x => x.name === name);
+  const raw = findMat(name);
   if (raw){ acc[name] = (acc[name]||0) + qty; return acc; }
-  const it = data.intermediates.find(x => x.name === name);
+  const it = findInter(name);
   if (!it || seen.has(name)) return acc;
   const y = +it.yield || 1;
   const batches = qty / (y > 0 ? y : 1);
@@ -1152,7 +1186,9 @@ const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>
 const ceil = n => Math.ceil(Math.round(n*1000)/1000);
 
 /* ═════════ Tabs ═════════ */
+let CUR_TAB = "craft";
 function tab(n){
+  CUR_TAB = n;
   ["craft","database","inventory","sales","buyers","add","recipes","settings"].forEach(t => {
     document.getElementById("tab-"+t).classList.toggle("on", t===n);
     document.getElementById("t-"+t).classList.toggle("on", t===n);
@@ -1491,14 +1527,19 @@ function orderTotals(cust){
 }
 // Max units craftable from current stock (spends held intermediates first, rest from raw).
 function maxCraftable(name){
-  const rawStock={}; data.materials.forEach(m=>rawStock[m.name]=+m.stock||0);
-  const baseInter={}; data.intermediates.forEach(it=>baseInter[it.name]=+it.stock||0);
-  const rec=data.recipes.find(x=>x.name===name); if(!rec||!(rec.lines||[]).length) return 0;
+  if(_pass && _mcMemo.has(name)) return _mcMemo.get(name);
+  const rawStock = _pass
+    ? (_rawStockCache || (_rawStockCache = (()=>{ const o={}; data.materials.forEach(m=>o[m.name]=+m.stock||0); return o; })()))
+    : (()=>{ const o={}; data.materials.forEach(m=>o[m.name]=+m.stock||0); return o; })();
+  const baseInter = _pass
+    ? (_baseInterCache || (_baseInterCache = (()=>{ const o={}; data.intermediates.forEach(it=>o[it.name]=+it.stock||0); return o; })()))
+    : (()=>{ const o={}; data.intermediates.forEach(it=>o[it.name]=+it.stock||0); return o; })();
+  const rec=findRec(name); if(!rec||!(rec.lines||[]).length){ if(_pass)_mcMemo.set(name,0); return 0; }
   function feasible(N){
     const avail={...baseInter}, raw={};
     const need=(nm,qty,seen)=>{
-      if(data.materials.find(x=>x.name===nm)){ raw[nm]=(raw[nm]||0)+qty; return; }
-      const it=data.intermediates.find(x=>x.name===nm); if(!it||seen.has(nm)) return;
+      if(findMat(nm)){ raw[nm]=(raw[nm]||0)+qty; return; }
+      const it=findInter(nm); if(!it||seen.has(nm)) return;
       const use=Math.min(qty, avail[nm]||0); avail[nm]=(avail[nm]||0)-use;
       const rem=qty-use; if(rem>1e-9){ const y=+it.yield||1, b=rem/(y>0?y:1);
         (it.lines||[]).forEach(l=>need(l.ingredient, b*(+l.qty||0), new Set([...seen,nm]))); }
@@ -1507,19 +1548,23 @@ function maxCraftable(name){
     for(const k in raw) if(raw[k] > (rawStock[k]||0)+1e-9) return false;
     return true;
   }
-  if(!feasible(1)) return 0;
-  let lo=1, hi=2;
-  while(hi<1000000 && feasible(hi)) hi*=2;
-  while(lo+1<hi){ const mid=Math.floor((lo+hi)/2); if(feasible(mid)) lo=mid; else hi=mid; }
-  return lo;
+  const result=(()=>{
+    if(!feasible(1)) return 0;
+    let lo=1, hi=2;
+    while(hi<1000000 && feasible(hi)) hi*=2;
+    while(lo+1<hi){ const mid=Math.floor((lo+hi)/2); if(feasible(mid)) lo=mid; else hi=mid; }
+    return lo;
+  })();
+  if(_pass)_mcMemo.set(name,result);
+  return result;
 }
 // Stock-aware: spend held ingots/strips first, break the rest down to raw ore.
 function planConsumption(){
   const inter={}, raw={}, avail={};
   data.intermediates.forEach(it=>avail[it.name]=+it.stock||0);
   function need(name, qty){
-    if(data.materials.find(x=>x.name===name)){ raw[name]=(raw[name]||0)+qty; return; }
-    const it=data.intermediates.find(x=>x.name===name); if(!it) return;
+    if(findMat(name)){ raw[name]=(raw[name]||0)+qty; return; }
+    const it=findInter(name); if(!it) return;
     const use=Math.min(qty, avail[name]||0);
     if(use>0){ inter[name]=(inter[name]||0)+use; avail[name]-=use; }
     const remain=qty-use;
@@ -1527,8 +1572,8 @@ function planConsumption(){
       (it.lines||[]).forEach(l=>need(l.ingredient, batches*(+l.qty||0))); }
   }
   data.order.forEach(o=>{
-    if(o.kind==='material'){ if(data.materials.find(x=>x.name===o.item)) raw[o.item]=(raw[o.item]||0)+(+o.qty||0); return; }
-    const r=data.recipes.find(x=>x.name===o.item);
+    if(o.kind==='material'){ if(findMat(o.item)) raw[o.item]=(raw[o.item]||0)+(+o.qty||0); return; }
+    const r=findRec(o.item);
     const br=o.brought||{};
     if(r)(r.lines||[]).forEach(l=>{
       const total=(+l.qty||0)*o.qty;                              // parts the customer brought
@@ -1876,7 +1921,6 @@ function fillFilter(id, values){
   if (keep && values.includes(keep)) s.value = keep;
 }
 function renderDatabase(){
-  classifyAll();
   fillFilter("dbFam",  [...new Set(data.recipes.map(r=>r.fam ||"Other"))].sort());
   fillFilter("dbSlot", [...new Set(data.recipes.map(r=>r.slot||"Other"))].sort());
   const q    = (document.getElementById("dbSearch").value||"").toLowerCase();
@@ -2546,26 +2590,27 @@ function restoreBackup(){
 }
 
 /* ═════════ Render ═════════ */
+// Only the visible tab is rebuilt. Hidden panels stay in the DOM but are not
+// re-rendered until their tab is shown (tab() re-renders on switch), so no
+// interaction pays for the expensive Database/editor rebuilds unless it's open.
+// renderTill drives renderSales/renderInsights, so it covers both craft+sales.
+const TAB_RENDER = {
+  craft:     () => { fillAddItem(); fillPresetSel(); fillBuyerSel(); renderCraft(); renderQuote(); renderTill(); },
+  database:  () => { renderDatabase(); },
+  inventory: () => { renderInventory(); },
+  sales:     () => { renderTill(); },
+  buyers:    () => { renderBuyers(); },
+  add:       () => { fillVariantBase(); renderPack(); },
+  recipes:   () => { renderMatEditor(); renderInterEditor(); renderItemEditor(); },
+  settings:  () => { renderTiers(); renderCustomers(); syncStackBox(); },
+};
 function render(){
-  classifyAll();
-  fillAddItem();
-  fillPresetSel();
-  fillBuyerSel();
-  fillVariantBase();
-  renderCraft();
-  renderQuote();
-  renderTill();
-  renderBuyers();
-  renderDatabase();
-  renderInventory();
-  renderPack();
-  renderMatEditor();
-  renderInterEditor();
-  renderItemEditor();
-  renderTiers();
-  renderCustomers();
-  syncStackBox();
-  save();
+  beginPass();
+  try {
+    classifyAll();
+    (TAB_RENDER[CUR_TAB] || TAB_RENDER.craft)();
+  } finally { endPass(); }
+  saveDebounced();
 }
 bindSettings();
 
