@@ -134,6 +134,22 @@
   button.tbadge.off { color:var(--dim); border-color:var(--line); border-style:dashed; opacity:.55; }
   button.tbadge.off:hover { opacity:.9; }
 
+  /* ── Admin: tabbed layout ── */
+  .admin-card { display:flex; flex-direction:column; max-height:calc(100vh - 88px); }
+  #adminBody { flex:1; min-height:0; flex-direction:column; }   /* display toggled to flex when unlocked */
+  .admin-tabbar { display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:14px; flex:none; }
+  .admin-tabbar button { background:none; border:none; border-bottom:2px solid transparent; color:var(--dim);
+    font-family:inherit; font-size:13px; font-variant:small-caps; letter-spacing:.6px; padding:9px 15px; cursor:pointer; margin-bottom:-1px; }
+  .admin-tabbar button:hover { color:var(--ink); }
+  .admin-tabbar button.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .tabcount { font-size:10px; color:var(--dim); border:1px solid var(--line); border-radius:9px; padding:0 6px; margin-left:5px; }
+  .admin-panes { flex:1; min-height:0; overflow:auto; padding-right:2px; }
+  .tabpane { display:none; } .tabpane.on { display:block; }
+  .admin-foot { display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--line); flex:none; }
+  .unsaved { display:inline-flex; align-items:center; gap:7px; color:var(--accent); font-size:11.5px; white-space:nowrap; }
+  .unsaved .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px rgba(217,164,65,.15); }
+  .danger { border-color:#5a3a34; } .danger h4 { color:var(--bad); }
+
   /* ── Running: product-switch strip + app iframe ── */
   #appbar { display:none; }
   body.running #appbar { display:flex; align-items:center; gap:6px; height:34px; padding:0 10px;
@@ -201,8 +217,8 @@
 <div id="admin" class="overlay hidden">
   <div class="gate-card admin-card">
     <h2 style="font-size:20px">Admin Panel</h2>
-    <p class="sub2">Generate tool-scoped codes, manage the weekly reset, and publish to GitHub. This panel only
-      changes your repo when you supply a valid GitHub token below.</p>
+    <p class="sub2">Manage customers, the weekly reset, and publishing. This panel only changes your repo
+      when you supply a valid GitHub token in Settings.</p>
 
     <div id="adminLock">
       <label for="adminPass">Admin passphrase</label>
@@ -215,79 +231,101 @@
     </div>
 
     <div id="adminBody" style="display:none">
-      <div class="admin-sec">
-        <h4>GitHub connection</h4>
-        <p class="hint">A fine-grained token with <strong>Contents: Read &amp; write</strong> on this one repo.
-          Stored only in this browser — never in the file.</p>
-        <div class="admin-grid">
-          <div><label>Owner (user/org)</label><input id="ghOwner" spellcheck="false" placeholder="your-github-name"></div>
-          <div><label>Repository</label><input id="ghRepo" spellcheck="false" placeholder="keisaal-calculator"></div>
-          <div><label>Branch</label><input id="ghBranch" spellcheck="false" placeholder="main"></div>
-          <div><label>Status file path</label><input id="ghPath" spellcheck="false" placeholder="status.json"></div>
-        </div>
-        <label>GitHub token</label>
-        <input id="ghToken" type="password" spellcheck="false" placeholder="github_pat_…">
-        <div class="row" style="margin-top:10px">
-          <button class="b" onclick="adminSaveCfg()">Save settings</button>
-          <button class="b" onclick="adminLoad()">Load from GitHub</button>
-          <button class="b pri" onclick="adminPublish()">Publish to GitHub</button>
-        </div>
-        <div id="ghMsg" class="gate-msg dim"></div>
+      <div class="admin-tabbar">
+        <button id="tabbtn-customers" class="on" onclick="showAdminTab('customers')">Customers <span id="codeCount" class="tabcount">0</span></button>
+        <button id="tabbtn-settings" onclick="showAdminTab('settings')">Settings</button>
       </div>
 
-      <div class="admin-sec">
-        <h4>Weekly reset</h4>
-        <p class="hint">Current week: <strong id="wkNow">1</strong>. Advancing it expires every code paid only through the previous week. Remember to <em>Publish</em> after changing it.</p>
-        <div class="row">
-          <button class="b pri" onclick="adminAdvanceWeek()">Advance week ▸</button>
-          <span class="dim" style="font-size:11px">set:</span>
-          <span class="step">
-            <button type="button" onclick="stepField('wkSet',-1)">−</button>
-            <input id="wkSet" class="n w60" type="number" min="1" step="1">
-            <button type="button" onclick="stepField('wkSet',1)">+</button>
-          </span>
-          <button class="b" onclick="adminSetWeek()">Set</button>
+      <div class="admin-panes">
+        <!-- ═════ CUSTOMERS ═════ -->
+        <div id="pane-customers" class="tabpane on">
+          <div class="admin-sec">
+            <h4>New customer — generate access code</h4>
+            <div class="row" style="flex-wrap:wrap;margin-bottom:8px">
+              <span class="dim" style="font-size:11px">unlocks:</span>
+              <span class="seg" id="genScope"></span>
+              <span class="dim" style="font-size:10.5px">tap to toggle each tool</span>
+            </div>
+            <div class="row" style="flex-wrap:wrap">
+              <input id="genNote" placeholder="customer name (private, e.g. Ragnar)" spellcheck="false" style="min-width:180px;flex:1">
+              <span class="dim" style="font-size:11px">weeks:</span>
+              <span class="step">
+                <button type="button" onclick="stepField('genWeeks',-1)">−</button>
+                <input id="genWeeks" class="n w60" type="number" min="1" step="1" value="1">
+                <button type="button" onclick="stepField('genWeeks',1)">+</button>
+              </span>
+              <button class="b pri" onclick="genCode()">Generate</button>
+            </div>
+            <div id="genOut" class="codegen-out" style="display:none"></div>
+            <p class="hint" style="margin-top:8px">Copy the plaintext to the customer now. Only its hash is published; the plaintext is also kept privately in the table below on <em>this device</em>. Then <em>Publish</em> to activate it.</p>
+          </div>
+
+          <div class="admin-sec">
+            <h4>Weekly reset</h4>
+            <p class="hint">Current week: <strong id="wkNow">1</strong>. Advancing it expires every code paid only through the previous week. Remember to <em>Publish</em> after changing it.</p>
+            <div class="row">
+              <button class="b pri" onclick="adminAdvanceWeek()">Advance week ▸</button>
+              <span class="dim" style="font-size:11px">set:</span>
+              <span class="step">
+                <button type="button" onclick="stepField('wkSet',-1)">−</button>
+                <input id="wkSet" class="n w60" type="number" min="1" step="1">
+                <button type="button" onclick="stepField('wkSet',1)">+</button>
+              </span>
+              <button class="b" onclick="adminSetWeek()">Set</button>
+            </div>
+          </div>
+
+          <div class="admin-sec">
+            <h4>Customers</h4>
+            <p class="hint" style="margin:0 0 8px">Renew a paying customer in place with <em>Access</em> <strong>＋</strong> (adds a week — no new code needed); <strong>−</strong> undoes a mistake. In <em>Unlocks</em>, tap a lit chip to drop a tool or a dashed chip to add one. Then <em>Publish</em> — changes apply to the customer's existing code, and they pick them up on their next reload.</p>
+            <div class="row" style="margin-bottom:8px">
+              <span class="dim" style="font-size:11px">find a customer:</span>
+              <input id="lookupCode" placeholder="paste a code to locate its row" spellcheck="false" oninput="lookupCode()" style="flex:1;min-width:160px">
+              <span id="lookupMsg" class="dim" style="font-size:11px"></span>
+            </div>
+            <table class="admin-tbl"><thead><tr><th>Customer</th><th>Code</th><th>Unlocks</th><th>Hash</th><th class="n">Access</th><th>Status</th><th></th></tr></thead>
+              <tbody id="codeRows"></tbody></table>
+          </div>
+        </div>
+
+        <!-- ═════ SETTINGS ═════ -->
+        <div id="pane-settings" class="tabpane">
+          <div class="admin-sec">
+            <h4>GitHub connection</h4>
+            <p class="hint">A fine-grained token with <strong>Contents: Read &amp; write</strong> on this one repo.
+              Stored only in this browser — never in the file. The live list loads automatically when you open this panel.</p>
+            <div class="admin-grid">
+              <div><label>Owner (user/org)</label><input id="ghOwner" spellcheck="false" placeholder="your-github-name"></div>
+              <div><label>Repository</label><input id="ghRepo" spellcheck="false" placeholder="keisaal-calculator"></div>
+              <div><label>Branch</label><input id="ghBranch" spellcheck="false" placeholder="main"></div>
+              <div><label>Status file path</label><input id="ghPath" spellcheck="false" placeholder="status.json"></div>
+            </div>
+            <label>GitHub token</label>
+            <input id="ghToken" type="password" spellcheck="false" placeholder="github_pat_…">
+            <div class="row" style="margin-top:10px">
+              <button class="b" onclick="adminSaveCfg()">Save settings</button>
+              <button class="b" onclick="adminLoad()">Reload live list</button>
+            </div>
+          </div>
+
+          <div class="admin-sec">
+            <h4>Backup</h4>
+            <p class="hint">Downloads every code, note and hash held on this device — keep it somewhere safe.</p>
+            <button class="b" onclick="downloadBackup()">Download backup</button>
+          </div>
+
+          <div class="admin-sec danger">
+            <h4>Danger zone</h4>
+            <p class="hint">Removes every access code. Everyone is locked out after you Publish.</p>
+            <button class="b" style="color:var(--bad)" onclick="killAll()">Kill switch — remove all</button>
+          </div>
         </div>
       </div>
 
-      <div class="admin-sec">
-        <h4>New customer — generate access code</h4>
-        <div class="row" style="flex-wrap:wrap;margin-bottom:8px">
-          <span class="dim" style="font-size:11px">unlocks:</span>
-          <span class="seg" id="genScope"></span>
-          <span class="dim" style="font-size:10.5px">tap to toggle each tool</span>
-        </div>
-        <div class="row" style="flex-wrap:wrap">
-          <input id="genNote" placeholder="customer name (private, e.g. Ragnar)" spellcheck="false" style="min-width:180px;flex:1">
-          <span class="dim" style="font-size:11px">weeks:</span>
-          <span class="step">
-            <button type="button" onclick="stepField('genWeeks',-1)">−</button>
-            <input id="genWeeks" class="n w60" type="number" min="1" step="1" value="1">
-            <button type="button" onclick="stepField('genWeeks',1)">+</button>
-          </span>
-          <button class="b pri" onclick="genCode()">Generate</button>
-        </div>
-        <div id="genOut" class="codegen-out" style="display:none"></div>
-        <p class="hint" style="margin-top:8px">Copy the plaintext to the buyer now. Only its hash is published; the plaintext is also kept privately in the table below on <em>this device</em>. Then <em>Publish</em> to activate it.</p>
-      </div>
-
-      <div class="admin-sec">
-        <h4>Customers <span id="codeCount" class="dim" style="font-size:11px"></span></h4>
-        <p class="hint" style="margin:0 0 8px">Renew a paying customer in place with <em>Access</em> <strong>＋</strong> (adds a week — no new code needed); <strong>−</strong> undoes a mistake. In <em>Unlocks</em>, tap a lit chip to drop a tool or a dashed chip to add one. Then <em>Publish</em> — changes apply to the customer's existing code, and they pick them up on their next reload.</p>
-        <div class="row" style="margin-bottom:8px">
-          <span class="dim" style="font-size:11px">find a customer:</span>
-          <input id="lookupCode" placeholder="paste a code to locate its row" spellcheck="false" oninput="lookupCode()" style="flex:1;min-width:160px">
-          <span id="lookupMsg" class="dim" style="font-size:11px"></span>
-        </div>
-        <table class="admin-tbl"><thead><tr><th>Customer</th><th>Code</th><th>Unlocks</th><th>Hash</th><th class="n">Access</th><th>Status</th><th></th></tr></thead>
-          <tbody id="codeRows"></tbody></table>
-        <div class="row" style="margin-top:10px">
-          <button class="b" onclick="downloadBackup()">Download backup</button>
-          <button class="b" style="margin-left:auto;color:var(--bad)" onclick="killAll()">Kill switch — remove all</button>
-        </div>
-      </div>
-
-      <div class="row" style="justify-content:flex-end">
+      <div class="admin-foot">
+        <span id="ghDirty" class="unsaved" style="display:none"><span class="dot"></span> unpublished changes</span>
+        <span id="ghMsg" class="gate-msg dim" style="margin:0;flex:1"></span>
+        <button class="b pri" onclick="adminPublish()">Publish to GitHub</button>
         <button class="b" onclick="closeAdmin()">Close</button>
       </div>
     </div>
@@ -332,6 +370,8 @@ let grantedTools = [];
 let genSel = new Set(["smithy"]);   // which tools a newly generated code unlocks
 let ghState = { week:1, codes:{} };
 let ghSha = null;
+let ghDirty = false;   // local edits made since the last Load/Publish — drives the footer indicator + auto-load guard
+function setDirty(v){ ghDirty = v; const d = document.getElementById("ghDirty"); if (d) d.style.display = v ? "inline-flex" : "none"; }
 let codeNotes = jparse(localStorage.getItem(LK.notes)) || {};
 let codePlain = jparse(localStorage.getItem(LK.plain)) || {};   // hash -> plaintext, kept only on this admin device
 
@@ -516,8 +556,27 @@ async function adminEnter(){
   document.getElementById("ghPath").value   = c.path;
   document.getElementById("ghToken").value  = localStorage.getItem(LK.token) || "";
   document.getElementById("adminLock").style.display = "none";
-  document.getElementById("adminBody").style.display = "block";
+  document.getElementById("adminBody").style.display = "flex";
+  showAdminTab("customers");
   renderCodes();
+  autoLoad();   // pull the live list straight away so edits build on the latest, not stale local state
+}
+function showAdminTab(id){
+  document.querySelectorAll(".admin-tabbar button").forEach(b => b.classList.toggle("on", b.id === "tabbtn-"+id));
+  document.querySelectorAll(".admin-panes .tabpane").forEach(p => p.classList.toggle("on", p.id === "pane-"+id));
+}
+/* On opening the panel, fetch status.json from GitHub if we're configured for it.
+   Stays quiet when there's no config yet (first-run) instead of flashing a red error;
+   won't silently trample local edits you haven't published. */
+async function autoLoad(){
+  const c = ghCfg();
+  if (!c.owner || !c.repo || !localStorage.getItem(LK.token)){
+    ghmsg("Set your GitHub owner, repo and token in Settings, then Reload to sync the live list.", "dim");
+    return;
+  }
+  if (ghDirty && Object.keys(ghState.codes).length &&
+      !confirm("You have unpublished changes. Reload the live list from GitHub and discard them?")) return;
+  await adminLoad();
 }
 function adminSaveCfg(){
   const cfg = { owner:document.getElementById("ghOwner").value.trim(), repo:document.getElementById("ghRepo").value.trim(),
@@ -542,13 +601,14 @@ async function adminLoad(){
   try {
     const c = ghCfg();
     const r = await fetch(ghApiUrl() + "?ref=" + encodeURIComponent(c.branch), { headers:ghHeaders(), cache:"no-store" });
-    if (r.status === 404){ ghState = { week:1, codes:{} }; ghSha = null; renderCodes(); ghmsg("No status file yet — Publish will create it.", "dim"); return; }
+    if (r.status === 404){ ghState = { week:1, codes:{} }; ghSha = null; setDirty(false); renderCodes(); ghmsg("No status file yet — Publish will create it.", "dim"); return; }
     if (!r.ok) throw new Error("HTTP " + r.status);
     const j = await r.json(); ghSha = j.sha;
     const parsed = jparse(b64dec(j.content)) || {};
     const codes = {};
     Object.keys(parsed.codes || {}).forEach(h => { codes[h] = normEntry(parsed.codes[h]); });  // migrate legacy numbers
     ghState = { week:+parsed.week||1, codes };
+    setDirty(false);
     renderCodes();
     ghmsg("Loaded. Week " + ghState.week + ", " + Object.keys(codes).length + " codes.", "ok");
   } catch(e){ ghmsg("Load failed: " + e.message, "err"); }
@@ -563,11 +623,12 @@ async function adminPublish(){
     const r = await fetch(ghApiUrl(), { method:"PUT", headers:ghHeaders(), body:JSON.stringify(body) });
     if (!r.ok){ throw new Error("HTTP " + r.status + " " + (await r.text()).slice(0,120)); }
     const j = await r.json(); ghSha = j.content && j.content.sha;
+    setDirty(false);
     ghmsg("Published ✓  Live within a minute.", "ok");
   } catch(e){ ghmsg("Publish failed: " + e.message, "err"); }
 }
-function adminAdvanceWeek(){ ghState.week = (+ghState.week||1) + 1; renderCodes(); ghmsg("Week is now " + ghState.week + " — Publish to apply.", "dim"); }
-function adminSetWeek(){ const v = parseInt(document.getElementById("wkSet").value,10); if (v>0){ ghState.week = v; renderCodes(); ghmsg("Week set to " + v + " — Publish to apply.", "dim"); } }
+function adminAdvanceWeek(){ ghState.week = (+ghState.week||1) + 1; setDirty(true); renderCodes(); ghmsg("Week is now " + ghState.week + " — Publish to apply.", "dim"); }
+function adminSetWeek(){ const v = parseInt(document.getElementById("wkSet").value,10); if (v>0){ ghState.week = v; setDirty(true); renderCodes(); ghmsg("Week set to " + v + " — Publish to apply.", "dim"); } }
 function buildGenScope(){
   document.getElementById("genScope").innerHTML = TOOL_IDS.map(id =>
     `<button type="button" data-scope="${id}" class="${genSel.has(id)?'on':''}" onclick="toggleGenScope('${id}')">${TOOLS[id].icon} ${TOOLS[id].short}</button>`).join("");
@@ -593,11 +654,12 @@ async function genCode(){
   out.style.display = "flex";
   out.innerHTML = `<span>${code}</span><button class="b" onclick="navigator.clipboard.writeText('${code}')">Copy</button>`;
   document.getElementById("genNote").value = "";
+  setDirty(true);
   renderCodes();
   ghmsg("Code added (" + tools.map(t=>TOOLS[t].short).join(" & ") + ", thru week " + ghState.codes[h].thru + ") — Publish to activate.", "dim");
 }
-function removeCode(h){ delete ghState.codes[h]; delete codeNotes[h]; delete codePlain[h]; localStorage.setItem(LK.notes, JSON.stringify(codeNotes)); localStorage.setItem(LK.plain, JSON.stringify(codePlain)); renderCodes(); ghmsg("Removed — Publish to apply.", "dim"); }
-function killAll(){ if (!confirm("Remove ALL access codes? Everyone is locked out of both tools after you Publish.")) return; ghState.codes = {}; codePlain = {}; localStorage.setItem(LK.plain, JSON.stringify(codePlain)); renderCodes(); ghmsg("All codes cleared — Publish to apply.", "dim"); }
+function removeCode(h){ delete ghState.codes[h]; delete codeNotes[h]; delete codePlain[h]; localStorage.setItem(LK.notes, JSON.stringify(codeNotes)); localStorage.setItem(LK.plain, JSON.stringify(codePlain)); setDirty(true); renderCodes(); ghmsg("Removed — Publish to apply.", "dim"); }
+function killAll(){ if (!confirm("Remove ALL access codes? Everyone is locked out of both tools after you Publish.")) return; ghState.codes = {}; codePlain = {}; localStorage.setItem(LK.plain, JSON.stringify(codePlain)); setDirty(true); renderCodes(); ghmsg("All codes cleared — Publish to apply.", "dim"); }
 function copyPlain(h){ if (codePlain[h]) navigator.clipboard.writeText(codePlain[h]); }
 async function lookupCode(){
   const raw = document.getElementById("lookupCode").value;
@@ -623,6 +685,7 @@ function toggleCodeTool(h, id){
   else set.add(id);
   e.tools = TOOL_IDS.filter(t => set.has(t));
   ghState.codes[h] = e;
+  setDirty(true);
   renderCodes();
   ghmsg("“" + (codeNotes[h]||h.slice(0,8)) + "” now unlocks " + e.tools.map(t=>TOOLS[t].short).join(" & ") + " — Publish to apply.", "dim");
 }
@@ -634,6 +697,7 @@ function bumpCode(h, delta){
   const floor = (+ghState.week||1) - 1;
   e.thru = delta > 0 ? Math.max(e.thru, floor) + delta : Math.max(floor, e.thru + delta);
   ghState.codes[h] = e;
+  setDirty(true);
   renderCodes();
   const who = codeNotes[h] || h.slice(0,8);
   const state = e.thru >= ghState.week ? "active through week " + e.thru : "expired (was through week " + e.thru + ")";
@@ -643,7 +707,7 @@ function renderCodes(){
   document.getElementById("wkNow").textContent = ghState.week;
   document.getElementById("wkSet").value = ghState.week;
   const rows = Object.keys(ghState.codes).sort((a,b)=>(normEntry(ghState.codes[b]).thru)-(normEntry(ghState.codes[a]).thru));
-  document.getElementById("codeCount").textContent = "· " + rows.length + " total";
+  document.getElementById("codeCount").textContent = rows.length;
   document.getElementById("codeRows").innerHTML = rows.map(h => {
     const e = normEntry(ghState.codes[h]); const active = e.thru >= ghState.week;
     const plain = codePlain[h];
