@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Keizaal Alchemist's Lab — Price Calculator (mockup)</title>
+<style>
+  /* ── Alchemy · FULL mockup · toxic-green accent ──────────────────────────
+     Shares the Smithy/Tailor design tokens; accent + ground shifted green.
+     ACCURATE model: Keizaal alchemy is a FIXED recipe book at a custom station
+     (KzlCraftingAlchemy) — not vanilla effect-discovery. Recipes, ingredients
+     and quantities are extracted from keizaal_recipes_test.csv. Prices & stock
+     are sample numbers. Browse by effect category → pick a tier → cost it out. */
+  :root {
+    --bg:#0f140e; --panel:#182015; --panel-2:#1f2a1b; --panel-3:#273421; --line:#334127;
+    --ink:#e4ecdd; --dim:#9db08f; --gold:#8ecb4f; --gold-2:#63a134;
+    --ember:#c89a2e; --good:#7cc24a; --bad:#d06a5a; --steel:#8fb3c9; --toxic:#b6e05a;
+    --food:#d9a441; --reagent:#8fb3c9;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; font-size:13px; line-height:1.4;
+    background:var(--bg); color:var(--ink); }
+  .top { border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:20; }
+  .top-in { max-width:1180px; margin:0 auto; padding:0 14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .brand { font-variant:small-caps; letter-spacing:.5px; color:var(--gold); font-size:16px; font-weight:700; padding:9px 0; white-space:nowrap; }
+  nav { display:flex; gap:2px; margin-left:auto; }
+  nav button { background:none; border:none; border-bottom:2px solid transparent; color:var(--dim);
+    padding:10px 12px; cursor:pointer; font-size:13px; font-family:inherit; }
+  nav button:hover { color:var(--ink); }
+  nav button.on { color:var(--gold); border-bottom-color:var(--gold); font-weight:600; }
+  main { max-width:1180px; margin:0 auto; padding:14px; }
+  .tab { display:none; } .tab.on { display:block; }
+  .box { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+  .box > h3 { margin:0 0 9px; font-size:13px; color:var(--gold); font-variant:small-caps; letter-spacing:.5px;
+    display:flex; align-items:center; gap:8px; }
+  .box > h3 .sp { margin-left:auto; display:flex; gap:6px; align-items:center; }
+  .hint { color:var(--dim); font-size:11.5px; margin:-4px 0 9px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
+  @media(max-width:900px){ .cols { grid-template-columns:1fr; } }
+
+  table { width:100%; border-collapse:collapse; }
+  th,td { padding:4px 7px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+  th { color:var(--dim); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; font-weight:600; cursor:default; white-space:nowrap; }
+  th.s { cursor:pointer; } th.s:hover { color:var(--gold); }
+  td.n,th.n { text-align:right; } tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover { background:var(--panel-2); }
+  .tot td { border-top:1px solid var(--gold-2); border-bottom:none; font-weight:700; padding-top:7px; }
+
+  input,select { background:var(--panel-2); border:1px solid var(--line); color:var(--ink);
+    border-radius:5px; padding:3px 6px; font-size:12.5px; font-family:inherit; width:100%; }
+  input:focus,select:focus { outline:none; border-color:var(--gold-2); }
+  input.n { text-align:right; }
+  input.bare { background:none; border-color:transparent; padding:2px 4px; }
+  input.bare:hover { border-color:var(--line); }
+  input.bare:focus { background:var(--panel-2); border-color:var(--gold-2); }
+  .w50{width:50px}.w60{width:60px}.w70{width:70px}.w80{width:80px}
+  input[type=number]{ -moz-appearance:textfield; }
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  .step { display:inline-flex; align-items:stretch; gap:4px; vertical-align:middle; }
+  .step > input { text-align:right; }
+  .step > button { flex:none; width:26px; padding:0; background:var(--panel-2); color:var(--ink);
+    border:1px solid var(--line); border-radius:5px; cursor:pointer; font-size:15px; line-height:1; font-family:inherit; }
+  .step > button:hover { border-color:var(--gold-2); color:var(--gold); }
+  .step > button.c2 { width:23px; font-size:11px; letter-spacing:-1.5px; color:var(--dim); }
+
+  button.b { background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+    border-radius:5px; padding:4px 9px; cursor:pointer; font-size:12px; font-family:inherit; white-space:nowrap; }
+  button.b:hover { border-color:var(--gold-2); color:var(--gold); }
+  button.b.pri { background:var(--gold-2); color:#0f140e; border-color:var(--gold); font-weight:600; }
+  button.b.pri:hover { background:var(--gold); }
+  button.x { background:none; border:none; color:var(--bad); cursor:pointer; padding:0 4px; font-size:13px; opacity:.55; }
+  button.x:hover { opacity:1; }
+
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; flex-wrap:wrap; }
+  .seg button { background:var(--panel-2); border:none; color:var(--dim); font-family:inherit; font-size:11.5px; padding:3px 9px; cursor:pointer; }
+  .seg button:hover { color:var(--ink); }
+  .seg button.on { background:var(--gold-2); color:#0f140e; font-weight:600; }
+
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .gold { color:var(--gold); font-weight:700; }
+  .good { color:var(--good); } .bad { color:var(--bad); } .ember { color:var(--ember); } .dim { color:var(--dim); }
+  .pill { font-size:10px; padding:1px 6px; border-radius:9px; background:var(--panel-3); color:var(--dim); border:1px solid var(--line); }
+  .pill.tier { color:var(--toxic); border-color:var(--gold-2); }
+  .empty { color:var(--dim); font-size:12px; padding:8px 2px; }
+  .note { font-size:11.5px; color:var(--dim); margin-top:7px; }
+  .k label { display:block; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
+
+  /* kind dots */
+  .kind { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--good); vertical-align:middle; }
+  .kind.food { background:var(--food); } .kind.reagent { background:var(--reagent); }
+
+  /* category chips */
+  .chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .chip { font-size:11px; padding:3px 9px; border-radius:14px; background:var(--panel-2); color:var(--dim);
+    border:1px solid var(--line); cursor:pointer; white-space:nowrap; }
+  .chip:hover { color:var(--ink); border-color:var(--gold-2); }
+  .chip.on { background:var(--gold-2); color:#0f140e; border-color:var(--gold); font-weight:600; }
+  .chip .c { opacity:.7; font-size:10px; }
+
+  /* recipe pick list */
+  .rlist { max-height:520px; overflow:auto; margin-top:8px; }
+  .ritem { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; border:1px solid transparent; }
+  .ritem:hover { background:var(--panel-2); }
+  .ritem.sel { background:var(--panel-2); border-color:var(--gold-2); }
+  .ritem .nm { font-weight:600; }
+  .ritem .sp { margin-left:auto; display:flex; gap:8px; align-items:center; }
+
+  /* result card */
+  .result { border:1px solid var(--gold-2); border-radius:10px; background:linear-gradient(180deg,rgba(142,203,79,.08),transparent); padding:14px 16px; }
+  .result h2 { margin:0 0 2px; color:var(--toxic); font-variant:small-caps; letter-spacing:.5px; font-size:21px; }
+  .result .sub { color:var(--dim); font-size:11.5px; margin-bottom:6px; }
+  .result .val { font-size:30px; font-weight:800; color:var(--gold); line-height:1.05; }
+  .rtable { width:100%; border-collapse:collapse; margin-top:8px; }
+  .rtable th,.rtable td { padding:3px 6px; font-size:12px; border-bottom:1px solid var(--line); }
+  .rtable td.n,.rtable th.n { text-align:right; }
+  .canmake { font-size:11px; padding:1px 8px; border-radius:9px; }
+  .canmake.ok { background:rgba(124,194,74,.16); color:var(--good); border:1px solid #3a5a2c; }
+  .canmake.no { background:rgba(208,106,90,.14); color:var(--bad); border:1px solid #5a352c; }
+
+  .dd-wrap { position:relative; }
+  .dd { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:50; background:var(--panel);
+    border:1px solid var(--gold-2); border-radius:8px; max-height:320px; overflow:auto; }
+  .dd-row { padding:7px 10px; cursor:pointer; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; }
+  .dd-row:last-child { border-bottom:none; }
+  .dd-row.active,.dd-row:hover { background:var(--panel-2); }
+  .dd-row .sp { margin-left:auto; }
+  .dd-empty { padding:8px 10px; color:var(--dim); font-size:12px; }
+
+  details { border:1px solid var(--line); border-radius:6px; margin-bottom:5px; background:var(--panel-2); }
+  details[open] { border-color:var(--gold-2); }
+  summary { padding:6px 10px; cursor:pointer; display:flex; align-items:center; gap:9px; list-style:none; font-size:12.5px; }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:"▸"; color:var(--dim); font-size:10px; }
+  details[open] summary::before { content:"▾"; color:var(--gold); }
+  summary .nm { font-weight:600; }
+  summary .sp { margin-left:auto; display:flex; gap:10px; align-items:center; }
+  .rbody { padding:8px 12px 10px 26px; border-top:1px solid var(--line); }
+  .ing-line { display:grid; grid-template-columns:1fr 60px 70px; gap:6px; align-items:center; font-size:12px; margin-bottom:3px; }
+  .ing-line .c { text-align:right; color:var(--dim); }
+
+  #demoBar { display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap;
+    padding:7px 16px; background:linear-gradient(90deg,var(--gold-2),var(--gold)); color:#0f140e;
+    font-size:12.5px; font-weight:600; letter-spacing:.3px; text-align:center; }
+  #demoBar .tag { background:rgba(15,20,14,.22); border-radius:20px; padding:2px 10px; font-variant:small-caps; letter-spacing:.5px; }
+  #demoBar a { color:#0f140e; text-decoration:underline; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div id="demoBar">
+  <span><span class="tag">Mockup B · Full</span> &nbsp;Real Keizaal recipes (KzlCraftingAlchemy) — prices are sample numbers, nothing is saved.</span>
+  <a onclick="alert('In the real app this returns to the login gate.')">← Back to login</a>
+</div>
+
+<div class="top"><div class="top-in">
+  <div class="brand">⚗ Keizaal Alchemist's Lab</div>
+  <nav>
+    <button id="t-lab"       class="on" onclick="tab('lab')">Lab</button>
+    <button id="t-catalog"   onclick="tab('catalog')">Catalog</button>
+    <button id="t-reagents"  onclick="tab('reagents')">Reagents</button>
+    <button id="t-inventory" onclick="tab('inventory')">Inventory</button>
+    <button id="t-sales"     onclick="tab('sales')">Sales</button>
+    <button id="t-settings"  onclick="tab('settings')">Settings</button>
+  </nav>
+  <button class="b" style="margin-left:10px" onclick="alert('In the real app this locks back to the code screen.')">🔒 Lock</button>
+</div></div>
+
+<main>
+
+<!-- ══ LAB ══ -->
+<div id="tab-lab" class="tab on">
+  <div class="cols" style="grid-template-columns:.95fr 1.05fr">
+    <div>
+      <div class="box">
+        <h3>Choose a Brew <span class="sp"><span class="pill" id="labCount"></span></span></h3>
+        <div class="dd-wrap" style="margin-bottom:8px">
+          <input id="labSearch" autocomplete="off" placeholder="Search any potion, food or reagent…"
+            oninput="openLabDD()" onkeydown="ddKey(event)" onblur="setTimeout(ddClose,150)">
+          <div id="labDD" class="dd" style="display:none"></div>
+        </div>
+        <div class="seg" id="kindSeg" style="margin-bottom:8px">
+          <button class="on" onclick="setKind('all')">All</button>
+          <button onclick="setKind('potion')">Potions</button>
+          <button onclick="setKind('food')">Food &amp; Drink</button>
+          <button onclick="setKind('reagent')">Reagents</button>
+        </div>
+        <div class="chips" id="catChips"></div>
+        <div class="rlist" id="recipeList"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="box" style="border:none;padding:0;background:none">
+        <div class="result" id="result"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>Brew Queue <span class="sp"><span class="pill" id="queueCount">0 items</span>
+      <button class="b" onclick="clearQueue()">Clear</button>
+      <button class="b pri" onclick="alert('In the real app this logs the batch as a sale and deducts ingredients from stock.')">✓ Brew &amp; log all</button></span></h3>
+    <table id="queueTbl"><thead><tr><th>Brew</th><th class="n">Qty</th><th class="n">Cost ea.</th><th class="n">Price ea.</th><th class="n">Line</th><th></th></tr></thead>
+      <tbody id="queueBody"></tbody><tfoot id="queueFoot"></tfoot></table>
+    <div id="queueEmpty" class="empty">Nothing queued — pick a brew above and press “Add to queue”.</div>
+  </div>
+</div>
+
+<!-- ══ CATALOG ══ -->
+<div id="tab-catalog" class="tab">
+  <div class="box">
+    <h3>Recipe Catalog
+      <span class="sp">
+        <input id="catSearch" placeholder="Search…" style="width:150px" oninput="renderCatalog()">
+        <span class="pill" id="catCount"></span></span></h3>
+    <p class="hint">All 46 Keizaal alchemy recipes, grouped by effect. Tier ladders (Minor → Plentiful, Potion → Draught) shown together. Costs use your ingredient prices.</p>
+    <div id="catalogList"></div>
+  </div>
+</div>
+
+<!-- ══ REAGENTS (intermediate crafting, like the smithy's smelter) ══ -->
+<div id="tab-reagents" class="tab">
+  <div class="box">
+    <h3>Reagent Crafting <span class="sp"><span class="pill">salts &amp; gems made at the same station</span></span></h3>
+    <p class="hint">A few recipes turn raw materials into reagents that other potions need — Keizaal's version of the smithy's
+      smelter. Note the chain: <strong>Amethyst</strong> (Ruby + Sapphire) feeds <strong>Void Salts</strong>, which several Fortify/Resist potions require.</p>
+    <div id="reagentList"></div>
+  </div>
+  <div class="box">
+    <h3>Where reagents are used</h3>
+    <table><thead><tr><th>Reagent</th><th class="n">Craft cost</th><th>Needed by</th></tr></thead>
+      <tbody id="reagentUse"></tbody></table>
+  </div>
+</div>
+
+<!-- ══ INVENTORY ══ -->
+<div id="tab-inventory" class="tab">
+  <div class="cols">
+    <div class="box">
+      <h3>Ingredient Stock <span class="sp"><input id="invSearch" placeholder="Search…" style="width:120px" oninput="renderInv()"><span class="pill" id="invIngCount"></span></span></h3>
+      <p class="hint">Edit price &amp; stock inline. Prices flow into every recipe cost across the app.</p>
+      <table><thead><tr>
+        <th class="s" onclick="invSort('name')">Ingredient</th><th>Type</th>
+        <th class="s n" onclick="invSort('price')">Buy</th>
+        <th class="s n" onclick="invSort('stock')">Stock</th>
+        <th class="s n" onclick="invSort('used')">Recipes</th>
+        <th class="n">Shelf value</th></tr></thead>
+        <tbody id="invIngBody"></tbody><tfoot id="invIngFoot"></tfoot></table>
+    </div>
+    <div class="box">
+      <h3>Brewed Potions <span class="sp"><span class="pill">ready to sell</span></span></h3>
+      <p class="hint">Sample cellar stock. In the real app, “Brew &amp; log” from the Lab adds here and deducts ingredients.</p>
+      <table><thead><tr><th>Potion</th><th class="n">Held</th><th class="n">Value ea.</th><th class="n">Total</th></tr></thead>
+        <tbody id="invPotBody"></tbody><tfoot id="invPotFoot"></tfoot></table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SALES ══ -->
+<div id="tab-sales" class="tab">
+  <div class="box">
+    <h3>Sales Log <span class="sp"><span class="pill" id="salesCount"></span></span></h3>
+    <p class="hint">Sample of recently brewed &amp; sold stock.</p>
+    <table><thead><tr><th>Day</th><th>Brew</th><th>Buyer</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Gold</th></tr></thead>
+      <tbody id="salesBody"></tbody><tfoot id="salesFoot"></tfoot></table>
+  </div>
+</div>
+
+<!-- ══ SETTINGS ══ -->
+<div id="tab-settings" class="tab">
+  <div class="box">
+    <h3>Shop Settings</h3>
+    <div class="cols">
+      <div>
+        <div class="k" style="margin-bottom:10px"><label>Shop markup (× cost + labor)</label>
+          <span class="step"><button onclick="setMarkup(-0.1)">−</button>
+            <input id="setMarkup" class="n w70" type="number" step="0.05" value="1.6" onchange="setMarkup(0)">
+            <button onclick="setMarkup(0.1)">+</button></span></div>
+        <div class="k" style="margin-bottom:10px"><label>Labor per brew (gold)</label>
+          <span class="step"><button onclick="setLabor(-5)">−</button>
+            <input id="setLabor" class="n w70" type="number" step="1" value="20" onchange="setLabor(0)">
+            <button onclick="setLabor(5)">+</button></span></div>
+      </div>
+      <div>
+        <p class="hint" style="margin-top:0">Data source</p>
+        <p class="note" style="margin-top:0">Recipes, ingredients and quantities are extracted from
+          <strong>keizaal_recipes_test.csv</strong> (the <strong>KzlCraftingAlchemy</strong> workbench): 46 recipes, 43 ingredients.
+          Prices &amp; stock shown are sample numbers — the shipped app saves each visitor's own prices in their browser, nothing shared.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+/* ═══════════════ Keizaal alchemy catalog (extracted from keizaal_recipes_test.csv) ═══════════════ */
+const INGREDIENTS = [
+  {"name": "Amethyst", "type": "MISC", "price": 60, "stock": 2, "craft": true},
+  {"name": "Bear Claws", "type": "INGR", "price": 4, "stock": 23, "craft": false},
+  {"name": "Bleeding Crown", "type": "INGR", "price": 8, "stock": 14, "craft": false},
+  {"name": "Blue Mountain Flower", "type": "INGR", "price": 2, "stock": 35, "craft": false},
+  {"name": "Canis Root", "type": "INGR", "price": 4, "stock": 23, "craft": false},
+  {"name": "Chaurus Eggs", "type": "INGR", "price": 8, "stock": 14, "craft": false},
+  {"name": "Creep Cluster", "type": "INGR", "price": 4, "stock": 23, "craft": false},
+  {"name": "Deathbell", "type": "INGR", "price": 12, "stock": 10, "craft": false},
+  {"name": "Dragon's Tongue", "type": "INGR", "price": 8, "stock": 14, "craft": false},
+  {"name": "Ectoplasm", "type": "INGR", "price": 12, "stock": 10, "craft": false},
+  {"name": "Elves Ear", "type": "INGR", "price": 3, "stock": 28, "craft": false},
+  {"name": "Eye of Sabre Cat", "type": "INGR", "price": 3, "stock": 28, "craft": false},
+  {"name": "Fly Amanita", "type": "INGR", "price": 5, "stock": 20, "craft": false},
+  {"name": "Frost Mirriam", "type": "INGR", "price": 5, "stock": 20, "craft": false},
+  {"name": "Garlic", "type": "INGR", "price": 2, "stock": 35, "craft": false},
+  {"name": "Giant Lichen", "type": "INGR", "price": 4, "stock": 23, "craft": false},
+  {"name": "Glowing Mushroom", "type": "INGR", "price": 6, "stock": 18, "craft": false},
+  {"name": "Grass Pod", "type": "INGR", "price": 3, "stock": 28, "craft": false},
+  {"name": "Honey", "type": "ALCH", "price": 4, "stock": 23, "craft": false},
+  {"name": "Honeycomb", "type": "INGR", "price": 6, "stock": 18, "craft": false},
+  {"name": "Imp Stool", "type": "INGR", "price": 5, "stock": 20, "craft": false},
+  {"name": "Jazbay Grapes", "type": "INGR", "price": 5, "stock": 20, "craft": false},
+  {"name": "Jug of Milk", "type": "ALCH", "price": 3, "stock": 28, "craft": false},
+  {"name": "Juniper Berries", "type": "INGR", "price": 3, "stock": 28, "craft": false},
+  {"name": "Lavender", "type": "INGR", "price": 3, "stock": 28, "craft": false},
+  {"name": "Moon Sugar", "type": "INGR", "price": 20, "stock": 6, "craft": false},
+  {"name": "Mora Tapinella", "type": "INGR", "price": 5, "stock": 20, "craft": false},
+  {"name": "Nightshade", "type": "INGR", "price": 8, "stock": 14, "craft": false},
+  {"name": "Petty Soul Gem", "type": "SLGM", "price": 15, "stock": 8, "craft": false},
+  {"name": "Purple Mountain Flower", "type": "INGR", "price": 2, "stock": 35, "craft": false},
+  {"name": "Red Mountain Flower", "type": "INGR", "price": 2, "stock": 35, "craft": false},
+  {"name": "Rock Warbler Egg", "type": "INGR", "price": 4, "stock": 23, "craft": false},
+  {"name": "Ruby", "type": "MISC", "price": 100, "stock": 2, "craft": false},
+  {"name": "Salt Pile", "type": "INGR", "price": 2, "stock": 35, "craft": false},
+  {"name": "Sapphire", "type": "MISC", "price": 90, "stock": 2, "craft": false},
+  {"name": "Scaly Pholiota", "type": "INGR", "price": 5, "stock": 20, "craft": false},
+  {"name": "Slaughterfish Egg", "type": "INGR", "price": 5, "stock": 20, "craft": false},
+  {"name": "Snowberries", "type": "INGR", "price": 4, "stock": 23, "craft": false},
+  {"name": "Thistle Branch", "type": "INGR", "price": 2, "stock": 35, "craft": false},
+  {"name": "Troll Fat", "type": "INGR", "price": 10, "stock": 12, "craft": false},
+  {"name": "Tundra Cotton", "type": "INGR", "price": 3, "stock": 28, "craft": false},
+  {"name": "Void Salts", "type": "INGR", "price": 55, "stock": 2, "craft": true},
+  {"name": "Wheat", "type": "INGR", "price": 2, "stock": 35, "craft": false},
+];
+const RECIPES = [
+  {"id": "KzlPot_UGCStallion", "name": "Stallion's Elixir", "cat": "Special", "kind": "potion", "tier": "", "tr": 0, "out": 1, "lines": [["Salt Pile", 1], ["Purple Mountain Flower", 10], ["Honeycomb", 4]]},
+  {"id": "RestoreHealth01", "name": "Potion of Minor Healing", "cat": "Restore Health", "kind": "potion", "tier": "Minor", "tr": 1, "out": 1, "lines": [["Wheat", 7], ["Blue Mountain Flower", 15]]},
+  {"id": "RestoreHealth02", "name": "Potion of Healing", "cat": "Restore Health", "kind": "potion", "tier": "Standard", "tr": 2, "out": 1, "lines": [["Wheat", 7], ["Imp Stool", 8], ["Blue Mountain Flower", 10]]},
+  {"id": "RestoreHealth03", "name": "Potion of Plentiful Healing", "cat": "Restore Health", "kind": "potion", "tier": "Plentiful", "tr": 3, "out": 1, "lines": [["Wheat", 7], ["Imp Stool", 8], ["Eye of Sabre Cat", 2], ["Blue Mountain Flower", 10]]},
+  {"id": "RestoreMagicka01", "name": "Potion of Minor Magicka", "cat": "Restore Magicka", "kind": "potion", "tier": "Minor", "tr": 1, "out": 1, "lines": [["Elves Ear", 12], ["Giant Lichen", 10]]},
+  {"id": "RestoreMagicka02", "name": "Potion of Magicka", "cat": "Restore Magicka", "kind": "potion", "tier": "Standard", "tr": 2, "out": 1, "lines": [["Elves Ear", 12], ["Giant Lichen", 10], ["Creep Cluster", 8]]},
+  {"id": "RestoreMagicka03", "name": "Potion of Plentiful Magicka", "cat": "Restore Magicka", "kind": "potion", "tier": "Plentiful", "tr": 3, "out": 1, "lines": [["Elves Ear", 12], ["Giant Lichen", 8], ["Creep Cluster", 8], ["Mora Tapinella", 12]]},
+  {"id": "RestoreStamina01", "name": "Potion of Minor Stamina", "cat": "Restore Stamina", "kind": "potion", "tier": "Minor", "tr": 1, "out": 1, "lines": [["Purple Mountain Flower", 10], ["Honeycomb", 4]]},
+  {"id": "RestoreStamina02", "name": "Potion of Stamina", "cat": "Restore Stamina", "kind": "potion", "tier": "Standard", "tr": 2, "out": 1, "lines": [["Juniper Berries", 8], ["Purple Mountain Flower", 12], ["Honeycomb", 6]]},
+  {"id": "RestoreStamina03", "name": "Potion of Plentiful Stamina", "cat": "Restore Stamina", "kind": "potion", "tier": "Plentiful", "tr": 3, "out": 1, "lines": [["Juniper Berries", 5], ["Bear Claws", 2], ["Purple Mountain Flower", 10], ["Honeycomb", 4]]},
+  {"id": "FortifyMagicka01", "name": "Potion of Extra Magicka", "cat": "Fortify Magicka", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Void Salts", 3], ["Tundra Cotton", 10]]},
+  {"id": "FortifyMagicka02", "name": "Draught of Extra Magicka", "cat": "Fortify Magicka", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Void Salts", 3], ["Ectoplasm", 2], ["Tundra Cotton", 10]]},
+  {"id": "FortifyMagickaRate01", "name": "Potion of Lasting Potency", "cat": "Fortify Magicka Regen", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Salt Pile", 5], ["Garlic", 15]]},
+  {"id": "FortifyMagickaRate02", "name": "Draught of Lasting Potency", "cat": "Fortify Magicka Regen", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Salt Pile", 5], ["Garlic", 15], ["Moon Sugar", 2]]},
+  {"id": "FortifyStaminaRate02", "name": "Draught of Vigor", "cat": "Fortify Stamina Regen", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Thistle Branch", 10], ["Fly Amanita", 8], ["Scaly Pholiota", 8]]},
+  {"id": "FortifyStaminaRate01", "name": "Potion of Vigor", "cat": "Fortify Stamina Regen", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Fly Amanita", 8], ["Scaly Pholiota", 8]]},
+  {"id": "FortifyStamina01", "name": "Potion of Enhanced Stamina", "cat": "Fortify Stamina", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Garlic", 8], ["Lavender", 12]]},
+  {"id": "FortifyStamina02", "name": "Draught of Enhanced Stamina", "cat": "Fortify Stamina", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Garlic", 8], ["Chaurus Eggs", 4], ["Lavender", 12]]},
+  {"id": "FoodWineBottle02", "name": "Wine", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Frost Mirriam", 3], ["Jazbay Grapes", 8]]},
+  {"id": "KzlSkooma", "name": "Skooma", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Nightshade", 10], ["Moon Sugar", 5]]},
+  {"id": "Ale", "name": "Ale", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Lavender", 2], ["Wheat", 5]]},
+  {"id": "FortifySkillDestruction01", "name": "Potion of Destruction", "cat": "Fortify Destruction", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Glowing Mushroom", 8], ["Honeycomb", 6]]},
+  {"id": "FortifySkillDestruction02", "name": "Draught of Destruction", "cat": "Fortify Destruction", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Ectoplasm", 2], ["Glowing Mushroom", 8], ["Honeycomb", 6]]},
+  {"id": "FortifySkillOneHanded01", "name": "Potion of the Warrior", "cat": "Fortify One-Handed", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Canis Root", 8], ["Rock Warbler Egg", 6]]},
+  {"id": "FortifySkillOneHanded02", "name": "Draught of the Warrior", "cat": "Fortify One-Handed", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Canis Root", 8], ["Bear Claws", 2], ["Rock Warbler Egg", 4]]},
+  {"id": "FortifySkillTwoHanded01", "name": "Potion of the Berserker", "cat": "Fortify Two-Handed", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Fly Amanita", 12], ["Dragon's Tongue", 8]]},
+  {"id": "FortifySkillTwoHanded02", "name": "Draught of the Berserker", "cat": "Fortify Two-Handed", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Troll Fat", 2], ["Fly Amanita", 8], ["Dragon's Tongue", 12]]},
+  {"id": "FortifySkillRestoration01", "name": "Potion of the Healer", "cat": "Fortify Restoration", "kind": "potion", "tier": "Potion", "tr": 1, "out": 1, "lines": [["Salt Pile", 5], ["Red Mountain Flower", 15]]},
+  {"id": "FortifySkillRestoration02", "name": "Draught of the Healer", "cat": "Fortify Restoration", "kind": "potion", "tier": "Draught", "tr": 2, "out": 1, "lines": [["Salt Pile", 5], ["Juniper Berries", 8], ["Red Mountain Flower", 15]]},
+  {"id": "ResistMagic25", "name": "Potion of Resist Magic", "cat": "Resist Magic", "kind": "potion", "tier": "25%", "tr": 1, "out": 1, "lines": [["Tundra Cotton", 10], ["Bleeding Crown", 8]]},
+  {"id": "ResistMagic50", "name": "Draught of Resist Magic", "cat": "Resist Magic", "kind": "potion", "tier": "50%", "tr": 2, "out": 1, "lines": [["Void Salts", 3], ["Tundra Cotton", 10], ["Bleeding Crown", 8]]},
+  {"id": "FoodMead", "name": "Nord Mead", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Snowberries", 2], ["Honey", 5]]},
+  {"id": "FirebrandWine", "name": "Firebrand Wine", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Elves Ear", 2], ["Jazbay Grapes", 8], ["Dragon's Tongue", 4]]},
+  {"id": "FavorSorexRum", "name": "Stros M'Kai Rum", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Elves Ear", 8], ["Deathbell", 5], ["Canis Root", 2]]},
+  {"id": "FoodHonningbrewMead", "name": "Honningbrew Mead", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Snowberries", 2], ["Lavender", 6], ["Honey", 5]]},
+  {"id": "VoidSalts", "name": "Void Salts", "cat": "Reagent", "kind": "reagent", "tier": "", "tr": 0, "out": 1, "lines": [["Petty Soul Gem", 1], ["Salt Pile", 2], ["Amethyst", 2]]},
+  {"id": "FireSalts", "name": "Fire Salts", "cat": "Reagent", "kind": "reagent", "tier": "", "tr": 0, "out": 1, "lines": [["Petty Soul Gem", 1], ["Salt Pile", 2], ["Ruby", 2]]},
+  {"id": "FrostSalts", "name": "Frost Salts", "cat": "Reagent", "kind": "reagent", "tier": "", "tr": 0, "out": 1, "lines": [["Petty Soul Gem", 1], ["Salt Pile", 2], ["Sapphire", 2]]},
+  {"id": "FoodBlackBriarMead", "name": "Black-Briar Mead", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Thistle Branch", 5], ["Snowberries", 2], ["Honey", 5]]},
+  {"id": "FoodSolitudeSpicedWine", "name": "Bashkh's Mulled Wine", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Snowberries", 4], ["Jazbay Grapes", 6], ["Dragon's Tongue", 3]]},
+  {"id": "DLC2FoodAshfireMead", "name": "Ashfire Mead", "cat": "Food & Drink", "kind": "food", "tier": "", "tr": 0, "out": 1, "lines": [["Snowberries", 3], ["Salt Pile", 4], ["Honey", 4]]},
+  {"id": "KzlPot_UGCBathwater", "name": "Dibella's Holy Bathwater", "cat": "Special", "kind": "potion", "tier": "", "tr": 0, "out": 1, "lines": [["Salt Pile", 1], ["Wheat", 5], ["Blue Mountain Flower", 12]]},
+  {"id": "KzlPot_UGCMagMilk", "name": "Farmer's Magical Milk", "cat": "Special", "kind": "potion", "tier": "", "tr": 0, "out": 1, "lines": [["Elves Ear", 10], ["Giant Lichen", 8], ["Jug of Milk", 1]]},
+  {"id": "KzlPot_FeatherFeet", "name": "Feather Foot Tonic", "cat": "Special", "kind": "potion", "tier": "", "tr": 0, "out": 1, "lines": [["Wheat", 10], ["Red Mountain Flower", 10], ["Creep Cluster", 6]]},
+  {"id": "CureDisease", "name": "Potion of Cure Disease", "cat": "Cure Disease", "kind": "potion", "tier": "", "tr": 0, "out": 1, "lines": [["Garlic", 3], ["Slaughterfish Egg", 5], ["Grass Pod", 7]]},
+  {"id": "GemAmethyst", "name": "Amethyst", "cat": "Reagent", "kind": "reagent", "tier": "", "tr": 0, "out": 1, "lines": [["Ruby", 1], ["Sapphire", 1]]},
+];
+
+/* ═══════════════ derived maps ═══════════════ */
+const ingBy = Object.fromEntries(INGREDIENTS.map(i=>[i.name,i]));
+const recById = Object.fromEntries(RECIPES.map(r=>[r.id,r]));
+const CAT_ORDER = ["Restore Health","Restore Magicka","Restore Stamina","Fortify Magicka","Fortify Magicka Regen",
+  "Fortify Stamina","Fortify Stamina Regen","Fortify Destruction","Fortify One-Handed","Fortify Two-Handed",
+  "Fortify Restoration","Resist Magic","Cure Disease","Special","Food & Drink","Reagent"];
+function catRank(c){ const i=CAT_ORDER.indexOf(c); return i<0?99:i; }
+
+/* sample cellar + sales (display only) */
+const BREWED = [
+  {name:"Potion of Healing", held:12}, {name:"Potion of Plentiful Magicka", held:5},
+  {name:"Draught of the Warrior", held:7}, {name:"Nord Mead", held:20},
+];
+const SALES = [
+  {day:"Sundas", name:"Potion of Healing", buyer:"Arcadia", qty:6},
+  {day:"Sundas", name:"Skooma", buyer:"Walk-in", qty:3},
+  {day:"Morndas", name:"Draught of the Berserker", buyer:"Companions", qty:2},
+  {day:"Tirdas", name:"Nord Mead", buyer:"Bannered Mare", qty:10},
+];
+
+/* ═══════════════ state ═══════════════ */
+let settings = { markup:1.6, labor:20 };
+let kindFlt='all', catFlt='all', selectedId='RestoreHealth02', batch=1;
+let queue = [ {id:"RestoreHealth02", qty:5}, {id:"Skooma", qty:3} ];
+
+const g = n => Math.round(n).toLocaleString()+"g";
+function ingCost(r){ return r.lines.reduce((s,[nm,q])=> s+(ingBy[nm]?.price||0)*q, 0); }
+function brewCost(r){ return ingCost(r)+settings.labor; }
+function price(r){ return Math.round(brewCost(r)*settings.markup); }
+function craftableNow(r){ return Math.min(...r.lines.map(([nm,q])=> Math.floor((ingBy[nm]?.stock||0)/q))); }
+function usedByCount(nm){ return RECIPES.filter(r=>r.lines.some(([n])=>n===nm)).length; }
+
+/* ═══════════════ tabs ═══════════════ */
+function tab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+  document.getElementById('t-'+id).classList.add('on');
+  if(id==='catalog') renderCatalog();
+  if(id==='reagents') renderReagents();
+  if(id==='inventory') renderInv();
+  if(id==='sales') renderSales();
+}
+
+/* ═══════════════ LAB ═══════════════ */
+function labFiltered(){
+  return RECIPES.filter(r=> (kindFlt==='all'||r.kind===kindFlt) && (catFlt==='all'||r.cat===catFlt));
+}
+function setKind(k){ kindFlt=k; catFlt='all';
+  document.querySelectorAll('#kindSeg button').forEach(b=>b.classList.remove('on'));
+  document.querySelector(`#kindSeg button[onclick="setKind('${k}')"]`).classList.add('on');
+  renderLab(); }
+function setCat(c){ catFlt=c; renderLab(); }
+function renderLab(){
+  const list=labFiltered();
+  document.getElementById('labCount').textContent=list.length+' recipes';
+  // category chips (from current kind filter)
+  const cats=[...new Set(RECIPES.filter(r=>kindFlt==='all'||r.kind===kindFlt).map(r=>r.cat))].sort((a,b)=>catRank(a)-catRank(b));
+  document.getElementById('catChips').innerHTML =
+    `<span class="chip ${catFlt==='all'?'on':''}" onclick="setCat('all')">All</span>` +
+    cats.map(c=>{ const n=RECIPES.filter(r=>r.cat===c&&(kindFlt==='all'||r.kind===kindFlt)).length;
+      return `<span class="chip ${catFlt===c?'on':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">${c} <span class="c">${n}</span></span>`; }).join('');
+  // recipe list, grouped by category then tier
+  const sorted=list.slice().sort((a,b)=> catRank(a.cat)-catRank(b.cat) || a.tr-b.tr || a.name.localeCompare(b.name));
+  document.getElementById('recipeList').innerHTML = sorted.map(r=>{
+    const cn=craftableNow(r);
+    return `<div class="ritem ${r.id===selectedId?'sel':''}" onclick="selectRecipe('${r.id}')">
+      <span class="kind ${r.kind}"></span>
+      <span class="nm">${r.name}</span>
+      ${r.tier?`<span class="pill tier">${r.tier}</span>`:''}
+      <span class="sp">
+        <span class="dim" style="font-size:11px">makes ${cn}</span>
+        <span class="gold">${g(price(r))}</span>
+      </span></div>`;
+  }).join('') || '<div class="empty">No recipes in this filter.</div>';
+  renderResult();
+}
+function selectRecipe(id){ selectedId=id; batch=1; renderLab(); }
+function setBatch(v){ batch=Math.max(1,+v||1); renderResult(); }
+function stepBatch(d){ batch=Math.max(1,batch+d); renderResult(); }
+function renderResult(){
+  const r=recById[selectedId]; const el=document.getElementById('result');
+  if(!r){ el.innerHTML='<h2 class="dim">Pick a brew</h2>'; return; }
+  const cn=craftableNow(r);
+  const rows=r.lines.map(([nm,q])=>{
+    const ing=ingBy[nm]; const need=q*batch; const have=ing?.stock||0; const ok=have>=need;
+    return `<tr>
+      <td>${nm}${ing?.craft?' <span class="pill" title="craftable at the Reagents tab">reagent</span>':''}</td>
+      <td class="n">${q}${batch>1?` <span class="dim">×${batch}=${need}</span>`:''}</td>
+      <td class="n ${ok?'':'bad'}">${have}</td>
+      <td class="n dim">${g((ing?.price||0)*q)}</td></tr>`;
+  }).join('');
+  const cost=brewCost(r), pr=price(r), each=pr, lineCost=cost*batch, lineRev=pr*batch;
+  el.innerHTML = `
+    <h2>${r.name}</h2>
+    <div class="sub"><span class="kind ${r.kind}"></span> ${r.cat}${r.tier?` · <span class="gold">${r.tier}</span> tier`:''} · makes ${r.out} per brew</div>
+    <div class="row" style="align-items:flex-end;gap:12px;margin:2px 0 6px">
+      <div class="val">${g(pr)}</div>
+      <div class="dim" style="font-size:11.5px;padding-bottom:5px">sale price each · cost ${g(cost)} · margin <span class="good">${g(pr-cost)}</span></div>
+      <span class="canmake ${cn>0?'ok':'no'}" style="margin-left:auto">${cn>0?`can brew ${cn} now`:'short on ingredients'}</span>
+    </div>
+    <table class="rtable"><thead><tr><th>Ingredient</th><th class="n">Per brew</th><th class="n">Have</th><th class="n">Cost</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="row" style="margin-top:10px;align-items:center">
+      <span class="dim" style="font-size:11.5px">Batch</span>
+      <span class="step">
+        <button type="button" onclick="stepBatch(-1)">−</button>
+        <input class="n w50" type="number" min="1" value="${batch}" onchange="setBatch(this.value)">
+        <button type="button" onclick="stepBatch(1)">+</button>
+      </span>
+      <span class="dim" style="font-size:11.5px">= cost ${g(lineCost)} → revenue <span class="gold">${g(lineRev)}</span></span>
+      <span class="sp" style="margin-left:auto;display:flex;gap:6px">
+        <button class="b pri" onclick="addQueue()">+ Add to queue</button>
+      </span>
+    </div>`;
+}
+
+/* lab search dropdown */
+let ddList=[], ddActive=-1;
+function ddClose(){ document.getElementById('labDD').style.display='none'; ddActive=-1; }
+function openLabDD(){
+  const q=(document.getElementById('labSearch').value||'').toLowerCase();
+  const box=document.getElementById('labDD');
+  ddList=RECIPES.filter(r=>r.name.toLowerCase().includes(q)||r.cat.toLowerCase().includes(q))
+    .sort((a,b)=>catRank(a.cat)-catRank(b.cat)||a.tr-b.tr).slice(0,12);
+  if(!ddList.length){ box.innerHTML='<div class="dd-empty">No recipe matches.</div>'; box.style.display='block'; return; }
+  box.innerHTML=ddList.map((r,i)=>`<div class="dd-row ${i===ddActive?'active':''}" onmousedown="pickDD(${i})">
+    <span class="kind ${r.kind}"></span><span class="nm">${r.name}</span>${r.tier?`<span class="pill tier">${r.tier}</span>`:''}
+    <span class="sp gold">${g(price(r))}</span></div>`).join('');
+  box.style.display='block';
+}
+function pickDD(i){ const r=ddList[i]; selectedId=r.id; kindFlt='all'; catFlt='all'; batch=1;
+  document.getElementById('labSearch').value=''; ddClose();
+  document.querySelectorAll('#kindSeg button').forEach(b=>b.classList.remove('on'));
+  document.querySelector(`#kindSeg button[onclick="setKind('all')"]`).classList.add('on');
+  renderLab(); }
+function ddKey(e){
+  const box=document.getElementById('labDD'); if(box.style.display==='none') return;
+  if(e.key==='ArrowDown'){ ddActive=Math.min(ddActive+1,ddList.length-1); openLabDD(); e.preventDefault(); }
+  else if(e.key==='ArrowUp'){ ddActive=Math.max(ddActive-1,0); openLabDD(); e.preventDefault(); }
+  else if(e.key==='Enter'){ if(ddActive>=0){ pickDD(ddActive); e.preventDefault(); } }
+  else if(e.key==='Escape'){ ddClose(); }
+}
+
+/* brew queue */
+function addQueue(){ const ex=queue.find(q=>q.id===selectedId); if(ex)ex.qty+=batch; else queue.push({id:selectedId,qty:batch}); renderQueue(); }
+function clearQueue(){ queue=[]; renderQueue(); }
+function qQty(id,v){ const q=queue.find(q=>q.id===id); if(q){ q.qty=Math.max(1,+v||1); renderQueue(); } }
+function qDel(id){ queue=queue.filter(q=>q.id!==id); renderQueue(); }
+function renderQueue(){
+  document.getElementById('queueEmpty').style.display=queue.length?'none':'block';
+  document.getElementById('queueCount').textContent=queue.reduce((s,q)=>s+q.qty,0)+' items';
+  let tc=0,tr=0;
+  document.getElementById('queueBody').innerHTML=queue.map(q=>{
+    const r=recById[q.id]; const c=brewCost(r), p=price(r); tc+=c*q.qty; tr+=p*q.qty;
+    return `<tr>
+      <td><span class="kind ${r.kind}"></span> ${r.name} ${r.tier?`<span class="pill tier">${r.tier}</span>`:''}</td>
+      <td class="n"><input class="n bare w50" type="number" min="1" value="${q.qty}" onchange="qQty('${q.id}',this.value)"></td>
+      <td class="n dim">${g(c)}</td><td class="n">${g(p)}</td><td class="n gold">${g(p*q.qty)}</td>
+      <td><button class="x" onclick="qDel('${q.id}')">✕</button></td></tr>`;
+  }).join('');
+  document.getElementById('queueFoot').innerHTML=queue.length?`<tr class="tot"><td>Total</td>
+    <td class="n">${queue.reduce((s,q)=>s+q.qty,0)}</td><td class="n dim">${g(tc)}</td><td></td>
+    <td class="n gold">${g(tr)}</td><td></td></tr>
+    <tr><td colspan="6" class="note" style="border:none">Batch profit: <span class="good">${g(tr-tc)}</span></td></tr>`:'';
+}
+
+/* ═══════════════ CATALOG ═══════════════ */
+function renderCatalog(){
+  const q=(document.getElementById('catSearch').value||'').toLowerCase();
+  const cats=[...new Set(RECIPES.map(r=>r.cat))].sort((a,b)=>catRank(a)-catRank(b));
+  let shown=0;
+  const html=cats.map(c=>{
+    const rs=RECIPES.filter(r=>r.cat===c && (r.name.toLowerCase().includes(q)||c.toLowerCase().includes(q)))
+      .sort((a,b)=>a.tr-b.tr||a.name.localeCompare(b.name));
+    if(!rs.length) return '';
+    shown+=rs.length;
+    const body=rs.map(r=>{
+      const lines=r.lines.map(([nm,ct])=>`<div class="ing-line"><span>${nm}</span><span class="c">×${ct}</span><span class="c">${g((ingBy[nm]?.price||0)*ct)}</span></div>`).join('');
+      return `<details>
+        <summary><span class="kind ${r.kind}"></span><span class="nm">${r.name}</span>
+          ${r.tier?`<span class="pill tier">${r.tier}</span>`:''}
+          <span class="sp"><span class="dim">makes ${craftableNow(r)}</span><span class="dim">cost ${g(brewCost(r))}</span><span class="gold">${g(price(r))}</span></span></summary>
+        <div class="rbody">
+          <div class="ing-line" style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.4px"><span>Ingredient</span><span class="c">Qty</span><span class="c">Cost</span></div>
+          ${lines}
+          <div class="ing-line" style="border-top:1px solid var(--line);margin-top:4px;padding-top:4px"><span class="dim">Ingredients + labor (${g(settings.labor)})</span><span class="c"></span><span class="c gold">${g(brewCost(r))}</span></div>
+        </div></details>`;
+    }).join('');
+    return `<h3 style="color:var(--gold);font-variant:small-caps;letter-spacing:.5px;font-size:12.5px;margin:14px 0 6px">${c} <span class="dim" style="font-size:11px">· ${rs.length}</span></h3>${body}`;
+  }).join('');
+  document.getElementById('catCount').textContent=shown+' recipes';
+  document.getElementById('catalogList').innerHTML=html || '<div class="empty">No recipe matches.</div>';
+}
+
+/* ═══════════════ REAGENTS ═══════════════ */
+function renderReagents(){
+  const reags=RECIPES.filter(r=>r.kind==='reagent').sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('reagentList').innerHTML=reags.map(r=>{
+    const cn=craftableNow(r);
+    const lines=r.lines.map(([nm,ct])=>`<div class="ing-line"><span>${nm}</span><span class="c">×${ct}</span><span class="c">${g((ingBy[nm]?.price||0)*ct)}</span></div>`).join('');
+    return `<details ${reags.length<=4?'open':''}>
+      <summary><span class="kind reagent"></span><span class="nm">${r.name}</span>
+        <span class="sp"><span class="dim">makes ${cn}</span><span class="gold">cost ${g(ingCost(r))}</span></span></summary>
+      <div class="rbody">${lines}
+        <div class="row" style="margin-top:8px"><button class="b pri" onclick="alert('In the real app this crafts the reagent and updates stock.')">Craft ${r.name}</button></div>
+      </div></details>`;
+  }).join('');
+  document.getElementById('reagentUse').innerHTML=reags.map(r=>{
+    const users=RECIPES.filter(x=>x.lines.some(([n])=>n===r.name));
+    return `<tr><td>${r.name}</td><td class="n dim">${g(ingCost(r))}</td>
+      <td class="dim" style="font-size:11.5px">${users.length?users.map(u=>u.name).join(', '):'— (sold as-is)'}</td></tr>`;
+  }).join('');
+}
+
+/* ═══════════════ INVENTORY ═══════════════ */
+let invSortKey='name', invSortDir=1;
+function invSort(k){ if(invSortKey===k)invSortDir*=-1; else{invSortKey=k;invSortDir=1;} renderInv(); }
+function invPrice(nm,v){ ingBy[nm].price=Math.max(0,+v||0); renderInv(); renderLab(); }
+function invStock(nm,v){ ingBy[nm].stock=Math.max(0,+v||0); renderInv(); renderLab(); }
+function renderInv(){
+  const q=(document.getElementById('invSearch').value||'').toLowerCase();
+  let list=INGREDIENTS.filter(i=>i.name.toLowerCase().includes(q));
+  list=list.slice().sort((a,b)=>{ let av,bv;
+    if(invSortKey==='used'){av=usedByCount(a.name);bv=usedByCount(b.name);}
+    else if(invSortKey==='name'){av=a.name;bv=b.name;}
+    else {av=a[invSortKey];bv=b[invSortKey];}
+    return (av>bv?1:av<bv?-1:0)*invSortDir; });
+  document.getElementById('invIngCount').textContent=list.length+' ingredients';
+  let shelf=0;
+  document.getElementById('invIngBody').innerHTML=list.map(i=>{ const v=i.stock*i.price; shelf+=v;
+    return `<tr>
+      <td>${i.name}${i.craft?' <span class="pill">craftable</span>':''}</td>
+      <td class="dim" style="font-size:11px">${({INGR:'Ingredient',ALCH:'Consumable',MISC:'Gem',SLGM:'Soul gem'})[i.type]||i.type}</td>
+      <td class="n"><input class="n bare w60" type="number" min="0" value="${i.price}" onchange="invPrice('${i.name.replace(/'/g,"\\'")}',this.value)"></td>
+      <td class="n"><input class="n bare w60" type="number" min="0" value="${i.stock}" onchange="invStock('${i.name.replace(/'/g,"\\'")}',this.value)"></td>
+      <td class="n dim">${usedByCount(i.name)}</td>
+      <td class="n">${g(v)}</td></tr>`; }).join('');
+  document.getElementById('invIngFoot').innerHTML=`<tr class="tot"><td colspan="5">Shelf value</td><td class="n gold">${g(shelf)}</td></tr>`;
+  let pot=0;
+  document.getElementById('invPotBody').innerHTML=BREWED.map(p=>{ const r=recById[Object.keys(recById).find(k=>recById[k].name===p.name)]; const v=r?price(r):0; const t=v*p.held; pot+=t;
+    return `<tr><td>${p.name}</td><td class="n">${p.held}</td><td class="n dim">${g(v)}</td><td class="n gold">${g(t)}</td></tr>`; }).join('');
+  document.getElementById('invPotFoot').innerHTML=`<tr class="tot"><td>Cellar value</td><td></td><td></td><td class="n gold">${g(pot)}</td></tr>`;
+}
+
+/* ═══════════════ SALES ═══════════════ */
+function renderSales(){
+  document.getElementById('salesCount').textContent=SALES.reduce((s,x)=>s+x.qty,0)+' sold';
+  let tot=0;
+  document.getElementById('salesBody').innerHTML=SALES.map(s=>{
+    const r=recById[Object.keys(recById).find(k=>recById[k].name===s.name)]; const each=r?price(r):0; const line=each*s.qty; tot+=line;
+    return `<tr><td class="dim">${s.day}</td><td>${s.name}</td><td>${s.buyer}</td><td class="n">${s.qty}</td><td class="n dim">${g(each)}</td><td class="n gold">${g(line)}</td></tr>`; }).join('');
+  document.getElementById('salesFoot').innerHTML=`<tr class="tot"><td colspan="5">Total taken</td><td class="n gold">${g(tot)}</td></tr>`;
+}
+
+/* ═══════════════ settings ═══════════════ */
+function setMarkup(d){ const el=document.getElementById('setMarkup'); if(d)el.value=(Math.max(1,(+el.value||1.6)+d)).toFixed(2); settings.markup=+el.value||1.6; renderLab(); renderQueue(); }
+function setLabor(d){ const el=document.getElementById('setLabor'); if(d)el.value=Math.max(0,(+el.value||0)+d); settings.labor=+el.value||0; renderLab(); renderQueue(); }
+
+/* ═══════════════ boot ═══════════════ */
+renderLab();
+renderQueue();
+</script>
+</body>
+</html>
