@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Keizaal Alchemist's Lab — Price Calculator (mockup)</title>
+<title>Keizaal Alchemist's Lab — Price Calculator</title>
 <style>
-  /* ── Alchemy · FULL mockup · toxic-green accent ──────────────────────────
+  /* ── Alchemy · toxic-green accent ────────────────────────────────────────
      Shares the Smithy/Tailor design tokens; accent + ground shifted green.
-     ACCURATE model: Keizaal alchemy is a FIXED recipe book at a custom station
+     Keizaal alchemy is a FIXED recipe book at a custom station
      (KzlCraftingAlchemy) — not vanilla effect-discovery. Recipes, ingredients
      and quantities are extracted from keizaal_recipes_test.csv. Prices & stock
-     are sample numbers. Browse by effect category → pick a tier → cost it out. */
+     start from sample numbers, then save per-visitor in the browser. */
   :root {
     --bg:#0f140e; --panel:#182015; --panel-2:#1f2a1b; --panel-3:#273421; --line:#334127;
     --ink:#e4ecdd; --dim:#9db08f; --gold:#8ecb4f; --gold-2:#63a134;
@@ -139,19 +139,9 @@
   .ing-line { display:grid; grid-template-columns:1fr 60px 70px; gap:6px; align-items:center; font-size:12px; margin-bottom:3px; }
   .ing-line .c { text-align:right; color:var(--dim); }
 
-  #demoBar { display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap;
-    padding:7px 16px; background:linear-gradient(90deg,var(--gold-2),var(--gold)); color:#0f140e;
-    font-size:12.5px; font-weight:600; letter-spacing:.3px; text-align:center; }
-  #demoBar .tag { background:rgba(15,20,14,.22); border-radius:20px; padding:2px 10px; font-variant:small-caps; letter-spacing:.5px; }
-  #demoBar a { color:#0f140e; text-decoration:underline; font-weight:700; cursor:pointer; }
 </style>
 </head>
 <body>
-
-<div id="demoBar">
-  <span><span class="tag">Mockup B · Full</span> &nbsp;Real Keizaal recipes (KzlCraftingAlchemy) — prices are sample numbers, nothing is saved.</span>
-  <a onclick="alert('In the real app this returns to the login gate.')">← Back to login</a>
-</div>
 
 <div class="top"><div class="top-in">
   <div class="brand">⚗ Keizaal Alchemist's Lab</div>
@@ -286,7 +276,7 @@
         <p class="hint" style="margin-top:0">Data source</p>
         <p class="note" style="margin-top:0">Recipes, ingredients and quantities are extracted from
           <strong>keizaal_recipes_test.csv</strong> (the <strong>KzlCraftingAlchemy</strong> workbench): 46 recipes, 43 ingredients.
-          Prices &amp; stock shown are sample numbers — the shipped app saves each visitor's own prices in their browser, nothing shared.</p>
+          Prices &amp; stock start from sample numbers; your edits auto-save in this browser under this tool's own key, nothing shared.</p>
       </div>
     </div>
   </div>
@@ -413,7 +403,32 @@ const SALES = [
 /* ═══════════════ state ═══════════════ */
 let settings = { markup:1.6, labor:20 };
 let kindFlt='all', catFlt='all', selectedId='RestoreHealth02', batch=1;
-let queue = [ {id:"RestoreHealth02", qty:5}, {id:"Skooma", qty:3} ];
+let queue = [ {id:"RestoreHealth02", qty:5}, {id:"KzlSkooma", qty:3} ];
+
+/* ═══════════════ persistence ═══════════════
+   Each visitor's own prices, stock, shop settings and brew queue are kept in
+   this browser under one key — nothing is shared, nothing leaves the device.
+   Debounced so rapid typing/stepping doesn't stringify on every event. */
+const KEY = "keisaal_alchemy";
+let _saveTimer = null;
+function save(){
+  try {
+    const ing = {}; INGREDIENTS.forEach(i => { ing[i.name] = { price:i.price, stock:i.stock }; });
+    localStorage.setItem(KEY, JSON.stringify({ ing, settings, queue }));
+  } catch(e){}
+}
+function saveDebounced(){ if (_saveTimer) clearTimeout(_saveTimer); _saveTimer = setTimeout(() => { _saveTimer = null; save(); }, 250); }
+function flushSave(){ if (_saveTimer){ clearTimeout(_saveTimer); _saveTimer = null; } save(); }
+addEventListener("pagehide", flushSave);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushSave(); });
+function load(){
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY)); if (!d) return;
+    if (d.ing) INGREDIENTS.forEach(i => { const o = d.ing[i.name]; if (o){ if (typeof o.price === "number") i.price = o.price; if (typeof o.stock === "number") i.stock = o.stock; } });
+    if (d.settings){ if (typeof d.settings.markup === "number") settings.markup = d.settings.markup; if (typeof d.settings.labor === "number") settings.labor = d.settings.labor; }
+    if (Array.isArray(d.queue)) queue = d.queue.filter(q => q && recById[q.id]).map(q => ({ id:q.id, qty:Math.max(1, +q.qty||1) }));
+  } catch(e){}
+}
 
 const g = n => Math.round(n).toLocaleString()+"g";
 function ingCost(r){ return r.lines.reduce((s,[nm,q])=> s+(ingBy[nm]?.price||0)*q, 0); }
@@ -534,16 +549,17 @@ function ddKey(e){
 }
 
 /* brew queue */
-function addQueue(){ const ex=queue.find(q=>q.id===selectedId); if(ex)ex.qty+=batch; else queue.push({id:selectedId,qty:batch}); renderQueue(); }
-function clearQueue(){ queue=[]; renderQueue(); }
-function qQty(id,v){ const q=queue.find(q=>q.id===id); if(q){ q.qty=Math.max(1,+v||1); renderQueue(); } }
-function qDel(id){ queue=queue.filter(q=>q.id!==id); renderQueue(); }
+function addQueue(){ const ex=queue.find(q=>q.id===selectedId); if(ex)ex.qty+=batch; else queue.push({id:selectedId,qty:batch}); renderQueue(); saveDebounced(); }
+function clearQueue(){ queue=[]; renderQueue(); saveDebounced(); }
+function qQty(id,v){ const q=queue.find(q=>q.id===id); if(q){ q.qty=Math.max(1,+v||1); renderQueue(); saveDebounced(); } }
+function qDel(id){ queue=queue.filter(q=>q.id!==id); renderQueue(); saveDebounced(); }
 function renderQueue(){
   document.getElementById('queueEmpty').style.display=queue.length?'none':'block';
   document.getElementById('queueCount').textContent=queue.reduce((s,q)=>s+q.qty,0)+' items';
   let tc=0,tr=0;
   document.getElementById('queueBody').innerHTML=queue.map(q=>{
-    const r=recById[q.id]; const c=brewCost(r), p=price(r); tc+=c*q.qty; tr+=p*q.qty;
+    const r=recById[q.id]; if(!r) return '';          // skip stale ids rather than crash
+    const c=brewCost(r), p=price(r); tc+=c*q.qty; tr+=p*q.qty;
     return `<tr>
       <td><span class="kind ${r.kind}"></span> ${r.name} ${r.tier?`<span class="pill tier">${r.tier}</span>`:''}</td>
       <td class="n"><input class="n bare w50" type="number" min="1" value="${q.qty}" onchange="qQty('${q.id}',this.value)"></td>
@@ -607,8 +623,8 @@ function renderReagents(){
 /* ═══════════════ INVENTORY ═══════════════ */
 let invSortKey='name', invSortDir=1;
 function invSort(k){ if(invSortKey===k)invSortDir*=-1; else{invSortKey=k;invSortDir=1;} renderInv(); }
-function invPrice(nm,v){ ingBy[nm].price=Math.max(0,+v||0); renderInv(); renderLab(); }
-function invStock(nm,v){ ingBy[nm].stock=Math.max(0,+v||0); renderInv(); renderLab(); }
+function invPrice(nm,v){ ingBy[nm].price=Math.max(0,+v||0); renderInv(); renderLab(); saveDebounced(); }
+function invStock(nm,v){ ingBy[nm].stock=Math.max(0,+v||0); renderInv(); renderLab(); saveDebounced(); }
 function renderInv(){
   const q=(document.getElementById('invSearch').value||'').toLowerCase();
   let list=INGREDIENTS.filter(i=>i.name.toLowerCase().includes(q));
@@ -645,10 +661,13 @@ function renderSales(){
 }
 
 /* ═══════════════ settings ═══════════════ */
-function setMarkup(d){ const el=document.getElementById('setMarkup'); if(d)el.value=(Math.max(1,(+el.value||1.6)+d)).toFixed(2); settings.markup=+el.value||1.6; renderLab(); renderQueue(); }
-function setLabor(d){ const el=document.getElementById('setLabor'); if(d)el.value=Math.max(0,(+el.value||0)+d); settings.labor=+el.value||0; renderLab(); renderQueue(); }
+function setMarkup(d){ const el=document.getElementById('setMarkup'); if(d)el.value=(Math.max(1,(+el.value||1.6)+d)).toFixed(2); settings.markup=+el.value||1.6; renderLab(); renderQueue(); saveDebounced(); }
+function setLabor(d){ const el=document.getElementById('setLabor'); if(d)el.value=Math.max(0,(+el.value||0)+d); settings.labor=+el.value||0; renderLab(); renderQueue(); saveDebounced(); }
 
 /* ═══════════════ boot ═══════════════ */
+load();
+{ const sm=document.getElementById('setMarkup'); if(sm) sm.value=settings.markup;
+  const sl=document.getElementById('setLabor');  if(sl) sl.value=settings.labor; }
 renderLab();
 renderQueue();
 </script>

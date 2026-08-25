@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Keizaal Cook — Mockup B · Cookbook</title>
+<title>Keizaal Cook — Price Calculator</title>
 <style>
   :root {
     --bg:#16130f; --panel:#211c16; --panel-2:#2b241b; --panel-3:#332a1f; --line:#3d3325;
@@ -133,7 +133,7 @@
 <body>
 
 <div class="top"><div class="top-in">
-  <div class="brand">🍲 Keizaal Cook <span class="mk">Mockup B · Cookbook</span></div>
+  <div class="brand">🍲 Keizaal Cook <span class="mk">Cookbook</span></div>
   <nav>
     <button id="v-kitchen"  class="on" onclick="view('kitchen')">Kitchen</button>
     <button id="v-pantry"   onclick="view('pantry')">Pantry</button>
@@ -332,7 +332,7 @@
         <input id="impF" type="file" accept="application/json" style="display:none" onchange="importData(this)">
         <button class="b" onclick="resetAll()">↺ Reset to defaults</button>
       </div>
-      <p class="note">Mockup data auto-saves in this browser under its own key — separate from your real books and from Mockup A. When you resupply the cooking CSV, the real catalog fills the materials / components / dishes lists.</p>
+      <p class="note">Your prices &amp; stock auto-save in this browser under this tool's own key — separate from your other workshops, nothing shared. Export makes a portable backup you can re-import on another device.</p>
     </div>
   </div>
 </div>
@@ -746,7 +746,7 @@ function delTier(ix){ data.settings.tiers.splice(ix,1); render(); }
 function stepField(id,d){ const el=document.getElementById(id); el.value=Math.max(0,(+el.value||0)+d); el.dispatchEvent(new Event('input')); }
 function exportData(){ const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="keizaal-cook-mockB.json"; a.click(); }
 function importData(inp){ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=e=>{ try{ data=migrate(JSON.parse(e.target.result)); tray=[]; selId=null; render(); }catch(err){ alert("Bad file"); } }; rd.readAsText(f); }
-function resetAll(){ if(confirm("Reset this mockup to its default cooking catalog?")){ data=structuredClone(DEFAULT); tray=[]; selId=null; render(); } }
+function resetAll(){ if(confirm("Reset to the default cooking catalog? This clears your entered prices and stock.")){ data=structuredClone(DEFAULT); tray=[]; selId=null; render(); } }
 
 document.getElementById("currency").addEventListener("change",e=>{ data.settings.currency=e.target.value; render(); });
 document.getElementById("defaultLabor").addEventListener("change",e=>{ data.settings.defaultLabor=+e.target.value; render(); });
