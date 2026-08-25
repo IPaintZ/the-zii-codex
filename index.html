@@ -112,6 +112,14 @@
   .admin-tbl td.n, .admin-tbl th.n { text-align:right; }
   .admin-tbl td .mono { font-family:Consolas,monospace; }
   .admin-tbl tr.hit td { background:color-mix(in srgb, var(--accent) 18%, transparent); }
+  /* Per-customer week stepper in the Access column. */
+  .wkstep { display:inline-flex; align-items:center; gap:3px; }
+  .wkstep .wknum { display:inline-block; min-width:16px; text-align:center; font-family:Consolas,monospace; }
+  .wkstep button { flex:none; width:20px; height:20px; padding:0; line-height:1; font-size:14px;
+    background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:4px; cursor:pointer; font-family:inherit; }
+  .wkstep button:hover { border-color:var(--accent-2); color:var(--accent); }
+  .wkstep button.add { background:var(--accent-2); color:#1c1710; border-color:var(--accent); font-weight:700; }
+  .wkstep button.add:hover { background:var(--accent); }
   .badge { font-size:10px; padding:1px 6px; border-radius:8px; }
   .badge.ok { background:rgba(111,174,95,.18); color:var(--good); }
   .badge.exp { background:rgba(208,106,90,.18); color:var(--bad); }
@@ -121,6 +129,10 @@
   .tbadge.traders { color:#4fb39a; border-color:#3d8f7c; }
   .tbadge.alchemy { color:#a07fd0; border-color:#7f5fb0; }
   .tbadge.cooking { color:#d98a4f; border-color:#b56f38; }
+  button.tbadge { background:transparent; font-family:inherit; cursor:pointer; margin-bottom:2px; }
+  button.tbadge:hover { border-color:var(--accent-2); }
+  button.tbadge.off { color:var(--dim); border-color:var(--line); border-style:dashed; opacity:.55; }
+  button.tbadge.off:hover { opacity:.9; }
 
   /* ── Running: product-switch strip + app iframe ── */
   #appbar { display:none; }
@@ -239,14 +251,14 @@
       </div>
 
       <div class="admin-sec">
-        <h4>Generate access code</h4>
+        <h4>New customer — generate access code</h4>
         <div class="row" style="flex-wrap:wrap;margin-bottom:8px">
           <span class="dim" style="font-size:11px">unlocks:</span>
           <span class="seg" id="genScope"></span>
           <span class="dim" style="font-size:10.5px">tap to toggle each tool</span>
         </div>
         <div class="row" style="flex-wrap:wrap">
-          <input id="genNote" placeholder="buyer note (private, e.g. Ragnar)" spellcheck="false" style="min-width:180px;flex:1">
+          <input id="genNote" placeholder="customer name (private, e.g. Ragnar)" spellcheck="false" style="min-width:180px;flex:1">
           <span class="dim" style="font-size:11px">weeks:</span>
           <span class="step">
             <button type="button" onclick="stepField('genWeeks',-1)">−</button>
@@ -260,13 +272,14 @@
       </div>
 
       <div class="admin-sec">
-        <h4>Active codes <span id="codeCount" class="dim" style="font-size:11px"></span></h4>
+        <h4>Customers <span id="codeCount" class="dim" style="font-size:11px"></span></h4>
+        <p class="hint" style="margin:0 0 8px">Renew a paying customer in place with <em>Access</em> <strong>＋</strong> (adds a week — no new code needed); <strong>−</strong> undoes a mistake. In <em>Unlocks</em>, tap a lit chip to drop a tool or a dashed chip to add one. Then <em>Publish</em> — changes apply to the customer's existing code, and they pick them up on their next reload.</p>
         <div class="row" style="margin-bottom:8px">
-          <span class="dim" style="font-size:11px">find a code:</span>
+          <span class="dim" style="font-size:11px">find a customer:</span>
           <input id="lookupCode" placeholder="paste a code to locate its row" spellcheck="false" oninput="lookupCode()" style="flex:1;min-width:160px">
           <span id="lookupMsg" class="dim" style="font-size:11px"></span>
         </div>
-        <table class="admin-tbl"><thead><tr><th>Note</th><th>Code</th><th>Unlocks</th><th>Hash</th><th class="n">Thru wk</th><th>Status</th><th></th></tr></thead>
+        <table class="admin-tbl"><thead><tr><th>Customer</th><th>Code</th><th>Unlocks</th><th>Hash</th><th class="n">Access</th><th>Status</th><th></th></tr></thead>
           <tbody id="codeRows"></tbody></table>
         <div class="row" style="margin-top:10px">
           <button class="b" onclick="downloadBackup()">Download backup</button>
@@ -596,7 +609,36 @@ async function lookupCode(){
   if (tr){ tr.classList.add("hit"); tr.scrollIntoView({block:"nearest"}); msg.textContent = "found: " + (codeNotes[h] || "no note"); msg.style.color = "var(--good)"; }
   else { msg.textContent = "no matching code"; msg.style.color = ""; }
 }
-function toolBadges(tools){ return tools.map(t => `<span class="tbadge ${t}">${TOOLS[t]?TOOLS[t].icon+' '+TOOLS[t].short:t}</span>`).join(""); }
+/* Editable Unlocks cell: every tool is a chip; lit = granted, dashed = addable. Click toggles. */
+function toolToggles(h, tools){
+  const set = new Set(tools);
+  return TOOL_IDS.map(id =>
+    `<button type="button" class="tbadge ${id}${set.has(id)?'':' off'}" title="${set.has(id)?'granted — click to remove':'click to add to this code'}" onclick="toggleCodeTool('${h}','${id}')">${TOOLS[id].icon} ${TOOLS[id].short}</button>`
+  ).join("");
+}
+function toggleCodeTool(h, id){
+  const e = normEntry(ghState.codes[h]); if (!e) return;
+  const set = new Set(e.tools);
+  if (set.has(id)){ if (set.size <= 1){ ghmsg("A code must unlock at least one tool — remove the code instead.", "err"); return; } set.delete(id); }
+  else set.add(id);
+  e.tools = TOOL_IDS.filter(t => set.has(t));
+  ghState.codes[h] = e;
+  renderCodes();
+  ghmsg("“" + (codeNotes[h]||h.slice(0,8)) + "” now unlocks " + e.tools.map(t=>TOOLS[t].short).join(" & ") + " — Publish to apply.", "dim");
+}
+/* Renew a customer in place: +1 extends paid access by a week, −1 corrects a mistake.
+   A renewal never eats remaining weeks (active codes just get +1); a lapsed customer
+   restarts from the current week. Floor is week−1 = expired as of now. */
+function bumpCode(h, delta){
+  const e = normEntry(ghState.codes[h]); if (!e) return;
+  const floor = (+ghState.week||1) - 1;
+  e.thru = delta > 0 ? Math.max(e.thru, floor) + delta : Math.max(floor, e.thru + delta);
+  ghState.codes[h] = e;
+  renderCodes();
+  const who = codeNotes[h] || h.slice(0,8);
+  const state = e.thru >= ghState.week ? "active through week " + e.thru : "expired (was through week " + e.thru + ")";
+  ghmsg("“" + who + "” — " + state + ". Publish to apply.", "dim");
+}
 function renderCodes(){
   document.getElementById("wkNow").textContent = ghState.week;
   document.getElementById("wkSet").value = ghState.week;
@@ -608,8 +650,12 @@ function renderCodes(){
     const codeCell = plain
       ? `<span class="mono">${esc(plain)}</span> <button class="b" onclick="copyPlain('${h}')">copy</button>`
       : `<span class="dim" title="Generated on another device — plaintext not stored here">unknown</span>`;
-    return `<tr data-h="${h}"><td>${esc(codeNotes[h]||"—")}</td><td>${codeCell}</td><td>${toolBadges(e.tools)}</td><td class="mono">${h.slice(0,10)}…</td>`+
-           `<td class="n">${e.thru}</td>`+
+    const wkCell = `<span class="wkstep">`+
+      `<button type="button" title="Remove a week (undo)" onclick="bumpCode('${h}',-1)">−</button>`+
+      `<span class="wknum">${e.thru}</span>`+
+      `<button type="button" class="add" title="Add a paid week — renewal" onclick="bumpCode('${h}',1)">+</button></span>`;
+    return `<tr data-h="${h}"><td>${esc(codeNotes[h]||"—")}</td><td>${codeCell}</td><td>${toolToggles(h, e.tools)}</td><td class="mono">${h.slice(0,10)}…</td>`+
+           `<td class="n">${wkCell}</td>`+
            `<td><span class="badge ${active?"ok":"exp"}">${active?"active":"expired"}</span></td>`+
            `<td><button class="b" onclick="removeCode('${h}')">✕</button></td></tr>`;
   }).join("") || `<tr><td colspan="7" class="dim">No codes yet.</td></tr>`;
