@@ -17,6 +17,12 @@ Both sit alongside the existing **⚒ Smithy**, **🧵 Tailor** and **⚖️ Tra
 
 ---
 
+## 📦 Traders: bulk item import
+
+The **Traders** tool got a bulk **item importer** (Settings tab). Instead of adding tradeable goods one at a time, you can now pull them in by the category: filter by material tier, tick the weapon/armor/misc groups you want in a collapsible tree, and add the lot in one click. Existing goods and prices are left untouched, and imported goods start at price 0 for you to fill in on the Market tab.
+
+---
+
 ## ⚡ Everything's faster
 
 The tools used to hang for about a second after almost every click — sorting the database, adding to an order, even just switching tabs. **That lag is gone.** The app now only redraws the panel you're actually looking at, and the cost engine was rebuilt so it stops recomputing the same recipe trees over and over. In practice, the big Smithy database now redraws in a fraction of a second instead of ~1 second, and most clicks feel instant.
