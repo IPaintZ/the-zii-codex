@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Keizaal Workshops</title>
+<title>The Zii Codex</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,2 29,9 29,23 16,30 3,23 3,9' fill='%23211c16' stroke='%23d9a441' stroke-width='2'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='%23d9a441' font-family='Georgia,serif'%3E%E1%9B%89%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Metamorphous&family=Spectral:ital@1&display=swap">
 <style>
   :root {
     --bg:#16130f; --panel:#211c16; --panel-2:#2b241b; --panel-3:#332a1f; --line:#3d3325;
@@ -16,6 +20,23 @@
   body.tool-traders { --accent:#4fb39a; --accent-2:#3d8f7c; }
   body.tool-alchemy { --accent:#a07fd0; --accent-2:#7f5fb0; }
   body.tool-cooking { --accent:#d98a4f; --accent-2:#b56f38; }
+
+  /* ── Zii Codex brand ── */
+  :root{ --disp:"Metamorphous",Georgia,serif; --serif:"Spectral",Georgia,serif; }
+  .zii{ display:inline-flex; align-items:center; gap:8px; user-select:none; }
+  .zii .rune{ font-family:var(--serif); color:var(--accent); line-height:1; font-size:16px; }
+  .zii .txt{ font-family:var(--disp); letter-spacing:.06em; color:var(--ink); line-height:1; font-size:14px; }
+  .zii .txt em{ font-style:normal; color:var(--accent); }
+  .brand-head{ display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center;
+    padding:26px 0 20px; margin-bottom:20px; border-bottom:1px solid var(--line); position:relative; }
+  .brand-head .crest{ width:60px; height:60px; position:relative; display:grid; place-items:center; }
+  .brand-head .crest .rune{ position:absolute; font-family:var(--serif); color:var(--accent); font-size:27px; line-height:1; }
+  .brand-head .the{ font-family:var(--disp); font-size:11px; letter-spacing:.4em; color:var(--accent); margin-bottom:-2px; }
+  .brand-head .wm{ font-family:var(--disp); font-size:27px; letter-spacing:.06em; color:var(--ink); line-height:1; }
+  .brand-head .wm em{ font-style:normal; color:var(--accent); }
+  .brand-head .motto{ font-family:var(--serif); font-style:italic; color:var(--dim); font-size:12.5px; }
+  .brand-head .divider-rune{ position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+    background:var(--panel); padding:0 10px; color:var(--accent-2); font-family:var(--serif); font-size:14px; }
 
   * { box-sizing:border-box; }
   html,body { height:100%; }
@@ -173,7 +194,7 @@
 
 <!-- ══ PRODUCT-SWITCH STRIP (shown once inside a tool) ══ -->
 <div id="appbar">
-  <span class="lbl">Keizaal</span>
+  <span class="zii"><span class="rune">ᛉ</span><span class="txt">Zii <em>Codex</em></span></span>
   <button class="toolpill" data-tool="smithy" onclick="pillClick('smithy')">⚒ Smithy</button>
   <button class="toolpill" data-tool="tailor" onclick="pillClick('tailor')">🧵 Tailor</button>
   <button class="toolpill" data-tool="traders" onclick="pillClick('traders')">⚖️ Traders</button>
@@ -185,15 +206,28 @@
   </span>
 </div>
 
-<iframe id="appFrame" title="Keizaal tool"></iframe>
+<iframe id="appFrame" title="Zii Codex workshop"></iframe>
 
 <!-- ══ ACCESS GATE ══ -->
 <div id="gate" class="overlay">
   <div class="gate-card">
+    <div class="brand-head">
+      <div class="crest">
+        <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true">
+          <polygon points="30,3 54,16.5 54,43.5 30,57 6,43.5 6,16.5" fill="none" stroke="var(--accent-2)" stroke-width="1.5"/>
+          <polygon points="30,10 48,20 48,40 30,50 12,40 12,20" fill="none" stroke="var(--line)" stroke-width="1"/>
+        </svg>
+        <span class="rune">ᛉ</span>
+      </div>
+      <div class="the">THE</div>
+      <div class="wm">ZII <em>CODEX</em></div>
+      <div class="motto">The soul of every recipe</div>
+      <span class="divider-rune">◆</span>
+    </div>
     <div class="toolpick-wrap">
       <button class="toolpick" id="toolpick" onclick="toggleToolMenu()">
         <span class="ic" id="pickIcon">⚒</span>
-        <span class="txt"><span class="nm" id="pickName">Keizaal Smithy</span>
+        <span class="txt"><span class="nm" id="pickName">Smithy</span>
           <span class="sub">tap to switch workshop</span></span>
         <span class="car">▾</span>
       </button>
@@ -296,7 +330,7 @@
               Stored only in this browser — never in the file. The live list loads automatically when you open this panel.</p>
             <div class="admin-grid">
               <div><label>Owner (user/org)</label><input id="ghOwner" spellcheck="false" placeholder="your-github-name"></div>
-              <div><label>Repository</label><input id="ghRepo" spellcheck="false" placeholder="keisaal-calculator"></div>
+              <div><label>Repository</label><input id="ghRepo" spellcheck="false" placeholder="the-zii-codex"></div>
               <div><label>Branch</label><input id="ghBranch" spellcheck="false" placeholder="main"></div>
               <div><label>Status file path</label><input id="ghPath" spellcheck="false" placeholder="status.json"></div>
             </div>
@@ -334,7 +368,7 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════
-   Keizaal Workshops — launcher shell
+   The Zii Codex — launcher shell
    ───────────────────────────────────────────────────────────────────
    Owns the themed lock screen, the tool switcher, and the admin panel.
    Each tool is a separate self-contained page loaded in the iframe.
@@ -345,11 +379,11 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 const TOOLS = {
-  smithy:  { name:"Keizaal Smithy",  short:"Smithy",  icon:"⚒",  app:"smithy-app.html", sub:"weapons, armour & ingots" },
-  tailor:  { name:"Keizaal Tailor",  short:"Tailor",  icon:"🧵", app:"tailor-app.html", sub:"clothing, cloth & thread" },
-  traders: { name:"Keizaal Traders", short:"Traders", icon:"⚖️", app:"trader-app.html", sub:"buy low, sell high, haul & haggle" },
-  alchemy: { name:"Keizaal Alchemist's Lab", short:"Alchemy", icon:"⚗", app:"alchemy-app.html", sub:"potions, poisons & reagents" },
-  cooking: { name:"Keizaal Cook", short:"Cook", icon:"🍲", app:"cook-app.html", sub:"food, drink & produce" }
+  smithy:  { name:"Smithy",  short:"Smithy",  icon:"⚒",  app:"smithy-app.html", sub:"weapons, armour & ingots" },
+  tailor:  { name:"Tailor",  short:"Tailor",  icon:"🧵", app:"tailor-app.html", sub:"clothing, cloth & thread" },
+  traders: { name:"Traders", short:"Traders", icon:"⚖️", app:"trader-app.html", sub:"buy low, sell high, haul & haggle" },
+  alchemy: { name:"Alchemist's Lab", short:"Alchemy", icon:"⚗", app:"alchemy-app.html", sub:"potions, poisons & reagents" },
+  cooking: { name:"Cook", short:"Cook", icon:"🍲", app:"cook-app.html", sub:"food, drink & produce" }
 };
 const TOOL_IDS = Object.keys(TOOLS);
 
