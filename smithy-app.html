@@ -379,9 +379,10 @@
 <!-- ══ INVENTORY ══ -->
 <div id="tab-inventory" class="tab">
   <div class="box">
-    <h3>Trade Materials <span class="sp"><span class="pill">fluctuating buy / sell</span></span></h3>
+    <h3>Trade Materials &amp; Components <span class="sp"><span class="pill">fluctuating buy / sell</span></span></h3>
     <p class="hint">Record what you <em>actually</em> paid or received — prices float trade to trade. This moves stock and
-      builds price history for analysis; it never changes your fixed calc price.</p>
+      builds price history for analysis; it never changes your fixed calc price. Pick a <strong>component</strong>
+      (e.g. Poor Charcoal) to buy it ready-made instead of smelting it.</p>
     <div class="row" style="align-items:flex-end">
       <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Material</span>
         <select id="trMat" style="min-width:150px" onchange="prefillTradeUnit(true)"></select></label>
@@ -463,6 +464,7 @@
     <p class="hint">Ingots and strips you've already smelted and are holding.</p>
     <table><thead><tr>
       <th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th>
+      <th class="n">Last buy</th><th class="n">Avg buy</th>
     </tr></thead><tbody id="invInterBody"></tbody></table>
     <div class="note" id="invTotal"></div>
   </div>
@@ -2404,7 +2406,9 @@ function suggestUnit(name, side){
   const arr = (data.trades||[]).filter(t => t.mat === name && t.side === side);
   if (arr.length) return +arr[arr.length-1].unit || 0;
   const m = data.materials.find(x => x.name === name);
-  return m ? (+m.price||0) : 0;
+  if (m) return +m.price||0;
+  const it = data.intermediates.find(x => x.name === name);   // components: suggest their build cost
+  return it ? Math.round(unitCost(it.name)*100)/100 : 0;
 }
 // Fill the unit-price field with a suggestion. force = overwrite even if it holds a value
 // (used on material/side change); otherwise only fills when empty and not being edited.
@@ -2427,8 +2431,8 @@ function recordTrade(){
   const uRaw = (document.getElementById("trUnit")||{}).value;
   const u = parseFloat(uRaw);
   const note = ((document.getElementById("trNote")||{}).value || "").trim();
-  const m = data.materials.find(x => x.name === name);
-  if (!m){ alert("Pick a material."); return; }
+  const m = data.materials.find(x => x.name === name) || data.intermediates.find(x => x.name === name);
+  if (!m){ alert("Pick a material or component."); return; }
   if (!(q > 0)){ alert("Enter a quantity greater than 0."); return; }
   if (uRaw === "" || isNaN(u) || u < 0){ alert("Enter a unit price."); return; }
   data.trades.push({ id:uid(), ts:Date.now(), mat:name, side:trSide, qty:q, unit:u, total:q*u, note });
@@ -2440,7 +2444,7 @@ function recordTrade(){
 // Deleting a trade undoes its stock and (for buys) spend effect, so slips are fully reversible.
 function deleteTrade(id){
   const i = (data.trades||[]).findIndex(t => t.id === id); if (i < 0) return;
-  const t = data.trades[i], m = data.materials.find(x => x.name === t.mat);
+  const t = data.trades[i], m = data.materials.find(x => x.name === t.mat) || data.intermediates.find(x => x.name === t.mat);
   if (m){
     if (t.side === "buy"){ m.stock = Math.max(0, (+m.stock||0) - (+t.qty||0));
                            data.till.purchases = Math.max(0, (+data.till.purchases||0) - (+t.total||0)); }
@@ -2496,8 +2500,11 @@ function renderInventory(){
   const trSel = document.getElementById("trMat");
   if (trSel){
     const keep = trSel.value;
-    trSel.innerHTML = data.materials.map(m => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("");
-    if (keep && data.materials.some(m => m.name === keep)) trSel.value = keep;
+    const opt = x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`;
+    trSel.innerHTML =
+      `<optgroup label="Materials">${data.materials.map(opt).join("")}</optgroup>`
+      + (data.intermediates.length ? `<optgroup label="Components">${data.intermediates.map(opt).join("")}</optgroup>` : "");
+    if (keep && (data.materials.some(m => m.name === keep) || data.intermediates.some(it => it.name === keep))) trSel.value = keep;
     prefillTradeUnit(false);
   }
   const rc = document.getElementById("realCost"); if (rc) rc.checked = data.settings.realCost === true;
@@ -2547,12 +2554,15 @@ function renderInventory(){
   let intVal = 0;
   document.getElementById("invInterBody").innerHTML = data.intermediates.map((it,i) => {
     const c = unitCost(it.name), v = (+it.stock||0) * c; intVal += v;
+    const s = matTradeStats(it.name);
     return `<tr>
       <td class="steel">${esc(it.name)}</td>
       <td class="n dim">${exact(c)}</td>
       <td class="n"><span class="step">${stepPre(null,10)}<input class="bare n w60" type="number" min="0" step="1" value="${+it.stock||0}"
             onchange="data.intermediates[${i}].stock=parseFloat(this.value)||0; render()">${stepPost(null,10)}</span></td>
       <td class="n">${exact(v)}</td>
+      <td class="n dim">${s.buy ? exact(s.buy.last) : "—"}</td>
+      <td class="n">${s.buy ? exact(s.buy.avg) : "—"}</td>
     </tr>`;
   }).join("");
   document.getElementById("invTotal").innerHTML =

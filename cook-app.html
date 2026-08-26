@@ -129,9 +129,29 @@
   .searchbar { padding:12px 14px 8px; }
   .searchbar input { width:100%; }
   .trend-up{color:var(--good)} .trend-dn{color:var(--bad)}
+
+  /* ── Preview / demo mode ── */
+  #demoBar { display:none; }
+  body.demo #demoBar { display:flex; align-items:center; justify-content:center; gap:14px;
+    flex-wrap:wrap; padding:7px 16px; background:linear-gradient(90deg,var(--gold-2),var(--gold));
+    color:#1a1206; font-size:12.5px; font-weight:600; letter-spacing:.3px; text-align:center; }
+  #demoBar .tag { background:rgba(26,18,6,.22); border-radius:20px; padding:2px 10px; font-variant:small-caps; letter-spacing:.5px; }
+  #demoBar a { color:#1a1206; text-decoration:underline; font-weight:700; cursor:pointer; }
+  /* Sample sheet is fixed in preview — data-entry surfaces are look-only; Kitchen & Sales stay interactive. */
+  body.demo #view-pantry input, body.demo #view-pantry select, body.demo #view-pantry button,
+  body.demo #view-buyers input, body.demo #view-buyers select, body.demo #view-buyers button,
+  body.demo #view-settings input, body.demo #view-settings select, body.demo #view-settings button {
+    pointer-events:none; opacity:.6; cursor:not-allowed; }
 </style>
 </head>
 <body>
+
+<!-- ══ PREVIEW BANNER (shown only in ?demo mode; the shell hosts this app in an iframe) ══ -->
+<div id="demoBar">
+  <span><span class="tag">Preview</span> &nbsp;Sample kitchen — this is a live demo, nothing you change is saved.</span>
+  <a onclick="parent.postMessage({keisaal:'gate'},'*')">← Back to login</a>
+  <a href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener">Get access →</a>
+</div>
 
 <div class="top"><div class="top-in">
   <div class="brand"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4.5" y1="10.5" x2="19.5" y2="10.5"/><path d="M6 10.5 L7 19 a1.6 1.6 0 0 0 1.6 1.4 H15.4 a1.6 1.6 0 0 0 1.6 -1.4 L18 10.5"/><path d="M6 11.8 H4.2 a1.1 1.1 0 0 1 0 -2.2"/><path d="M18 11.8 H19.8 a1.1 1.1 0 0 0 0 -2.2"/><path d="M9.6 7.6 q1.2 -1.7 0 -3.4"/><path d="M14.4 7.6 q1.2 -1.7 0 -3.4"/></svg>Cookfire <span class="mk">Cookbook</span></div>
@@ -199,7 +219,7 @@
     <div class="panel-h"><h2>Record a Trade</h2><span class="sp"><span class="pill">what you actually paid / received</span></span></div>
     <div class="panel-b">
       <div class="kv">
-        <label style="width:auto">Ingredient</label><select id="trMat" style="min-width:150px"></select>
+        <label style="width:auto">Item</label><select id="trMat" style="min-width:150px" title="Pick an ingredient, or a component (e.g. Sack of Flour) to buy it ready-made instead of prepping it"></select>
         <span class="seg" id="trSideSeg">
           <button type="button" data-side="buy" class="on" onclick="setTradeSide('buy')">Buy</button>
           <button type="button" data-side="sell" onclick="setTradeSide('sell')">Sell</button></span>
@@ -239,7 +259,7 @@
       </div>
       <div class="panel">
         <div class="panel-h"><h2>Prepped Components</h2></div>
-        <div class="panel-b"><table><thead><tr><th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th></tr></thead>
+        <div class="panel-b"><table><thead><tr><th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th><th class="n">Last buy</th><th class="n">Avg buy</th></tr></thead>
           <tbody id="interBody"></tbody></table></div>
       </div>
     </div>
@@ -346,6 +366,10 @@ const uid = () => Math.random().toString(36).slice(2,9);
 const L = (ingredient, qty) => ({ ingredient, qty });
 const KEY = "keisaal_cook_mockB";
 
+// Preview mode: the shell opens this app with ?demo for a sandboxed tour on a
+// fixed sample kitchen. It never reads or writes the real book (localStorage).
+const IS_DEMO = new URLSearchParams(location.search).has("demo");
+
 const DEFAULT = {
   settings:{ currency:"g", defaultLabor:5, roundOn:true, customer:null, realCost:false,
              stackBulk:true, tiers:[{qty:5,pct:5},{qty:10,pct:10},{qty:25,pct:15}] },
@@ -447,9 +471,46 @@ let selId = null;
 let benchFilter = "", srcFilter = "";
 let tradeSide = "buy";
 
-function load(){ try{ const r=localStorage.getItem(KEY); if(r) return migrate(JSON.parse(r)); }catch(e){} return structuredClone(DEFAULT); }
+function load(){ if(IS_DEMO) return buildDemo(); try{ const r=localStorage.getItem(KEY); if(r) return migrate(JSON.parse(r)); }catch(e){} return structuredClone(DEFAULT); }
 function migrate(d){ d.trades ||= []; d.presets ||= []; d.settings.tiers ||= structuredClone(DEFAULT.settings.tiers); return d; }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); const s=document.getElementById("saveState"); if(s){ s.textContent="saved ✓"; setTimeout(()=>s.textContent="saved",800);} }catch(e){} }
+function save(){ if(IS_DEMO){ const s=document.getElementById("saveState"); if(s) s.textContent="preview — not saved"; return; }
+  try{ localStorage.setItem(KEY, JSON.stringify(data)); const s=document.getElementById("saveState"); if(s){ s.textContent="saved ✓"; setTimeout(()=>s.textContent="saved",800);} }catch(e){} }
+// Fixed sample kitchen for the ?demo tour: real prices, stock, a little trade &
+// sales history so every view shows populated. Never touches localStorage.
+function buildDemo(){
+  const d = structuredClone(DEFAULT);
+  const price = { "Ale":6,"Ash Yam":3,"Bread":4,"Cabbage":2,"Carrot":2,"Chicken's Egg":2,
+    "Clam Meat":3,"Garlic":2,"Green Apple":2,"Honeycomb":6,"Horker Meat":8,"Horse Meat":6,
+    "Jazbay Grapes":5,"Jug of Milk":3,"Juniper Berries":3,"Lavender":3,"Leek":2,"Leg of Goat":7,
+    "Mammoth Snout":12,"Moon Sugar":20,"Mudcrab Legs":4,"Pheasant Breast":5,"Potato":2,"Raw Beef":6,
+    "Raw Rabbit Leg":3,"Red Apple":2,"Salmon Meat":4,"Salt Pile":1,"Snowberries":4,"Tomato":2,"Wheat":2 };
+  const stock = { "Salt Pile":80,"Cabbage":30,"Potato":40,"Leek":24,"Tomato":28,"Garlic":26,"Carrot":22,
+    "Red Apple":20,"Green Apple":16,"Raw Beef":18,"Jug of Milk":30,"Wheat":40,"Chicken's Egg":24,
+    "Honeycomb":12,"Salmon Meat":14,"Clam Meat":12,"Snowberries":18 };
+  d.materials.forEach(m=>{ m.price = price[m.name] ?? 2; m.stock = stock[m.name] ?? 10; });
+  const iStock = { "Butter":8,"Sack of Flour":12,"Eidar Cheese Wheel":3,"Goat Cheese Wheel":2,"Chicken Breast":6,"Venison":6 };
+  d.intermediates.forEach(x=>{ x.stock = iStock[x.name] ?? 0; });
+  const inn = d.customers[0].id, reg = d.customers[1].id, now = Date.now(), DAY = 86400000;
+  d.trades = [
+    { id:uid(), ts:now-5*DAY, mat:"Salt Pile",   side:"buy",  qty:50, unit:0.9, total:45,  note:"bulk crate" },
+    { id:uid(), ts:now-3*DAY, mat:"Raw Beef",     side:"buy",  qty:20, unit:5.5, total:110, note:"" },
+    { id:uid(), ts:now-2*DAY, mat:"Cabbage",      side:"buy",  qty:30, unit:1.8, total:54,  note:"" },
+    { id:uid(), ts:now-1*DAY, mat:"Jug of Milk",  side:"sell", qty:6,  unit:4,   total:24,  note:"to Bothela" },
+  ];
+  // Historical checkouts (rev − cost = profit, kept self-consistent for the ledger).
+  d.sales = [
+    { id:uid(), ts:now-2*DAY, buyerId:inn, buyer:"Innkeeper", discountPct:5,  dishes:"3× Apple Pie, 6× Bread",
+      rev:125.4, cost:69, profit:56.4, items:9,  lines:[{name:"Apple Pie",qty:3,price:20},{name:"Bread",qty:6,price:12}] },
+    { id:uid(), ts:now-1*DAY, buyerId:reg, buyer:"Regular",   discountPct:5,  dishes:"5× Beef Stew",
+      rev:76,    cost:40, profit:36,   items:5,  lines:[{name:"Beef Stew",qty:5,price:16}] },
+    { id:uid(), ts:now-4*DAY, buyerId:inn, buyer:"Innkeeper", discountPct:10, dishes:"12× Vegetable Soup",
+      rev:108,   cost:60, profit:48,   items:12, lines:[{name:"Vegetable Soup",qty:12,price:10}] },
+    { id:uid(), ts:now-6*DAY, buyerId:reg, buyer:"Regular",   discountPct:5,  dishes:"4× Sweet Roll, 2× Honey",
+      rev:68.4,  cost:38, profit:30.4, items:6,  lines:[{name:"Sweet Roll",qty:4,price:14},{name:"Honey",qty:2,price:8}] },
+  ];
+  d.till = { revenue:377.8, cost:207, sales:d.sales.length, items:32 };
+  return d;
+}
 // Debounced persistence so rapid typing/stepping doesn't stringify the whole
 // book on every event; flushed on tab-hide/unload so nothing is lost.
 let _saveTimer=null;
@@ -637,7 +698,7 @@ function setTradeSide(s){ tradeSide=s; document.querySelectorAll("#trSideSeg but
 function updTradeTotal(){ const q=+document.getElementById("trQty").value||0, u=+document.getElementById("trUnit").value||0;
   document.getElementById("trTotal").textContent = q&&u? `= ${g(q*u)} ${tradeSide}` : ""; }
 function recordTrade(){
-  const name=document.getElementById("trMat").value, m=mat(name); if(!m) return;
+  const name=document.getElementById("trMat").value, m=mat(name)||inter(name); if(!m) return;
   const q=Math.max(0,+document.getElementById("trQty").value||0), u=Math.max(0,+document.getElementById("trUnit").value||0);
   if(!q){ alert("Enter a quantity."); return; }
   m.stock = tradeSide==="buy" ? (+m.stock||0)+q : Math.max(0,(+m.stock||0)-q);
@@ -651,7 +712,10 @@ function updPrep(){ const it=inter(document.getElementById("prepSel").value); co
 function doPrep(){ const it=inter(document.getElementById("prepSel").value); if(!it) return; const b=Math.max(1,+document.getElementById("prepQty").value||1);
   it.lines.forEach(l=>{ const m=mat(l.ingredient)||inter(l.ingredient); if(m) m.stock=Math.max(0,(+m.stock||0)-l.qty*b); }); it.stock=(+it.stock||0)+b*(it.yield||1); render(); }
 function renderPantry(){
-  const tm=document.getElementById("trMat"); if(tm){ const k=tm.value; tm.innerHTML=data.materials.map(m=>`<option>${m.name}</option>`).join(""); if(k) tm.value=k; }
+  const tm=document.getElementById("trMat"); if(tm){ const k=tm.value;
+    tm.innerHTML=`<optgroup label="Ingredients">${data.materials.map(m=>`<option>${m.name}</option>`).join("")}</optgroup>`
+      +(data.intermediates.length?`<optgroup label="Components">${data.intermediates.map(i=>`<option>${i.name}</option>`).join("")}</optgroup>`:"");
+    if(k && (mat(k)||inter(k))) tm.value=k; }
   const ps=document.getElementById("prepSel"); if(ps){ const k=ps.value; ps.innerHTML=data.intermediates.map(i=>`<option>${i.name}</option>`).join(""); if(k) ps.value=k; updPrep(); }
   let val=0;
   document.getElementById("invBody").innerHTML=data.materials.map(m=>{ const s=tradeStats(m.name); const v=(+m.stock||0)*matCost(m); val+=v;
@@ -663,8 +727,8 @@ function renderPantry(){
       <td class="n dim">${g(s.lastBuy)} ${trend}</td><td class="n dim">${g(s.avgBuy)}</td><td class="n dim">${g(s.avgSell)}</td>
       <td class="n">${s.avgBuy!=null?`<button class="adopt" title="Adopt avg buy as calc price" onclick="adoptAvg('${m.id}')">→</button>`:''}</td></tr>`; }).join("");
   document.getElementById("invValue").textContent="stock value "+g(val);
-  document.getElementById("interBody").innerHTML=data.intermediates.map(i=>{ const v=(+i.stock||0)*interUnit(i);
-    return `<tr><td>${i.name}</td><td class="n dim">${g(interUnit(i))}</td><td class="n">${+i.stock||0}</td><td class="n">${g(v)}</td></tr>`; }).join("");
+  document.getElementById("interBody").innerHTML=data.intermediates.map(i=>{ const v=(+i.stock||0)*interUnit(i); const s=tradeStats(i.name);
+    return `<tr><td>${i.name}</td><td class="n dim">${g(interUnit(i))}</td><td class="n">${+i.stock||0}</td><td class="n">${g(v)}</td><td class="n dim">${g(s.lastBuy)}</td><td class="n dim">${g(s.avgBuy)}</td></tr>`; }).join("");
   // trade log
   const body=document.getElementById("trBody"), empty=document.getElementById("trEmpty");
   document.getElementById("trCount").textContent=data.trades.length+" trades";
@@ -752,6 +816,7 @@ function resetAll(){ if(confirm("Reset to the default cooking catalog? This clea
 document.getElementById("currency").addEventListener("change",e=>{ data.settings.currency=e.target.value; render(); });
 document.getElementById("defaultLabor").addEventListener("change",e=>{ data.settings.defaultLabor=+e.target.value; render(); });
 setTradeSide("buy");
+if(IS_DEMO) document.body.classList.add("demo");
 render();
 </script>
 </body>
