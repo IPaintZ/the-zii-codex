@@ -13,11 +13,12 @@
   * { box-sizing:border-box; }
   body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; font-size:13px; line-height:1.4; background:var(--bg); color:var(--ink); }
   .top { border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:20; }
-  .top-in { max-width:1240px; margin:0 auto; padding:0 14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; min-height:48px; }
-  .brand { font-variant:small-caps; letter-spacing:.5px; color:var(--gold); font-size:16px; font-weight:700; white-space:nowrap; }
+  .top-in { max-width:1240px; margin:0 auto; padding:0 14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .brand { font-variant:small-caps; letter-spacing:.5px; color:var(--gold); font-size:16px; font-weight:700; padding:9px 0; white-space:nowrap; }
+  .brand svg.ico { width:1em; height:1em; vertical-align:-.14em; margin-right:5px; }
   .brand .mk { font-size:10px; color:var(--dim); font-variant:normal; letter-spacing:.3px; margin-left:6px; padding:1px 6px; border:1px solid var(--line); border-radius:9px; }
   nav { display:flex; gap:2px; flex-wrap:wrap; }
-  nav button { background:none; border:none; border-bottom:2px solid transparent; color:var(--dim); padding:14px 12px; cursor:pointer; font-size:13px; font-family:inherit; }
+  nav button { background:none; border:none; border-bottom:2px solid transparent; color:var(--dim); padding:10px 12px; cursor:pointer; font-size:13px; font-family:inherit; }
   nav button:hover { color:var(--ink); }
   nav button.on { color:var(--gold); border-bottom-color:var(--gold); font-weight:600; }
   .topright { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -133,7 +134,7 @@
 <body>
 
 <div class="top"><div class="top-in">
-  <div class="brand">🍲 Cookfire <span class="mk">Cookbook</span></div>
+  <div class="brand"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4.5" y1="10.5" x2="19.5" y2="10.5"/><path d="M6 10.5 L7 19 a1.6 1.6 0 0 0 1.6 1.4 H15.4 a1.6 1.6 0 0 0 1.6 -1.4 L18 10.5"/><path d="M6 11.8 H4.2 a1.1 1.1 0 0 1 0 -2.2"/><path d="M18 11.8 H19.8 a1.1 1.1 0 0 0 0 -2.2"/><path d="M9.6 7.6 q1.2 -1.7 0 -3.4"/><path d="M14.4 7.6 q1.2 -1.7 0 -3.4"/></svg>Cookfire <span class="mk">Cookbook</span></div>
   <nav>
     <button id="v-kitchen"  class="on" onclick="view('kitchen')">Kitchen</button>
     <button id="v-pantry"   onclick="view('pantry')">Pantry</button>

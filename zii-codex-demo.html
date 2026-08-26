@@ -29,7 +29,7 @@
   body{margin:0; font-family:var(--ui); font-size:13px; line-height:1.4; background:var(--bg); color:var(--ink);}
 
   /* ── the compact wordmark (top strip + gate) ── */
-  .zii{display:inline-flex; align-items:center; gap:8px; user-select:none;}
+  .zii{display:inline-flex; align-items:center; gap:8px; user-select:none; transform:translateY(1px);}
   .zii .rune{font-family:var(--serif); color:var(--accent); line-height:1;}
   .zii .txt{font-family:var(--disp); letter-spacing:.06em; color:var(--ink); line-height:1;}
   .zii .txt em{font-style:normal; color:var(--accent);}
@@ -44,6 +44,7 @@
     color:var(--dim); border-radius:6px; padding:4px 10px; font-size:12.5px; cursor:pointer; font-family:var(--ui);}
   .toolpill:hover{color:var(--ink); border-color:var(--line);}
   .toolpill.on{color:#1c1710; font-weight:600;}
+  .toolpill .ic{width:1.4em; flex:none; display:inline-flex; align-items:center; justify-content:center; font-size:14px; line-height:1;}
   .toolpill[data-tool="smithy"].on{background:#d9a441;}
   .toolpill[data-tool="tailor"].on{background:#c98aa8;}
   .toolpill[data-tool="traders"].on{background:#4fb39a;}
@@ -69,7 +70,7 @@
   .brand-head{display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center;
     padding:26px 0 20px; margin-bottom:20px; border-bottom:1px solid var(--line); position:relative;}
   .crest{width:60px; height:60px; position:relative; display:grid; place-items:center;}
-  .crest .rune{position:absolute; font-family:var(--serif); color:var(--accent); font-size:27px; line-height:1;}
+  .crest .rune{position:absolute; top:50%; left:50%; transform:translate(-50%,-46%); font-family:var(--serif); color:var(--accent); font-size:27px; line-height:1;}
   .brand-head .wm{font-family:var(--disp); font-size:27px; letter-spacing:.06em; color:var(--ink); line-height:1;}
   .brand-head .wm em{font-style:normal; color:var(--accent);}
   .brand-head .the{font-family:var(--disp); font-size:11px; letter-spacing:.4em; color:var(--accent); margin-bottom:-2px;}
@@ -91,7 +92,8 @@
   .toolmenu.hidden{display:none;}
   .opt{display:flex; align-items:center; gap:11px; padding:10px 13px; cursor:pointer;}
   .opt:hover{background:var(--panel-3);}
-  .opt .ic{width:30px; height:30px; flex:none; display:grid; place-items:center; font-size:17px; background:var(--panel-3); border-radius:6px;}
+  .opt .ic{width:30px; height:30px; flex:none; display:grid; place-items:center; font-size:17px; background:var(--panel-3); border-radius:6px; color:var(--accent);}
+  svg.ico{width:1em; height:1em; display:inline-block; vertical-align:-.14em; flex:none;}
   .opt .nm{font-size:13px;} .opt .sub{font-size:10.5px; color:var(--dim);}
 
   h2.acc{margin:18px 0 4px; color:var(--accent); font-size:14px; font-variant:small-caps; letter-spacing:.5px;}
@@ -119,11 +121,7 @@
 <div id="appbar">
   <span class="zii"><span class="rune">ᛉ</span><span class="txt">Zii <em>Codex</em></span></span>
   <span class="sep"></span>
-  <button class="toolpill" data-tool="smithy"  onclick="pillClick('smithy')">⚒ Emberforge</button>
-  <button class="toolpill" data-tool="tailor"  onclick="pillClick('tailor')">🧵 Loomhall</button>
-  <button class="toolpill" data-tool="traders" onclick="pillClick('traders')">⚖️ Trademoot</button>
-  <button class="toolpill" data-tool="alchemy" onclick="pillClick('alchemy')">⚗ Elixirhall</button>
-  <button class="toolpill" data-tool="cooking" onclick="pillClick('cooking')">🍲 Cookfire</button>
+  <span id="toolpills"></span>
   <span class="sp"><button class="b" onclick="lockNow()">🔒 Lock</button></span>
 </div>
 
@@ -148,7 +146,7 @@
 
     <div class="toolpick-wrap">
       <button class="toolpick" onclick="toggleMenu()">
-        <span class="ic" id="pickIcon">⚒</span>
+        <span class="ic" id="pickIcon"></span>
         <span><span class="nm" id="pickName">Emberforge</span><br><span class="sub" id="pickSub">weapons, armour &amp; ingots</span></span>
         <span class="car">▾</span>
       </button>
@@ -169,22 +167,36 @@
 <div class="demo-note">Branding preview — <b>Metamorphous</b> wordmark · loads the real workshops in demo mode</div>
 
 <script>
+const _S = 'class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+const ICO = {
+  smithy:  `<svg ${_S}><line x1="5.5" y1="18.5" x2="14.5" y2="9.5"/><rect x="12.7" y="5.6" width="7" height="3.8" rx="1.2" transform="rotate(45 16.2 7.5)"/><line x1="4.5" y1="20.5" x2="8" y2="17"/></svg>`,
+  tailor:  `<svg ${_S}><line x1="5.6" y1="18.4" x2="15" y2="9"/><circle cx="16.3" cy="7.7" r="1.5"/><path d="M5.6 18.4 c-2.6 -1 -2.4 -4.2 .3 -5.2 s 2.6 -3.4 .2 -5.1"/></svg>`,
+  traders: `<svg ${_S}><line x1="12" y1="4.6" x2="12" y2="19"/><circle cx="12" cy="3.6" r="1"/><line x1="5" y1="7" x2="19" y2="7"/><line x1="9" y1="20" x2="15" y2="20"/><path d="M5 7 L2.7 11.7 M5 7 L7.3 11.7 M2.4 11.7 a2.9 2.4 0 0 0 5.2 0"/><path d="M19 7 L16.7 11.7 M19 7 L21.3 11.7 M16.4 11.7 a2.9 2.4 0 0 0 5.2 0"/></svg>`,
+  alchemy: `<svg ${_S}><line x1="9" y1="3.5" x2="15" y2="3.5"/><path d="M10.8 3.5 V9.2 L6.3 17.8 a1.5 1.5 0 0 0 1.35 2.2 H16.35 a1.5 1.5 0 0 0 1.35 -2.2 L13.2 9.2 V3.5"/><line x1="8.3" y1="14.5" x2="15.7" y2="14.5"/><circle cx="11" cy="17" r=".55"/><circle cx="13.6" cy="16.2" r=".5"/></svg>`,
+  cooking: `<svg ${_S}><line x1="4.5" y1="10.5" x2="19.5" y2="10.5"/><path d="M6 10.5 L7 19 a1.6 1.6 0 0 0 1.6 1.4 H15.4 a1.6 1.6 0 0 0 1.6 -1.4 L18 10.5"/><path d="M6 11.8 H4.2 a1.1 1.1 0 0 1 0 -2.2"/><path d="M18 11.8 H19.8 a1.1 1.1 0 0 0 0 -2.2"/><path d="M9.6 7.6 q1.2 -1.7 0 -3.4"/><path d="M14.4 7.6 q1.2 -1.7 0 -3.4"/></svg>`
+};
 const TOOLS = {
-  smithy:  { name:"Emberforge", icon:"⚒",  app:"smithy-app.html",  sub:"weapons, armour & ingots" },
-  tailor:  { name:"Loomhall",   icon:"🧵", app:"tailor-app.html",  sub:"clothing, cloth & thread" },
-  traders: { name:"Trademoot",  icon:"⚖️", app:"trader-app.html",  sub:"buy low, sell high, haul & haggle" },
-  alchemy: { name:"Elixirhall", icon:"⚗", app:"alchemy-app.html", sub:"potions, poisons & reagents" },
-  cooking: { name:"Cookfire", icon:"🍲", app:"cook-app.html", sub:"food, drink & produce" }
+  smithy:  { name:"Emberforge", icon:ICO.smithy,  app:"smithy-app.html",  sub:"weapons, armour & ingots" },
+  tailor:  { name:"Loomhall",   icon:ICO.tailor,  app:"tailor-app.html",  sub:"clothing, cloth & thread" },
+  traders: { name:"Trademoot",  icon:ICO.traders, app:"trader-app.html",  sub:"buy low, sell high, haul & haggle" },
+  alchemy: { name:"Elixirhall", icon:ICO.alchemy, app:"alchemy-app.html", sub:"potions, poisons & reagents" },
+  cooking: { name:"Cookfire",   icon:ICO.cooking, app:"cook-app.html", sub:"food, drink & produce" }
 };
 const IDS = Object.keys(TOOLS);
 let selected = "smithy";
 
 function setBodyTool(t){ IDS.forEach(id=>document.body.classList.remove("tool-"+id)); document.body.classList.add("tool-"+t); }
 
+function buildPills(){
+  document.getElementById("toolpills").innerHTML = IDS.map(id=>
+    `<button class="toolpill" data-tool="${id}" onclick="pillClick('${id}')"><span class="ic">${TOOLS[id].icon}</span>${TOOLS[id].name}</button>`
+  ).join("");
+}
+
 function select(t){
   selected = t; setBodyTool(t);
   const T = TOOLS[t];
-  pickIcon.textContent = T.icon; pickName.textContent = T.name; pickSub.textContent = T.sub;
+  pickIcon.innerHTML = T.icon; pickName.textContent = T.name; pickSub.textContent = T.sub;
   document.querySelectorAll(".toolpill").forEach(p=>p.classList.toggle("on", p.dataset.tool===t));
   document.getElementById("toolmenu").classList.add("hidden");
 }
@@ -208,6 +220,7 @@ function lockNow(){
   document.getElementById("gate").classList.remove("hidden");
   document.getElementById("codeInput").value = "";
 }
+buildPills();
 select("smithy");
 </script>
 </body>

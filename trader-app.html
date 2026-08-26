@@ -15,6 +15,7 @@
   .top { border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:20; }
   .top-in { max-width:1200px; margin:0 auto; padding:0 14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   .brand { font-variant:small-caps; letter-spacing:.5px; color:var(--gold); font-size:16px; font-weight:700; padding:9px 0; white-space:nowrap; }
+  .brand svg.ico { width:1em; height:1em; vertical-align:-.14em; margin-right:5px; }
   nav { display:flex; gap:2px; }
   nav button { background:none; border:none; border-bottom:2px solid transparent; color:var(--dim); padding:10px 12px; cursor:pointer; font-size:13px; font-family:inherit; }
   nav button:hover { color:var(--ink); }
@@ -141,7 +142,7 @@
 </div>
 
 <div class="top"><div class="top-in">
-  <div class="brand">⚖️ Trademoot</div>
+  <div class="brand"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="4.6" x2="12" y2="19"/><circle cx="12" cy="3.6" r="1"/><line x1="5" y1="7" x2="19" y2="7"/><line x1="9" y1="20" x2="15" y2="20"/><path d="M5 7 L2.7 11.7 M5 7 L7.3 11.7 M2.4 11.7 a2.9 2.4 0 0 0 5.2 0"/><path d="M19 7 L16.7 11.7 M19 7 L21.3 11.7 M16.4 11.7 a2.9 2.4 0 0 0 5.2 0"/></svg>Trademoot</div>
   <nav>
     <button id="t-desk"   class="on" onclick="tab('desk')">Trade Desk</button>
     <button id="t-market" onclick="tab('market')">Market</button>

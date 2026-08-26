@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zii Codex — SVG icon mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Metamorphous&family=Spectral:ital@1&display=swap">
+<style>
+  :root{
+    --bg:#16130f; --panel:#211c16; --panel-2:#2b241b; --panel-3:#332a1f; --line:#3d3325;
+    --ink:#ece3d2; --dim:#a99b81; --accent:#d9a441; --accent-2:#b98a34;
+    --disp:"Metamorphous",Georgia,serif; --serif:"Spectral",Georgia,serif;
+    /* per-tool accents, mirrored from index.html */
+    --c-smithy:#d9a441; --c-tailor:#c98aa8; --c-traders:#4fb39a; --c-alchemy:#a07fd0; --c-cooking:#d98a4f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI",system-ui,sans-serif; font-size:13px; line-height:1.5; padding:34px 22px 60px;}
+  .wrap{max-width:820px; margin:0 auto;}
+  h1{font-family:var(--disp); font-weight:400; letter-spacing:.05em; font-size:22px; color:var(--ink); margin:0 0 2px;}
+  h1 em{font-style:normal; color:var(--accent);}
+  .lede{color:var(--dim); margin:0 0 30px; font-family:var(--serif); font-style:italic; font-size:14px;}
+  h2{font-family:var(--disp); font-weight:400; font-size:13px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); margin:34px 0 12px; padding-bottom:7px; border-bottom:1px solid var(--line);}
+  .note{color:var(--dim); font-size:12px; margin:-4px 0 16px;}
+
+  /* icon base — everything inherits colour from the text context */
+  .ico{width:1em; height:1em; display:inline-block; vertical-align:-.14em; flex:none;}
+
+  /* ── gallery ── */
+  .gallery{display:flex; flex-wrap:wrap; gap:14px;}
+  .card{flex:1 1 140px; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:20px 12px 14px; text-align:center;}
+  .card .big{font-size:46px; color:var(--accent); line-height:1;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));}
+  .card .nm{font-family:var(--disp); font-size:14px; margin-top:12px;}
+  .card .id{color:var(--dim); font-size:11px; letter-spacing:.4px;}
+
+  /* per-tool tint chips */
+  .tints{display:flex; flex-wrap:wrap; gap:10px; margin-top:4px;}
+  .tint{display:inline-flex; align-items:center; gap:7px; background:var(--panel-2);
+    border:1px solid var(--line); border-radius:20px; padding:6px 13px 6px 10px; font-size:12.5px;}
+  .tint .ico{font-size:18px;}
+
+  /* ── top bar replica (from index.html #appbar) ── */
+  .appbar{display:flex; align-items:center; gap:6px; height:34px; padding:0 10px;
+    background:#0f0d0a; border:1px solid var(--line); border-radius:8px;}
+  .zii{display:inline-flex; align-items:center; gap:8px; user-select:none; transform:translateY(1px);}
+  .zii .rune{font-family:var(--serif); color:var(--accent); line-height:1; font-size:16px;}
+  .zii .txt{font-family:var(--disp); letter-spacing:.06em; color:var(--ink); line-height:1; font-size:14px;}
+  .zii .txt em{font-style:normal; color:var(--accent);}
+  .toolpill{display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid transparent;
+    color:var(--dim); border-radius:6px; padding:3px 9px; cursor:pointer; font-family:inherit; font-size:12px;}
+  .toolpill .ico{font-size:15px;}
+  .toolpill:hover{color:var(--ink); border-color:var(--line);}
+  .toolpill.on{color:#1c1710; font-weight:600;}
+  .toolpill[data-tool="smithy"].on{background:var(--c-smithy);}
+  .toolpill[data-tool="tailor"].on{background:var(--c-tailor);}
+  .toolpill[data-tool="traders"].on{background:var(--c-traders);}
+  .toolpill[data-tool="alchemy"].on{background:var(--c-alchemy);}
+  .toolpill[data-tool="cooking"].on{background:var(--c-cooking);}
+
+  /* ── dropdown replica ── */
+  .toolmenu{max-width:340px; background:var(--panel); border:1px solid var(--accent-2); border-radius:10px;
+    overflow:hidden; box-shadow:0 12px 30px rgba(0,0,0,.5);}
+  .opt{display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .opt:last-child{border-bottom:none;}
+  .opt:hover{background:var(--panel-2);}
+  .opt .ico{font-size:22px; color:var(--accent); width:30px; text-align:center; flex:none;}
+  .opt .nm{font-weight:600;}
+  .opt .sub{color:var(--dim); font-size:11px;}
+  .opt .cur{margin-left:auto; font-size:10px; color:var(--accent); border:1px solid var(--accent-2); border-radius:8px; padding:1px 7px;}
+
+  /* ── before/after table ── */
+  .ba{width:100%; border-collapse:collapse; font-size:13px;}
+  .ba th{color:var(--dim); font-size:10px; text-transform:uppercase; letter-spacing:.5px; text-align:left;
+    padding:6px 10px; border-bottom:1px solid var(--line);}
+  .ba td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  .ba .emoji{font-size:22px;}
+  .ba .svg{font-size:22px; color:var(--accent);}
+  .ba .lbl{font-family:var(--disp);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Zii <em>Codex</em> — SVG icon mockup</h1>
+  <p class="lede">Gold monochrome line-runes that tint with each workshop's accent — one consistent family.</p>
+
+  <h2>The five runes</h2>
+  <p class="note">Drawn on a 24×24 grid, single-weight stroke, coloured by <code>currentColor</code>.</p>
+  <div class="gallery" id="gallery"></div>
+
+  <h2>Each tints to its workshop colour</h2>
+  <p class="note">The same rune inherits the per-tool accent used across the suite.</p>
+  <div class="tints" id="tints"></div>
+
+  <h2>In the top bar</h2>
+  <p class="note">The running-app strip, Emberforge active. The active pill shows the rune knocked out on its accent.</p>
+  <div class="appbar" id="appbar">
+    <span class="zii"><span class="rune">&#5769;</span><span class="txt">Zii <em>Codex</em></span></span>
+  </div>
+
+  <h2>In the switcher dropdown</h2>
+  <div class="toolmenu" id="toolmenu"></div>
+
+  <h2>Before &amp; after</h2>
+  <table class="ba">
+    <thead><tr><th>Workshop</th><th>Current (emoji)</th><th>Proposed (SVG rune)</th></tr></thead>
+    <tbody id="batable"></tbody>
+  </table>
+</div>
+
+<script>
+/* Each icon is stroke-based and inherits colour from currentColor. */
+const A = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+const ICONS = {
+  smithy: `<svg class="ico" ${A}>
+      <line x1="5.5" y1="18.5" x2="14.5" y2="9.5"/>
+      <rect x="12.7" y="5.6" width="7" height="3.8" rx="1.2" transform="rotate(45 16.2 7.5)"/>
+      <line x1="4.5" y1="20.5" x2="8" y2="17"/></svg>`,
+  tailor: `<svg class="ico" ${A}>
+      <line x1="5.6" y1="18.4" x2="15" y2="9"/>
+      <circle cx="16.3" cy="7.7" r="1.5"/>
+      <path d="M5.6 18.4 c-2.6 -1 -2.4 -4.2 .3 -5.2 s 2.6 -3.4 .2 -5.1"/></svg>`,
+  traders: `<svg class="ico" ${A}>
+      <line x1="12" y1="4.6" x2="12" y2="19"/>
+      <circle cx="12" cy="3.6" r="1"/>
+      <line x1="5" y1="7" x2="19" y2="7"/>
+      <line x1="9" y1="20" x2="15" y2="20"/>
+      <path d="M5 7 L2.7 11.7 M5 7 L7.3 11.7 M2.4 11.7 a2.9 2.4 0 0 0 5.2 0"/>
+      <path d="M19 7 L16.7 11.7 M19 7 L21.3 11.7 M16.4 11.7 a2.9 2.4 0 0 0 5.2 0"/></svg>`,
+  alchemy: `<svg class="ico" ${A}>
+      <line x1="9" y1="3.5" x2="15" y2="3.5"/>
+      <path d="M10.8 3.5 V9.2 L6.3 17.8 a1.5 1.5 0 0 0 1.35 2.2 H16.35 a1.5 1.5 0 0 0 1.35 -2.2 L13.2 9.2 V3.5"/>
+      <line x1="8.3" y1="14.5" x2="15.7" y2="14.5"/>
+      <circle cx="11" cy="17" r=".55"/><circle cx="13.6" cy="16.2" r=".5"/></svg>`,
+  cooking: `<svg class="ico" ${A}>
+      <line x1="4.5" y1="10.5" x2="19.5" y2="10.5"/>
+      <path d="M6 10.5 L7 19 a1.6 1.6 0 0 0 1.6 1.4 H15.4 a1.6 1.6 0 0 0 1.6 -1.4 L18 10.5"/>
+      <path d="M6 11.8 H4.2 a1.1 1.1 0 0 1 0 -2.2"/>
+      <path d="M18 11.8 H19.8 a1.1 1.1 0 0 0 0 -2.2"/>
+      <path d="M9.6 7.6 q1.2 -1.7 0 -3.4"/>
+      <path d="M14.4 7.6 q1.2 -1.7 0 -3.4"/></svg>`
+};
+const EMOJI = { smithy:"⚒️", tailor:"🧵", traders:"⚖️", alchemy:"⚗️", cooking:"🍲" };
+const TOOLS = {
+  smithy:  { name:"Emberforge", sub:"weapons, armour & ingots" },
+  tailor:  { name:"Loomhall",   sub:"clothing, cloth & thread" },
+  traders: { name:"Trademoot",  sub:"buy low, sell high, haul & haggle" },
+  alchemy: { name:"Elixirhall", sub:"potions, poisons & reagents" },
+  cooking: { name:"Cookfire",   sub:"food, drink & produce" }
+};
+const IDS = Object.keys(TOOLS);
+const tint = { smithy:"--c-smithy", tailor:"--c-tailor", traders:"--c-traders", alchemy:"--c-alchemy", cooking:"--c-cooking" };
+
+/* gallery */
+document.getElementById("gallery").innerHTML = IDS.map(id =>
+  `<div class="card"><div class="big">${ICONS[id]}</div>
+     <div class="nm">${TOOLS[id].name}</div><div class="id">${id}</div></div>`).join("");
+
+/* tint chips */
+document.getElementById("tints").innerHTML = IDS.map(id =>
+  `<span class="tint" style="color:var(${tint[id]})">${ICONS[id]}<span>${TOOLS[id].name}</span></span>`).join("");
+
+/* top bar pills */
+document.getElementById("appbar").insertAdjacentHTML("beforeend", IDS.map(id =>
+  `<button class="toolpill${id==="smithy"?" on":""}" data-tool="${id}">${ICONS[id]}${TOOLS[id].name}</button>`).join(""));
+
+/* dropdown */
+document.getElementById("toolmenu").innerHTML = IDS.map(id =>
+  `<div class="opt"><span class="ico">${ICONS[id]}</span>
+     <span><div class="nm">${TOOLS[id].name}</div><div class="sub">${TOOLS[id].sub}</div></span>
+     ${id==="smithy"?'<span class="cur">selected</span>':''}</div>`).join("");
+
+/* before/after */
+document.getElementById("batable").innerHTML = IDS.map(id =>
+  `<tr><td class="lbl">${TOOLS[id].name}</td>
+     <td class="emoji">${EMOJI[id]}</td>
+     <td class="svg">${ICONS[id]}</td></tr>`).join("");
+</script>
+</body>
+</html>

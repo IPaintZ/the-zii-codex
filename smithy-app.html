@@ -18,6 +18,7 @@
   .top { border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:20; }
   .top-in { max-width:1180px; margin:0 auto; padding:0 14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
   .brand { font-variant:small-caps; letter-spacing:.5px; color:var(--gold); font-size:16px; font-weight:700; padding:9px 0; white-space:nowrap; }
+  .brand svg.ico { width:1em; height:1em; vertical-align:-.14em; margin-right:5px; }
   nav { display:flex; gap:2px; margin-left:auto; }
   nav button {
     background:none; border:none; border-bottom:2px solid transparent; color:var(--dim);
@@ -225,7 +226,7 @@
 
 
 <div class="top"><div class="top-in">
-  <div class="brand">⚒ Emberforge</div>
+  <div class="brand"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5.5" y1="18.5" x2="14.5" y2="9.5"/><rect x="12.7" y="5.6" width="7" height="3.8" rx="1.2" transform="rotate(45 16.2 7.5)"/><line x1="4.5" y1="20.5" x2="8" y2="17"/></svg>Emberforge</div>
   <nav>
     <button id="t-craft"     class="on" onclick="tab('craft')">Craft</button>
     <button id="t-database"  onclick="tab('database')">Database</button>
