@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Zii Codex — Demo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,2 29,9 29,23 16,30 3,23 3,9' fill='%23211c16' stroke='%23d9a441' stroke-width='2'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='%23d9a441' font-family='Georgia,serif'%3E%E1%9B%89%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Metamorphous&family=Spectral:ital@1&display=swap">
+<style>
+  :root{
+    --bg:#16130f; --panel:#211c16; --panel-2:#2b241b; --panel-3:#332a1f; --line:#3d3325;
+    --ink:#ece3d2; --dim:#a99b81; --good:#6fae5f; --bad:#d06a5a;
+    --accent:#d9a441; --accent-2:#b98a34;
+    --disp:"Metamorphous", Georgia, serif;
+    --serif:"Spectral", Georgia, serif;
+    --ui:"Segoe UI", system-ui, sans-serif;
+  }
+  /* Per-tool palettes — same system as the real shell. */
+  body.tool-smithy  { --accent:#d9a441; --accent-2:#b98a34; }
+  body.tool-tailor  { --accent:#c98aa8; --accent-2:#a76b88; }
+  body.tool-traders { --accent:#4fb39a; --accent-2:#3d8f7c; }
+  body.tool-alchemy { --accent:#a07fd0; --accent-2:#7f5fb0; }
+  body.tool-cooking { --accent:#d98a4f; --accent-2:#b56f38; }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0; font-family:var(--ui); font-size:13px; line-height:1.4; background:var(--bg); color:var(--ink);}
+
+  /* ── the compact wordmark (top strip + gate) ── */
+  .zii{display:inline-flex; align-items:center; gap:8px; user-select:none;}
+  .zii .rune{font-family:var(--serif); color:var(--accent); line-height:1;}
+  .zii .txt{font-family:var(--disp); letter-spacing:.06em; color:var(--ink); line-height:1;}
+  .zii .txt em{font-style:normal; color:var(--accent);}
+
+  /* ── top strip (visible once inside a tool) ── */
+  #appbar{display:none;}
+  body.running #appbar{display:flex; align-items:center; gap:8px; height:36px; padding:0 12px;
+    background:var(--panel); border-bottom:1px solid var(--line);}
+  #appbar .zii .rune{font-size:16px;} #appbar .zii .txt{font-size:14px;}
+  #appbar .sep{width:1px; height:20px; background:var(--line); margin:0 8px;}
+  .toolpill{display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid transparent;
+    color:var(--dim); border-radius:6px; padding:4px 10px; font-size:12.5px; cursor:pointer; font-family:var(--ui);}
+  .toolpill:hover{color:var(--ink); border-color:var(--line);}
+  .toolpill.on{color:#1c1710; font-weight:600;}
+  .toolpill[data-tool="smithy"].on{background:#d9a441;}
+  .toolpill[data-tool="tailor"].on{background:#c98aa8;}
+  .toolpill[data-tool="traders"].on{background:#4fb39a;}
+  .toolpill[data-tool="alchemy"].on{background:#a07fd0;}
+  .toolpill[data-tool="cooking"].on{background:#d98a4f;}
+  #appbar .sp{margin-left:auto; display:flex; gap:6px; align-items:center;}
+  button.b{background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:5px;
+    padding:5px 10px; cursor:pointer; font-size:12.5px; font-family:var(--ui); white-space:nowrap;}
+  button.b:hover{border-color:var(--accent-2); color:var(--accent);}
+
+  #appFrame{display:none; border:none; width:100%; height:calc(100vh - 36px); background:var(--bg);}
+  body.running #appFrame{display:block;}
+
+  /* ── lock screen ── */
+  .overlay{position:fixed; inset:0; z-index:100; background:rgba(10,8,6,.94);
+    display:flex; align-items:flex-start; justify-content:center; padding:44px 16px; overflow:auto;}
+  .overlay.hidden{display:none;}
+  .gate-card{background:var(--panel); border:1px solid var(--line); border-radius:12px; width:100%;
+    max-width:430px; padding:0 24px 24px; box-shadow:0 14px 48px rgba(0,0,0,.6);
+    border-top:3px solid var(--accent); transition:border-color .2s;}
+
+  /* brand header above everything */
+  .brand-head{display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center;
+    padding:26px 0 20px; margin-bottom:20px; border-bottom:1px solid var(--line); position:relative;}
+  .crest{width:60px; height:60px; position:relative; display:grid; place-items:center;}
+  .crest .rune{position:absolute; font-family:var(--serif); color:var(--accent); font-size:27px; line-height:1;}
+  .brand-head .wm{font-family:var(--disp); font-size:27px; letter-spacing:.06em; color:var(--ink); line-height:1;}
+  .brand-head .wm em{font-style:normal; color:var(--accent);}
+  .brand-head .the{font-family:var(--disp); font-size:11px; letter-spacing:.4em; color:var(--accent); margin-bottom:-2px;}
+  .brand-head .motto{font-family:var(--serif); font-style:italic; color:var(--dim); font-size:12.5px;}
+  .divider-rune{position:absolute; bottom:-9px; left:50%; transform:translateX(-50%); background:var(--panel);
+    padding:0 10px; color:var(--accent-2); font-family:var(--serif); font-size:14px;}
+
+  /* workshop picker */
+  .toolpick-wrap{position:relative;}
+  .toolpick{width:100%; display:flex; align-items:center; gap:12px; background:var(--panel-2);
+    border:1px solid var(--line); border-radius:9px; padding:11px 13px; cursor:pointer; text-align:left; color:var(--ink);}
+  .toolpick:hover{border-color:var(--accent-2);}
+  .toolpick .ic{width:36px; height:36px; flex:none; display:grid; place-items:center; font-size:20px;
+    background:var(--panel-3); border-radius:7px; color:var(--accent);}
+  .toolpick .nm{font-size:14px; font-weight:600;} .toolpick .sub{font-size:11px; color:var(--dim);}
+  .toolpick .car{margin-left:auto; color:var(--dim);}
+  .toolmenu{position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:5; background:var(--panel-2);
+    border:1px solid var(--line); border-radius:9px; overflow:hidden; box-shadow:0 12px 32px rgba(0,0,0,.5);}
+  .toolmenu.hidden{display:none;}
+  .opt{display:flex; align-items:center; gap:11px; padding:10px 13px; cursor:pointer;}
+  .opt:hover{background:var(--panel-3);}
+  .opt .ic{width:30px; height:30px; flex:none; display:grid; place-items:center; font-size:17px; background:var(--panel-3); border-radius:6px;}
+  .opt .nm{font-size:13px;} .opt .sub{font-size:10.5px; color:var(--dim);}
+
+  h2.acc{margin:18px 0 4px; color:var(--accent); font-size:14px; font-variant:small-caps; letter-spacing:.5px;}
+  .sub2{color:var(--dim); font-size:12px; margin:0 0 12px; line-height:1.5;}
+  label.lb{display:block; font-size:10.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px; margin:0 0 4px;}
+  input.code{width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--ink);
+    border-radius:5px; padding:7px 9px; font-family:var(--ui); font-size:13px;}
+  input.code:focus{outline:none; border-color:var(--accent-2);}
+  .btn-pri{margin-top:12px; width:100%; background:var(--accent-2); color:#1c1710; border:1px solid var(--accent);
+    border-radius:5px; padding:9px; font-weight:600; font-family:var(--ui); font-size:13px; cursor:pointer;}
+  .btn-pri:hover{background:var(--accent);}
+  .gate-msg{font-size:12px; margin-top:10px; min-height:15px; color:var(--dim);}
+  .foot{margin-top:14px; text-align:center; color:var(--dim); font-size:11px;}
+  .foot a{color:var(--dim); text-decoration:none; cursor:pointer;} .foot a:hover{color:var(--accent);}
+
+  .demo-note{position:fixed; bottom:12px; left:50%; transform:translateX(-50%); z-index:200;
+    background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:5px 14px;
+    font-size:11px; color:var(--dim); box-shadow:0 6px 20px rgba(0,0,0,.4);}
+  .demo-note b{color:var(--accent);}
+</style>
+</head>
+<body class="tool-smithy">
+
+<!-- top strip -->
+<div id="appbar">
+  <span class="zii"><span class="rune">ᛉ</span><span class="txt">Zii <em>Codex</em></span></span>
+  <span class="sep"></span>
+  <button class="toolpill" data-tool="smithy"  onclick="pillClick('smithy')">⚒ Emberforge</button>
+  <button class="toolpill" data-tool="tailor"  onclick="pillClick('tailor')">🧵 Loomhall</button>
+  <button class="toolpill" data-tool="traders" onclick="pillClick('traders')">⚖️ Trademoot</button>
+  <button class="toolpill" data-tool="alchemy" onclick="pillClick('alchemy')">⚗ Elixirhall</button>
+  <button class="toolpill" data-tool="cooking" onclick="pillClick('cooking')">🍲 Cookfire</button>
+  <span class="sp"><button class="b" onclick="lockNow()">🔒 Lock</button></span>
+</div>
+
+<iframe id="appFrame" title="Zii Codex workshop"></iframe>
+
+<!-- lock screen -->
+<div id="gate" class="overlay">
+  <div class="gate-card">
+    <div class="brand-head">
+      <div class="crest">
+        <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true">
+          <polygon points="30,3 54,16.5 54,43.5 30,57 6,43.5 6,16.5" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--accent-2)"/>
+          <polygon points="30,10 48,20 48,40 30,50 12,40 12,20" fill="none" stroke="var(--line)" stroke-width="1"/>
+        </svg>
+        <span class="rune">ᛉ</span>
+      </div>
+      <div class="the">THE</div>
+      <div class="wm">ZII <em>CODEX</em></div>
+      <div class="motto">The soul of every recipe</div>
+      <span class="divider-rune">◆</span>
+    </div>
+
+    <div class="toolpick-wrap">
+      <button class="toolpick" onclick="toggleMenu()">
+        <span class="ic" id="pickIcon">⚒</span>
+        <span><span class="nm" id="pickName">Emberforge</span><br><span class="sub" id="pickSub">weapons, armour &amp; ingots</span></span>
+        <span class="car">▾</span>
+      </button>
+      <div class="toolmenu hidden" id="toolmenu"></div>
+    </div>
+
+    <h2 class="acc">Weekly access</h2>
+    <p class="sub2">Enter your code to open the selected workshop. One code can cover a single tool or several.</p>
+    <label class="lb">Access code</label>
+    <input class="code" id="codeInput" placeholder="KSL-XXXX-XXXX-XXXX" spellcheck="false"
+      onkeydown="if(event.key==='Enter')unlock()">
+    <button class="btn-pri" onclick="unlock()">Unlock</button>
+    <div class="gate-msg" id="gateMsg"></div>
+    <div class="foot"><a onclick="unlock(true)">see a live demo →</a></div>
+  </div>
+</div>
+
+<div class="demo-note">Branding preview — <b>Metamorphous</b> wordmark · loads the real workshops in demo mode</div>
+
+<script>
+const TOOLS = {
+  smithy:  { name:"Emberforge", icon:"⚒",  app:"smithy-app.html",  sub:"weapons, armour & ingots" },
+  tailor:  { name:"Loomhall",   icon:"🧵", app:"tailor-app.html",  sub:"clothing, cloth & thread" },
+  traders: { name:"Trademoot",  icon:"⚖️", app:"trader-app.html",  sub:"buy low, sell high, haul & haggle" },
+  alchemy: { name:"Elixirhall", icon:"⚗", app:"alchemy-app.html", sub:"potions, poisons & reagents" },
+  cooking: { name:"Cookfire", icon:"🍲", app:"cook-app.html", sub:"food, drink & produce" }
+};
+const IDS = Object.keys(TOOLS);
+let selected = "smithy";
+
+function setBodyTool(t){ IDS.forEach(id=>document.body.classList.remove("tool-"+id)); document.body.classList.add("tool-"+t); }
+
+function select(t){
+  selected = t; setBodyTool(t);
+  const T = TOOLS[t];
+  pickIcon.textContent = T.icon; pickName.textContent = T.name; pickSub.textContent = T.sub;
+  document.querySelectorAll(".toolpill").forEach(p=>p.classList.toggle("on", p.dataset.tool===t));
+  document.getElementById("toolmenu").classList.add("hidden");
+}
+function toggleMenu(){
+  const m = document.getElementById("toolmenu");
+  m.innerHTML = IDS.map(id=>{ const T=TOOLS[id];
+    return `<div class="opt" onclick="select('${id}')"><span class="ic">${T.icon}</span>
+      <span><span class="nm">${T.name}</span><br><span class="sub">${T.sub}</span></span></div>`; }).join("");
+  m.classList.toggle("hidden");
+}
+function unlock(demo){
+  document.getElementById("gate").classList.add("hidden");
+  document.body.classList.add("running");
+  document.querySelectorAll(".toolpill").forEach(p=>p.classList.toggle("on", p.dataset.tool===selected));
+  document.getElementById("appFrame").src = TOOLS[selected].app + "?demo";
+}
+function pillClick(t){ select(t); document.getElementById("appFrame").src = TOOLS[t].app + "?demo"; }
+function lockNow(){
+  document.body.classList.remove("running");
+  document.getElementById("appFrame").src = "about:blank";
+  document.getElementById("gate").classList.remove("hidden");
+  document.getElementById("codeInput").value = "";
+}
+select("smithy");
+</script>
+</body>
+</html>

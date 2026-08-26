@@ -195,11 +195,11 @@
 <!-- ══ PRODUCT-SWITCH STRIP (shown once inside a tool) ══ -->
 <div id="appbar">
   <span class="zii"><span class="rune">ᛉ</span><span class="txt">Zii <em>Codex</em></span></span>
-  <button class="toolpill" data-tool="smithy" onclick="pillClick('smithy')">⚒ Smithy</button>
-  <button class="toolpill" data-tool="tailor" onclick="pillClick('tailor')">🧵 Tailor</button>
-  <button class="toolpill" data-tool="traders" onclick="pillClick('traders')">⚖️ Traders</button>
-  <button class="toolpill" data-tool="alchemy" onclick="pillClick('alchemy')">⚗ Alchemy</button>
-  <button class="toolpill" data-tool="cooking" onclick="pillClick('cooking')">🍲 Cook</button>
+  <button class="toolpill" data-tool="smithy" onclick="pillClick('smithy')">⚒ Emberforge</button>
+  <button class="toolpill" data-tool="tailor" onclick="pillClick('tailor')">🧵 Loomhall</button>
+  <button class="toolpill" data-tool="traders" onclick="pillClick('traders')">⚖️ Trademoot</button>
+  <button class="toolpill" data-tool="alchemy" onclick="pillClick('alchemy')">⚗ Elixirhall</button>
+  <button class="toolpill" data-tool="cooking" onclick="pillClick('cooking')">🍲 Cookfire</button>
   <span class="sp">
     <button class="b" onclick="openAdmin()" title="Admin panel">Admin</button>
     <button class="b" onclick="lockNow()" title="Lock — back to the code screen">🔒 Lock</button>
@@ -227,7 +227,7 @@
     <div class="toolpick-wrap">
       <button class="toolpick" id="toolpick" onclick="toggleToolMenu()">
         <span class="ic" id="pickIcon">⚒</span>
-        <span class="txt"><span class="nm" id="pickName">Smithy</span>
+        <span class="txt"><span class="nm" id="pickName">Emberforge</span>
           <span class="sub">tap to switch workshop</span></span>
         <span class="car">▾</span>
       </button>
@@ -379,11 +379,11 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 const TOOLS = {
-  smithy:  { name:"Smithy",  short:"Smithy",  icon:"⚒",  app:"smithy-app.html", sub:"weapons, armour & ingots" },
-  tailor:  { name:"Tailor",  short:"Tailor",  icon:"🧵", app:"tailor-app.html", sub:"clothing, cloth & thread" },
-  traders: { name:"Traders", short:"Traders", icon:"⚖️", app:"trader-app.html", sub:"buy low, sell high, haul & haggle" },
-  alchemy: { name:"Alchemist's Lab", short:"Alchemy", icon:"⚗", app:"alchemy-app.html", sub:"potions, poisons & reagents" },
-  cooking: { name:"Cook", short:"Cook", icon:"🍲", app:"cook-app.html", sub:"food, drink & produce" }
+  smithy:  { name:"Emberforge", short:"Emberforge", icon:"⚒",  app:"smithy-app.html", sub:"weapons, armour & ingots" },
+  tailor:  { name:"Loomhall",   short:"Loomhall",   icon:"🧵", app:"tailor-app.html", sub:"clothing, cloth & thread" },
+  traders: { name:"Trademoot",  short:"Trademoot",  icon:"⚖️", app:"trader-app.html", sub:"buy low, sell high, haul & haggle" },
+  alchemy: { name:"Elixirhall", short:"Elixirhall", icon:"⚗", app:"alchemy-app.html", sub:"potions, poisons & reagents" },
+  cooking: { name:"Cookfire",   short:"Cookfire",   icon:"🍲", app:"cook-app.html", sub:"food, drink & produce" }
 };
 const TOOL_IDS = Object.keys(TOOLS);
 
