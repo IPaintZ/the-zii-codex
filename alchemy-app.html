@@ -140,9 +140,29 @@
   .ing-line { display:grid; grid-template-columns:1fr 60px 70px; gap:6px; align-items:center; font-size:12px; margin-bottom:3px; }
   .ing-line .c { text-align:right; color:var(--dim); }
 
+  /* ── Preview / demo mode ── */
+  #demoBar { display:none; }
+  body.demo #demoBar { display:flex; align-items:center; justify-content:center; gap:14px;
+    flex-wrap:wrap; padding:7px 16px; background:linear-gradient(90deg,var(--gold-2),var(--gold));
+    color:#06100d; font-size:12.5px; font-weight:600; letter-spacing:.3px; text-align:center; }
+  #demoBar .tag { background:rgba(6,16,13,.22); border-radius:20px; padding:2px 10px; font-variant:small-caps; letter-spacing:.5px; }
+  #demoBar a { color:#06100d; text-decoration:underline; font-weight:700; cursor:pointer; }
+  body.demo #lockBtn { display:none; }
+  /* Sample sheet is fixed in preview — price/stock & settings are look-only; Lab stays interactive. */
+  body.demo #tab-inventory input, body.demo #tab-inventory select, body.demo #tab-inventory button,
+  body.demo #tab-settings input, body.demo #tab-settings select, body.demo #tab-settings button {
+    pointer-events:none; opacity:.6; cursor:not-allowed; }
+
 </style>
 </head>
 <body>
+
+<!-- ══ PREVIEW BANNER (shown only in ?demo mode; the shell hosts this app in an iframe) ══ -->
+<div id="demoBar">
+  <span><span class="tag">Preview</span> &nbsp;Sample cellar — this is a live demo, nothing you change is saved.</span>
+  <a onclick="parent.postMessage({keisaal:'gate'},'*')">← Back to login</a>
+  <a href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener">Get access →</a>
+</div>
 
 <div class="top"><div class="top-in">
   <div class="brand"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="3.5" x2="15" y2="3.5"/><path d="M10.8 3.5 V9.2 L6.3 17.8 a1.5 1.5 0 0 0 1.35 2.2 H16.35 a1.5 1.5 0 0 0 1.35 -2.2 L13.2 9.2 V3.5"/><line x1="8.3" y1="14.5" x2="15.7" y2="14.5"/><circle cx="11" cy="17" r=".55"/><circle cx="13.6" cy="16.2" r=".5"/></svg>Elixirhall</div>
@@ -154,7 +174,7 @@
     <button id="t-sales"     onclick="tab('sales')">Sales</button>
     <button id="t-settings"  onclick="tab('settings')">Settings</button>
   </nav>
-  <button class="b" style="margin-left:10px" onclick="alert('In the real app this locks back to the code screen.')">🔒 Lock</button>
+  <button id="lockBtn" class="b" style="margin-left:10px" onclick="alert('In the real app this locks back to the code screen.')">🔒 Lock</button>
 </div></div>
 
 <main>
@@ -411,8 +431,13 @@ let queue = [ {id:"RestoreHealth02", qty:5}, {id:"KzlSkooma", qty:3} ];
    this browser under one key — nothing is shared, nothing leaves the device.
    Debounced so rapid typing/stepping doesn't stringify on every event. */
 const KEY = "keisaal_alchemy";
+// Preview mode: the shell opens this app with ?demo for a sandboxed tour on the
+// fixed sample cellar (the baked prices/stock below). It never reads or writes
+// the real book (localStorage), so the sample numbers stay put.
+const IS_DEMO = new URLSearchParams(location.search).has("demo");
 let _saveTimer = null;
 function save(){
+  if (IS_DEMO) return;
   try {
     const ing = {}; INGREDIENTS.forEach(i => { ing[i.name] = { price:i.price, stock:i.stock }; });
     localStorage.setItem(KEY, JSON.stringify({ ing, settings, queue }));
@@ -423,6 +448,7 @@ function flushSave(){ if (_saveTimer){ clearTimeout(_saveTimer); _saveTimer = nu
 addEventListener("pagehide", flushSave);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushSave(); });
 function load(){
+  if (IS_DEMO) return;   // keep the baked sample cellar; ignore any stored book
   try {
     const d = JSON.parse(localStorage.getItem(KEY)); if (!d) return;
     if (d.ing) INGREDIENTS.forEach(i => { const o = d.ing[i.name]; if (o){ if (typeof o.price === "number") i.price = o.price; if (typeof o.stock === "number") i.stock = o.stock; } });
@@ -666,6 +692,7 @@ function setMarkup(d){ const el=document.getElementById('setMarkup'); if(d)el.va
 function setLabor(d){ const el=document.getElementById('setLabor'); if(d)el.value=Math.max(0,(+el.value||0)+d); settings.labor=+el.value||0; renderLab(); renderQueue(); saveDebounced(); }
 
 /* ═══════════════ boot ═══════════════ */
+if (IS_DEMO) document.body.classList.add("demo");
 load();
 { const sm=document.getElementById('setMarkup'); if(sm) sm.value=settings.markup;
   const sl=document.getElementById('setLabor');  if(sl) sl.value=settings.labor; }
