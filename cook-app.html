@@ -157,6 +157,7 @@
   <div class="brand"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4.5" y1="10.5" x2="19.5" y2="10.5"/><path d="M6 10.5 L7 19 a1.6 1.6 0 0 0 1.6 1.4 H15.4 a1.6 1.6 0 0 0 1.6 -1.4 L18 10.5"/><path d="M6 11.8 H4.2 a1.1 1.1 0 0 1 0 -2.2"/><path d="M18 11.8 H19.8 a1.1 1.1 0 0 0 0 -2.2"/><path d="M9.6 7.6 q1.2 -1.7 0 -3.4"/><path d="M14.4 7.6 q1.2 -1.7 0 -3.4"/></svg>Cookfire <span class="mk">Cookbook</span></div>
   <nav>
     <button id="v-kitchen"  class="on" onclick="view('kitchen')">Kitchen</button>
+    <button id="v-counter"  onclick="view('counter')">Counter</button>
     <button id="v-pantry"   onclick="view('pantry')">Pantry</button>
     <button id="v-sales"    onclick="view('sales')">Sales</button>
     <button id="v-buyers"   onclick="view('buyers')">Buyers</button>
@@ -165,7 +166,8 @@
   <div class="topright">
     <label class="dim" style="font-size:11px">Buyer
       <select id="custSel" onchange="data.settings.customer=this.value; render()" style="margin-left:4px"></select></label>
-    <span class="traychip" id="trayChip" onclick="view('kitchen')">Tray <b>0</b> · 0g</span>
+    <span class="traychip" id="trayChip" onclick="view('kitchen')">Queue <b>0</b> · 0g</span>
+    <span class="traychip" id="saleChip" onclick="view('counter')">Sale <b>0</b> · 0g</span>
   </div>
 </div></div>
 
@@ -192,14 +194,14 @@
       </div>
 
       <div class="panel">
-        <div class="panel-h"><h2>Tray</h2><span class="sp"><span class="pill" id="trayCount">empty</span>
+        <div class="panel-h"><h2>Cook queue</h2><span class="sp"><span class="pill" id="trayCount">empty</span>
           <button class="b sm" onclick="trayClear()">Clear</button></span></div>
         <div class="panel-b">
           <div id="trayRows"></div>
-          <div id="trayEmpty" class="empty">Nothing on the tray yet.</div>
+          <div id="trayEmpty" class="empty">Nothing queued to cook yet.</div>
           <div id="trayDisc" class="note" style="display:none"></div>
           <div class="totals" id="trayTotals" style="display:none"></div>
-          <button class="b pri full" id="checkoutBtn" style="display:none" onclick="checkout()">✓ Checkout &amp; deduct pantry</button>
+          <button class="b pri full" id="checkoutBtn" style="display:none" onclick="cook()">🍳 Cook — add to finished stock</button>
           <div class="kv" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
             <label style="width:auto">Preset</label>
             <select id="presetSel" style="flex:1;min-width:120px"></select>
@@ -207,6 +209,44 @@
             <button class="b sm" onclick="delPreset()">✕</button>
             <button class="b sm" onclick="savePreset()">Save tray…</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COUNTER ══ -->
+<div id="view-counter" class="view">
+  <div class="kitchen">
+    <div class="panel">
+      <div class="panel-h"><h2>Finished stock</h2><span class="sp">
+        <span class="pill" id="stockCount"></span></span></div>
+      <div class="panel-b">
+        <p class="note" style="margin-top:0">What you've precooked and can sell now. Click a dish to add it to the sale. Out-of-stock dishes are cooked to order on checkout.</p>
+        <div class="searchbar"><input id="stockSearch" placeholder="Search dishes…" oninput="renderStockList()"></div>
+        <div class="cards" id="stockList"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="panel-h"><h2>Sale</h2><span class="sp"><span class="pill" id="saleCount">empty</span>
+          <button class="b sm" onclick="saleClear()">Clear</button></span></div>
+        <div class="panel-b">
+          <div id="saleRows"></div>
+          <div id="saleEmpty" class="empty">Add finished dishes to sell to the buyer.</div>
+
+          <div id="tradeWrap" style="display:none">
+            <div class="kv" style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)">
+              <label style="width:auto">🧺 Trade-in</label>
+              <select id="bringSel" style="flex:1;min-width:120px" title="Ingredients the buyer brings — they go into your pantry for credit"></select>
+              <button class="b sm" onclick="addBring()">+ Bring</button></div>
+            <div id="bringRows"></div>
+          </div>
+
+          <div id="saleDisc" class="note" style="display:none"></div>
+          <div class="totals" id="saleTotals" style="display:none"></div>
+          <button class="b pri full" id="sellBtn" style="display:none" onclick="completeSale()">✓ Complete sale</button>
         </div>
       </div>
     </div>
@@ -238,9 +278,9 @@
     <div class="panel">
       <div class="panel-h"><h2>Ingredients</h2><span class="sp"><span class="pill" id="invValue"></span></span></div>
       <div class="panel-b">
-        <p class="note" style="margin-top:0"><strong>Calc price</strong> is your fixed cost basis; <span class="dim">→</span> adopts the average you've actually paid. Rest is live trade history.</p>
+        <p class="note" style="margin-top:0"><strong>Calc price</strong> is your fixed cost basis; <span class="dim">→</span> adopts the average you've actually paid. <strong>Par</strong> is your target stock — trade-ins pay the restock rate up to it, the overstock rate beyond (blank = flat rate). <strong>Buy?</strong> lets a buyer trade it back in.</p>
         <div style="overflow-x:auto"><table><thead><tr>
-          <th>Ingredient</th><th class="n">Calc</th><th class="n">Stock</th><th class="n">Value</th>
+          <th>Ingredient</th><th class="n">Calc</th><th class="n">Stock</th><th class="n">Par</th><th class="n" title="Can a buyer trade this back in?">Buy?</th><th class="n">Value</th>
           <th class="n">Last buy</th><th class="n">Avg buy</th><th class="n">Avg sell</th><th></th>
         </tr></thead><tbody id="invBody"></tbody></table></div>
       </div>
@@ -306,8 +346,8 @@
   <div class="panel">
     <div class="panel-h"><h2>Buyers</h2><span class="sp"><button class="b sm" onclick="newCustomer()">+ Buyer</button></span></div>
     <div class="panel-b">
-      <p class="note" style="margin-top:0">Each buyer is one markup. The first row (top) sets the price shown in the cookbook. Stats come from your sales log.</p>
-      <table><thead><tr><th>Name</th><th class="n">Markup ×</th><th class="n">Orders</th><th class="n">Spent</th><th class="n">Profit</th><th>Last</th><th>Notes</th><th></th></tr></thead>
+      <p class="note" style="margin-top:0">Each buyer is one markup. The first row (top) sets the price shown in the cookbook. <strong>Trade-in %</strong> columns override the shop default for this buyer (blank = inherit). Stats come from your sales log.</p>
+      <table><thead><tr><th>Name</th><th class="n">Markup ×</th><th class="n" title="restock rate override">Restock %</th><th class="n" title="overstock rate override">Over %</th><th class="n">Orders</th><th class="n">Spent</th><th class="n">Profit</th><th>Last</th><th>Notes</th><th></th></tr></thead>
         <tbody id="buyersBody"></tbody></table>
     </div>
   </div>
@@ -333,6 +373,18 @@
         <div class="kv"><label>Rounding</label><label class="switch"><input type="checkbox" id="roundOn" onchange="data.settings.roundOn=this.checked; render()"><span class="track"></span><span class="swlbl">Whole numbers</span></label></div>
         <div class="kv"><label>Cost basis</label><label class="switch"><input type="checkbox" id="realCost" onchange="data.settings.realCost=this.checked; render()"><span class="track"></span><span class="swlbl">Use actual paid prices</span></label></div>
         <p class="note"><strong>Cost basis</strong>: off uses each ingredient's fixed calc price. On uses the weighted-average price you've actually paid (Trade Log), falling back to calc price for ingredients you haven't bought. Price = (ingredients + labor) ÷ yield × markup × demand.</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h2>Trade-in (Buyback)</h2></div>
+      <div class="panel-b">
+        <p class="note" style="margin-top:0">When a buyer brings ingredients at the Counter, they land in your pantry and knock coin off the bill. Set a <strong>Par</strong> per ingredient (Pantry tab) to split the rate.</p>
+        <div class="kv"><label>Restock rate</label><span class="step"><button onclick="buybackStep('rate',-1)">−</button>
+          <input id="bbRate" type="number" min="0" step="5" style="width:64px" onchange="buybackSet('rate',this.value)"><button onclick="buybackStep('rate',1)">+</button></span>
+          <span class="dim" style="font-size:11px">% of value, up to par (what you're short)</span></div>
+        <div class="kv"><label>Overstock rate</label><span class="step"><button onclick="buybackStep('over',-1)">−</button>
+          <input id="bbOver" type="number" min="0" step="5" style="width:64px" onchange="buybackSet('over',this.value)"><button onclick="buybackStep('over',1)">+</button></span>
+          <span class="dim" style="font-size:11px">% for anything past par</span></div>
       </div>
     </div>
     <div class="panel">
@@ -369,10 +421,13 @@ const KEY = "keisaal_cook_mockB";
 // Preview mode: the shell opens this app with ?demo for a sandboxed tour on a
 // fixed sample kitchen. It never reads or writes the real book (localStorage).
 const IS_DEMO = new URLSearchParams(location.search).has("demo");
+// Ingredients that aren't worth trading back (cheap staples) start with buyback switched off.
+const NO_BUYBACK = new Set(["Salt Pile"]);
 
 const DEFAULT = {
   settings:{ currency:"g", defaultLabor:5, roundOn:true, customer:null, realCost:false,
-             stackBulk:true, tiers:[{qty:5,pct:5},{qty:10,pct:10},{qty:25,pct:15}] },
+             stackBulk:true, tiers:[{qty:5,pct:5},{qty:10,pct:10},{qty:25,pct:15}],
+             buyback:{ rate:0.75, over:0.5 } },   // trade-in: restock rate / overstock rate (shop defaults)
   till:{ revenue:0, cost:0, sales:0, items:0 },
   customers:[ {id:uid(),name:"Innkeeper",markup:2,notes:""}, {id:uid(),name:"Regular",markup:1.6,notes:""} ],
   sales:[], trades:[], presets:[],
@@ -466,13 +521,22 @@ const DEFAULT = {
 
 /* ── State ── */
 let data = load();
-let tray = [];             // [{id, qty}]
+let tray = [];             // Kitchen cook queue: [{id, qty}]
+let sale = [];             // Counter sale: [{id, qty}]
+let bring = [];            // Counter trade-in: [{name, qty}]
 let selId = null;
 let benchFilter = "", srcFilter = "";
 let tradeSide = "buy";
 
-function load(){ if(IS_DEMO) return buildDemo(); try{ const r=localStorage.getItem(KEY); if(r) return migrate(JSON.parse(r)); }catch(e){} return structuredClone(DEFAULT); }
-function migrate(d){ d.trades ||= []; d.presets ||= []; d.settings.tiers ||= structuredClone(DEFAULT.settings.tiers); return d; }
+function load(){ if(IS_DEMO) return buildDemo(); try{ const r=localStorage.getItem(KEY); if(r) return migrate(JSON.parse(r)); }catch(e){} return migrate(structuredClone(DEFAULT)); }
+function migrate(d){
+  d.trades ||= []; d.presets ||= []; d.settings.tiers ||= structuredClone(DEFAULT.settings.tiers);
+  d.settings.buyback ||= { rate:0.75, over:0.5 };
+  (d.recipes||[]).forEach(r=>{ r.made = +r.made||0; });                 // finished-goods stock
+  const norm = x =>{ if(x.buybackOk===undefined) x.buybackOk = !NO_BUYBACK.has(x.name); if(x.target===undefined) x.target=null; };
+  (d.materials||[]).forEach(norm); (d.intermediates||[]).forEach(norm);  // target (par) + eligible flag
+  return d;
+}
 function save(){ if(IS_DEMO){ const s=document.getElementById("saveState"); if(s) s.textContent="preview — not saved"; return; }
   try{ localStorage.setItem(KEY, JSON.stringify(data)); const s=document.getElementById("saveState"); if(s){ s.textContent="saved ✓"; setTimeout(()=>s.textContent="saved",800);} }catch(e){} }
 // Fixed sample kitchen for the ?demo tour: real prices, stock, a little trade &
@@ -509,7 +573,13 @@ function buildDemo(){
       rev:68.4,  cost:38, profit:30.4, items:6,  lines:[{name:"Sweet Roll",qty:4,price:14},{name:"Honey",qty:2,price:8}] },
   ];
   d.till = { revenue:377.8, cost:207, sales:d.sales.length, items:32 };
-  return d;
+  // Some dishes already precooked and waiting on the shelf, so the Counter shows stock.
+  const made = { "Beef Stew":6, "Vegetable Soup":10, "Bread":8, "Apple Pie":3, "Cabbage Soup":12, "Sweet Roll":5 };
+  d.recipes.forEach(r=>{ if(made[r.name]) r.made = made[r.name]; });
+  // Par (target) stock on the ingredients worth managing — drives the trade-in tiering.
+  const par = { "Raw Beef":24, "Jug of Milk":40, "Horker Meat":16, "Salmon Meat":18, "Clam Meat":16, "Wheat":50 };
+  d.materials.forEach(m=>{ if(par[m.name]!=null) m.target = par[m.name]; });
+  return migrate(d);
 }
 // Debounced persistence so rapid typing/stepping doesn't stringify the whole
 // book on every event; flushed on tab-hide/unload so nothing is lost.
@@ -553,6 +623,20 @@ function bulkPctFor(count, cust){
   let pct=0; (data.settings.tiers||[]).forEach(t=>{ if(count>=+t.qty) pct=Math.max(pct,+t.pct); }); return pct;
 }
 
+/* ── Finished-goods & trade-in ── */
+const ingObj = n => mat(n) || inter(n);
+// Trade-in rate cascades buyer → shop default, like markup.
+function effRate(c){ return (c && c.buyRate!=null && c.buyRate!=="") ? +c.buyRate : +(data.settings.buyback?.rate??0.75); }
+function effOver(c){ return (c && c.buyOver!=null && c.buyOver!=="") ? +c.buyOver : +(data.settings.buyback?.over??0.5); }
+function parOf(o){ return (o && o.target!=null && o.target!=="") ? +o.target : null; }
+// Split a brought quantity into the portion that restocks up to par (high rate) and the excess (low rate).
+function buySplit(name, qty, c){
+  const o=ingObj(name); if(!o || o.buybackOk===false) return { ok:false, restock:0, over:0, credit:0 };
+  const par=parOf(o), short = par==null ? Infinity : Math.max(0, par-(+o.stock||0));
+  const restock=Math.min(qty,short), over=qty-restock, val=ingUnit(name);
+  return { ok:true, restock, over, val, credit: restock*val*effRate(c) + over*val*effOver(c) };
+}
+
 /* ═════════ Views ═════════ */
 function view(v){
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
@@ -563,7 +647,7 @@ function view(v){
 function render(){
   saveDebounced(); syncCustomers();
   renderFilters(); renderCards(); renderDetail(); renderTray(); renderPresets();
-  renderPantry(); renderSales(); renderBuyers(); renderSettings();
+  renderCounter(); renderPantry(); renderSales(); renderBuyers(); renderSettings();
 }
 function syncCustomers(){
   if(!data.settings.customer) data.settings.customer=data.customers[0].id;
@@ -633,8 +717,8 @@ function renderDetail(){
 
     <div class="kv" style="margin-top:6px"><label>Servings</label>
       <span class="step"><button onclick="stepField('detQty',-1)">−</button><input id="detQty" type="number" min="1" value="1"><button onclick="stepField('detQty',1)">+</button></span>
-      <button class="b pri" style="margin-left:auto" onclick="addToTray('${r.id}')">＋ Add to tray</button></div>
-    <div class="note">You can cook <strong>${canMake(r)}</strong> servings right now from pantry stock.</div>`;
+      <button class="b pri" style="margin-left:auto" onclick="addToTray('${r.id}')">＋ Queue to cook</button></div>
+    <div class="note"><strong>${r.made||0}</strong> already cooked · can cook <strong>${canMake(r)}</strong> more from pantry stock right now.</div>`;
 }
 function rSet(id,k,v){ const r=rec(id); r[k]=(k==='name'||k==='bench')?v:(k==='labor'&&v==='')?null:+v; render(); }
 function lineSet(id,ix,k,v){ const r=rec(id); r.lines[ix][k]=(k==='ingredient')?v:+v; render(); }
@@ -648,38 +732,35 @@ function addToTray(id){ const r=rec(id); if(!r) return; const qty=Math.max(1,+do
 function trayStep(id,d){ const t=tray.find(x=>x.id===id); if(!t) return; t.qty=Math.max(1,t.qty+d); renderTray(); }
 function trayRemove(id){ tray=tray.filter(t=>t.id!==id); renderTray(); }
 function trayClear(){ tray=[]; renderTray(); }
+// The Kitchen queue is production, not a sale: it shows ingredient cost and what each
+// dish still needs in stock, and the button cooks the batch into finished-goods stock.
 function renderTray(){
-  const c=currentCustomer();
   const rows=document.getElementById("trayRows"), empty=document.getElementById("trayEmpty");
   const totalsEl=document.getElementById("trayTotals"), coBtn=document.getElementById("checkoutBtn"), discEl=document.getElementById("trayDisc");
   const count=tray.reduce((a,t)=>a+t.qty,0);
   document.getElementById("trayCount").textContent = count?count+" servings":"empty";
-  let gross=0,cost=0;
-  if(!tray.length){ rows.innerHTML=""; empty.style.display="block"; totalsEl.style.display="none"; coBtn.style.display="none"; discEl.style.display="none"; updateTrayChip(0,0); return; }
+  discEl.style.display="none";
+  if(!tray.length){ rows.innerHTML=""; empty.style.display="block"; totalsEl.style.display="none"; coBtn.style.display="none"; updateTrayChip(0,0); return; }
   empty.style.display="none"; totalsEl.style.display="flex"; coBtn.style.display="block";
-  rows.innerHTML=tray.map(t=>{ const r=rec(t.id); if(!r) return ""; const line=recipePrice(r,c.markup)*t.qty; gross+=line; cost+=unitCost(r)*t.qty;
-    return `<div class="tray-row"><div>${r.name}</div>
+  let cost=0, shortAny=false;
+  rows.innerHTML=tray.map(t=>{ const r=rec(t.id); if(!r) return ""; const lc=unitCost(r)*t.qty; cost+=lc;
+    const short = canMake(r) < t.qty; if(short) shortAny=true;
+    return `<div class="tray-row"><div>${r.name}${short?` <span class="pill" style="color:var(--bad);border-color:var(--bad)">short</span>`:''}</div>
       <span class="step"><button onclick="trayStep('${t.id}',-1)">−</button><input class="n" style="width:38px" value="${t.qty}" readonly><button onclick="trayStep('${t.id}',1)">+</button></span>
-      <div class="lp">${g(line)}</div><button class="x" onclick="trayRemove('${t.id}')">✕</button></div>`; }).join("");
-  const pct=bulkPctFor(count,c), net=gross*(1-pct/100);
-  if(pct>0){ discEl.style.display="block"; discEl.innerHTML=`Bulk discount <span class="good">−${pct}%</span> on ${count} servings (${g(gross)} → <span class="gold">${g(net)}</span>).`; }
-  else discEl.style.display="none";
-  totalsEl.innerHTML=[["Revenue",g(net),"gold"],["Cost",g(cost),"dim"],["Profit",g(net-cost),"good"]]
+      <div class="lp dim">${g(lc)}</div><button class="x" onclick="trayRemove('${t.id}')">✕</button></div>`; }).join("");
+  coBtn.disabled=false; coBtn.textContent = shortAny ? "🍳 Cook what stock allows" : "🍳 Cook — add to finished stock";
+  totalsEl.innerHTML=[["Servings",count,""],["Ingredient cost",g(cost),"dim"],["Cost / serving",g(count?cost/count:0),"gold"]]
     .map(([l,v,cls])=>`<div class="cell"><div class="lab">${l}</div><div class="val ${cls}">${v}</div></div>`).join("");
-  updateTrayChip(count,net);
+  updateTrayChip(count,cost);
 }
-function updateTrayChip(count,rev){ document.getElementById("trayChip").innerHTML=`Tray <b>${count}</b> · ${g(rev||0)}`; }
-function checkout(){
-  if(!tray.length) return; const c=currentCustomer();
-  const acc={}; tray.forEach(t=>{ const r=rec(t.id); if(r) dishRaw(r,t.qty,acc); });
-  Object.keys(acc).forEach(n=>{ const m=mat(n); if(m) m.stock=Math.max(0,(+m.stock||0)-Math.ceil(acc[n])); });
-  let gross=0,cost=0,items=0; const lines=[];
-  tray.forEach(t=>{ const r=rec(t.id); if(!r) return; const price=recipePrice(r,c.markup);
-    gross+=price*t.qty; cost+=unitCost(r)*t.qty; items+=t.qty; lines.push({name:r.name,qty:t.qty,price}); });
-  const pct=bulkPctFor(items,c), net=gross*(1-pct/100);
-  data.till.revenue+=net; data.till.cost+=cost; data.till.sales++; data.till.items+=items;
-  data.sales.unshift({ id:uid(), ts:Date.now(), buyerId:c.id, buyer:c.name, discountPct:pct,
-    dishes:tray.map(t=>t.qty+"× "+rec(t.id).name).join(", "), rev:net, cost, profit:net-cost, items, lines });
+function updateTrayChip(count,cost){ document.getElementById("trayChip").innerHTML=`Queue <b>${count}</b> · ${g(cost||0)}`; }
+// Cook the queue: spend raw ingredients (capped at what's in stock) and add servings to finished stock.
+function cook(){
+  if(!tray.length) return;
+  tray.forEach(t=>{ const r=rec(t.id); if(!r) return; const n=Math.min(t.qty, canMake(r)); if(n<=0) return;
+    const acc={}; dishRaw(r,n,acc);
+    Object.keys(acc).forEach(name=>{ const o=ingObj(name); if(o) o.stock=Math.max(0,(+o.stock||0)-Math.ceil(acc[name])); });
+    r.made=(+r.made||0)+n; });
   tray=[]; render();
 }
 
@@ -692,6 +773,92 @@ function savePreset(){ if(!tray.length){ alert("Tray is empty."); return; } cons
 function loadPreset(){ const id=document.getElementById("presetSel").value; const p=data.presets.find(x=>x.id===id); if(!p) return;
   p.lines.forEach(l=>{ if(!rec(l.id)) return; const ex=tray.find(t=>t.id===l.id); if(ex) ex.qty+=l.qty; else tray.push({id:l.id,qty:l.qty}); }); renderTray(); }
 function delPreset(){ const id=document.getElementById("presetSel").value; data.presets=data.presets.filter(p=>p.id!==id); render(); }
+
+/* ── Counter (sell finished stock, with trade-in) ── */
+function renderCounter(){
+  const c=currentCustomer();
+  const totalMade=data.recipes.reduce((a,r)=>a+(+r.made||0),0);
+  document.getElementById("stockCount").textContent = totalMade? totalMade+" servings in stock" : "nothing cooked yet";
+  renderStockList();
+  const sel=document.getElementById("bringSel");
+  if(sel){ const keep=sel.value;
+    const opts=[...data.materials,...data.intermediates].filter(o=>o.buybackOk!==false && !bring.find(b=>b.name===o.name)).map(o=>o.name);
+    sel.innerHTML = opts.length? opts.map(n=>`<option>${n}</option>`).join("") : `<option value="">— all added —</option>`;
+    if(keep && opts.includes(keep)) sel.value=keep; }
+  renderSale(c);
+}
+function renderStockList(){
+  const q=(document.getElementById("stockSearch")?.value||"").toLowerCase();
+  const c=currentCustomer();
+  const rows=data.recipes.filter(r=>(+r.made||0)>0 && r.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+  const el=document.getElementById("stockList"); if(!el) return;
+  if(!rows.length){ el.innerHTML=`<div class="empty">${q?'No stocked dish matches.':'Nothing cooked yet — cook a batch on the Kitchen tab.'}</div>`; return; }
+  el.innerHTML=rows.map(r=>`<div class="card ${sale.find(s=>s.id===r.id)?'sel':''}" onclick="addSale('${r.id}')">
+    <div><div class="nm">${r.name}</div><div class="meta"><span class="bench-tag">${r.bench}</span> · sells ${g(recipePrice(r,c.markup))}</div></div>
+    <div class="sp"><div class="price">${r.made} made</div></div></div>`).join("");
+}
+function addSale(id){ const r=rec(id); if(!r) return; const ex=sale.find(s=>s.id===id); if(ex) ex.qty++; else sale.push({id,qty:1}); renderCounter(); }
+function saleStep(id,d){ const s=sale.find(x=>x.id===id); if(!s) return; s.qty=Math.max(1,s.qty+d); renderCounter(); }
+function saleRemove(id){ sale=sale.filter(s=>s.id!==id); renderCounter(); }
+function saleClear(){ sale=[]; bring=[]; renderCounter(); }
+function addBring(){ const n=document.getElementById("bringSel").value; if(!n||bring.find(b=>b.name===n)) return; bring.push({name:n,qty:1}); renderCounter(); }
+function bringStep(name,d){ const b=bring.find(x=>x.name===name); if(!b) return; b.qty=Math.max(0,b.qty+d); if(b.qty===0) bring=bring.filter(x=>x.name!==name); renderCounter(); }
+function bringRemove(name){ bring=bring.filter(b=>b.name!==name); renderCounter(); }
+function saleGross(c){ return sale.reduce((a,s)=>{ const r=rec(s.id); return a+(r?recipePrice(r,c.markup)*s.qty:0); },0); }
+
+function renderSale(c){
+  const rowsEl=document.getElementById("saleRows"), emptyEl=document.getElementById("saleEmpty");
+  const tradeWrap=document.getElementById("tradeWrap"), totEl=document.getElementById("saleTotals"), discEl=document.getElementById("saleDisc"), btn=document.getElementById("sellBtn");
+  const count=sale.reduce((a,s)=>a+s.qty,0);
+  document.getElementById("saleCount").textContent=count?count+" servings":"empty";
+  document.getElementById("saleChip").innerHTML=`Sale <b>${count}</b> · ${g(saleGross(c))}`;
+  if(!sale.length){ rowsEl.innerHTML=""; emptyEl.style.display="block"; tradeWrap.style.display="none"; totEl.style.display="none"; discEl.style.display="none"; btn.style.display="none"; return; }
+  emptyEl.style.display="none"; tradeWrap.style.display="block"; totEl.style.display="flex"; btn.style.display="block";
+  let gross=0,cost=0;
+  rowsEl.innerHTML=sale.map(s=>{ const r=rec(s.id); if(!r) return ""; const price=recipePrice(r,c.markup); gross+=price*s.qty; cost+=unitCost(r)*s.qty;
+    const mto=Math.max(0,s.qty-(+r.made||0));
+    const tag = mto>0 ? ` <span class="pill" style="color:var(--ember);border-color:var(--ember)" title="cooked fresh on checkout">${mto} to order</span>` : '';
+    return `<div class="tray-row"><div>${r.name}${tag}</div>
+      <span class="step"><button onclick="saleStep('${s.id}',-1)">−</button><input class="n" style="width:38px" value="${s.qty}" readonly><button onclick="saleStep('${s.id}',1)">+</button></span>
+      <div class="lp">${g(price*s.qty)}</div><button class="x" onclick="saleRemove('${s.id}')">✕</button></div>`; }).join("");
+  // trade-in rows
+  let credit=0;
+  document.getElementById("bringRows").innerHTML = bring.map(b=>{ const o=ingObj(b.name), par=parOf(o), sp=buySplit(b.name,b.qty,c); credit+=sp.credit;
+    const stock=o?+o.stock||0:0;
+    const note = par==null ? `stock ${stock} · <span class="dim">no par → flat ${Math.round(effRate(c)*100)}%</span>`
+      : (stock<par ? `stock ${stock}/${par} · <span class="good">restock ${sp.restock}${sp.over>0?` +${sp.over} over`:''}</span>`
+                   : `stock ${stock}/${par} · <span class="dim">overstocked → ${Math.round(effOver(c)*100)}%</span>`);
+    return `<div class="tray-row"><div style="font-size:12.5px">${b.name}<br><span style="font-size:10px;font-family:inherit">${note}</span></div>
+      <span class="step"><button onclick="bringStep('${b.name}',-1)">−</button><input class="n" style="width:38px" value="${b.qty}" readonly><button onclick="bringStep('${b.name}',1)">+</button></span>
+      <div class="lp good">−${g(sp.credit)}</div><button class="x" onclick="bringRemove('${b.name}')">✕</button></div>`; }).join("");
+  // totals — trade-in is payment in kind: profit stays food − cost; cash paid drops by the credit.
+  const pct=bulkPctFor(count,c), afterBulk=gross*(1-pct/100), pay=Math.max(0,afterBulk-credit);
+  if(pct>0){ discEl.style.display="block"; discEl.innerHTML=`Bulk discount <span class="good">−${pct}%</span> on ${count} servings.`; } else discEl.style.display="none";
+  const cells=[["Food",g(afterBulk),"gold"]];
+  if(credit>0) cells.push(["Trade-in","−"+g(credit),"good"]);
+  cells.push(["Pays (cash)",g(pay),"gold"],["Cost",g(cost),"dim"],["Profit",g(afterBulk-cost),"good"]);
+  totEl.innerHTML=cells.map(([l,v,cls])=>`<div class="cell"><div class="lab">${l}</div><div class="val ${cls}">${v}</div></div>`).join("");
+  btn.textContent = credit>0 ? "✓ Complete sale — trade-in to pantry" : "✓ Complete sale";
+}
+function completeSale(){
+  if(!sale.length) return; const c=currentCustomer();
+  // 1) trade-in ingredients land in the pantry first, so any made-to-order line can cook with them
+  let credit=0; bring.forEach(b=>{ credit+=buySplit(b.name,b.qty,c).credit; const o=ingObj(b.name); if(o&&b.qty>0) o.stock=(+o.stock||0)+b.qty; });
+  // 2) fulfil each line: draw from finished stock, cook any remainder to order (spends raw)
+  let gross=0,cost=0,items=0; const lines=[], rawAcc={};
+  sale.forEach(s=>{ const r=rec(s.id); if(!r) return; const q=s.qty, price=recipePrice(r,c.markup);
+    gross+=price*q; cost+=unitCost(r)*q; items+=q; lines.push({name:r.name,qty:q,price});
+    const fromStock=Math.min(q,+r.made||0); r.made=Math.max(0,(+r.made||0)-fromStock);
+    const mto=q-fromStock; if(mto>0) dishRaw(r,mto,rawAcc); });
+  Object.keys(rawAcc).forEach(name=>{ const o=ingObj(name); if(o) o.stock=Math.max(0,(+o.stock||0)-Math.ceil(rawAcc[name])); });
+  // 3) money: bulk discount on the food; trade-in is payment in kind so revenue = food value
+  const pct=bulkPctFor(items,c), afterBulk=gross*(1-pct/100);
+  data.till.revenue+=afterBulk; data.till.cost+=cost; data.till.sales++; data.till.items+=items;
+  data.sales.unshift({ id:uid(), ts:Date.now(), buyerId:c.id, buyer:c.name, discountPct:pct,
+    dishes:sale.map(s=>s.qty+"× "+rec(s.id).name).join(", ")+(bring.length?` (+${bring.reduce((a,b)=>a+b.qty,0)} trade-in)`:""),
+    rev:afterBulk, cost, profit:afterBulk-cost, items, lines });
+  sale=[]; bring=[]; render();
+}
 
 /* ── Pantry ── */
 function setTradeSide(s){ tradeSide=s; document.querySelectorAll("#trSideSeg button").forEach(b=>b.classList.toggle("on",b.dataset.side===s)); updTradeTotal(); }
@@ -723,6 +890,8 @@ function renderPantry(){
     return `<tr><td>${m.name}</td>
       <td class="n"><input class="n" style="width:64px" type="number" step="0.5" value="${m.price}" onchange="matSet('${m.id}','price',this.value)"></td>
       <td class="n"><input class="n" style="width:54px" type="number" value="${m.stock}" onchange="matSet('${m.id}','stock',this.value)"></td>
+      <td class="n"><input class="n" style="width:48px" type="number" min="0" placeholder="—" value="${m.target??''}" title="target/par stock" onchange="matTarget('${m.id}',this.value)"></td>
+      <td class="n"><input type="checkbox" ${m.buybackOk!==false?'checked':''} onchange="matBuy('${m.id}',this.checked)"></td>
       <td class="n dim">${g(v)}</td>
       <td class="n dim">${g(s.lastBuy)} ${trend}</td><td class="n dim">${g(s.avgBuy)}</td><td class="n dim">${g(s.avgSell)}</td>
       <td class="n">${s.avgBuy!=null?`<button class="adopt" title="Adopt avg buy as calc price" onclick="adoptAvg('${m.id}')">→</button>`:''}</td></tr>`; }).join("");
@@ -741,6 +910,8 @@ function renderPantry(){
       <td class="dim">${t.note||''}</td><td class="n"><button class="x" onclick="delTrade('${t.id}')">✕</button></td></tr>`).join(""); }
 }
 function matSet(id,k,v){ const m=data.materials.find(x=>x.id===id); m[k]=+v; render(); }
+function matTarget(id,v){ const m=data.materials.find(x=>x.id===id); m.target = (v===''||v==null) ? null : Math.max(0,+v); render(); }
+function matBuy(id,on){ const m=data.materials.find(x=>x.id===id); m.buybackOk=!!on; render(); }
 function delTrade(id){ data.trades=data.trades.filter(t=>t.id!==id); render(); }
 
 /* ── Sales ── */
@@ -776,6 +947,8 @@ function renderBuyers(){
     return `<tr>
       <td><input value="${c.name}" style="width:120px" onchange="custSet('${c.id}','name',this.value)"></td>
       <td class="n"><input class="n" style="width:56px" type="number" step="0.05" value="${c.markup}" onchange="custSet('${c.id}','markup',this.value)"></td>
+      <td class="n"><input class="n" style="width:50px" type="number" min="0" placeholder="—" value="${c.buyRate!=null&&c.buyRate!==''?Math.round(c.buyRate*100):''}" onchange="custRate('${c.id}','buyRate',this.value)"></td>
+      <td class="n"><input class="n" style="width:50px" type="number" min="0" placeholder="—" value="${c.buyOver!=null&&c.buyOver!==''?Math.round(c.buyOver*100):''}" onchange="custRate('${c.id}','buyOver',this.value)"></td>
       <td class="n">${k.orders}</td><td class="n gold">${g(k.spent)}</td><td class="n good">${g(k.profit)}</td>
       <td class="dim">${k.last?new Date(k.last).toLocaleDateString():'—'}</td>
       <td><input value="${c.notes||''}" placeholder="—" style="width:130px" onchange="custSet('${c.id}','notes',this.value)"></td>
@@ -788,6 +961,7 @@ function renderBuyers(){
   else { dempty.style.display="none"; dbody.innerHTML=rows.map(([n,d])=>`<tr><td>${n}</td><td class="n">${d.qty}</td><td class="n gold">${g(d.rev/d.qty)}</td></tr>`).join(""); }
 }
 function custSet(id,k,v){ const c=data.customers.find(x=>x.id===id); c[k]=(k==='markup')?+v:v; render(); }
+function custRate(id,k,v){ const c=data.customers.find(x=>x.id===id); c[k]=(v===''||v==null)?'':Math.max(0,(+v||0)/100); render(); }
 function newCustomer(){ data.customers.push({id:uid(),name:"New Buyer",markup:1.5,notes:""}); render(); }
 function delCust(id){ data.customers=data.customers.filter(c=>c.id!==id); if(data.settings.customer===id) data.settings.customer=data.customers[0].id; render(); }
 
@@ -798,11 +972,15 @@ function renderSettings(){
   document.getElementById("roundOn").checked=data.settings.roundOn;
   document.getElementById("realCost").checked=data.settings.realCost;
   document.getElementById("stackBulk").checked=data.settings.stackBulk;
+  document.getElementById("bbRate").value=Math.round((data.settings.buyback?.rate??0.75)*100);
+  document.getElementById("bbOver").value=Math.round((data.settings.buyback?.over??0.5)*100);
   document.getElementById("tierBody").innerHTML=(data.settings.tiers||[]).map((t,ix)=>`<tr>
     <td class="n"><input class="n" style="width:60px" type="number" min="1" value="${t.qty}" onchange="tierSet(${ix},'qty',this.value)"></td>
     <td class="n"><input class="n" style="width:60px" type="number" min="0" value="${t.pct}" onchange="tierSet(${ix},'pct',this.value)"></td>
     <td class="n"><button class="x" onclick="delTier(${ix})">✕</button></td></tr>`).join("");
 }
+function buybackSet(k,v){ data.settings.buyback ||= {rate:0.75,over:0.5}; data.settings.buyback[k]=Math.max(0,(+v||0)/100); render(); }
+function buybackStep(k,d){ data.settings.buyback ||= {rate:0.75,over:0.5}; data.settings.buyback[k]=Math.max(0,Math.round((data.settings.buyback[k]+d*0.05)*100)/100); render(); }
 function tierSet(ix,k,v){ data.settings.tiers[ix][k]=+v; render(); }
 function addTier(){ (data.settings.tiers||=[]).push({qty:1,pct:5}); render(); }
 function delTier(ix){ data.settings.tiers.splice(ix,1); render(); }
@@ -810,8 +988,8 @@ function delTier(ix){ data.settings.tiers.splice(ix,1); render(); }
 /* ── Misc ── */
 function stepField(id,d){ const el=document.getElementById(id); el.value=Math.max(0,(+el.value||0)+d); el.dispatchEvent(new Event('input')); }
 function exportData(){ const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="keizaal-cook-mockB.json"; a.click(); }
-function importData(inp){ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=e=>{ try{ data=migrate(JSON.parse(e.target.result)); tray=[]; selId=null; render(); }catch(err){ alert("Bad file"); } }; rd.readAsText(f); }
-function resetAll(){ if(confirm("Reset to the default cooking catalog? This clears your entered prices and stock.")){ data=structuredClone(DEFAULT); tray=[]; selId=null; render(); } }
+function importData(inp){ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=e=>{ try{ data=migrate(JSON.parse(e.target.result)); tray=[]; sale=[]; bring=[]; selId=null; render(); }catch(err){ alert("Bad file"); } }; rd.readAsText(f); }
+function resetAll(){ if(confirm("Reset to the default cooking catalog? This clears your entered prices and stock.")){ data=migrate(structuredClone(DEFAULT)); tray=[]; sale=[]; bring=[]; selId=null; render(); } }
 
 document.getElementById("currency").addEventListener("change",e=>{ data.settings.currency=e.target.value; render(); });
 document.getElementById("defaultLabor").addEventListener("change",e=>{ data.settings.defaultLabor=+e.target.value; render(); });
