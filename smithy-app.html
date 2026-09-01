@@ -44,6 +44,9 @@
   td.n,th.n { text-align:right; } tbody tr:last-child td { border-bottom:none; }
   tbody tr:hover { background:var(--panel-2); }
   .tot td { border-top:1px solid var(--gold-2); border-bottom:none; font-weight:700; padding-top:7px; }
+  tr.catrow td { background:var(--panel-3); color:var(--gold-2); font-size:9.5px; text-transform:uppercase;
+       letter-spacing:.7px; font-weight:700; padding:3px 7px; border-bottom:1px solid var(--line); }
+  tr.catrow:hover td { background:var(--panel-3); }
 
   input,select {
     background:var(--panel-2); border:1px solid var(--line); color:var(--ink);
@@ -130,6 +133,11 @@
   .good { color:var(--good); } .bad { color:var(--bad); } .ember { color:var(--ember); }
   .dim { color:var(--dim); }
   .pill { font-size:10px; padding:1px 6px; border-radius:9px; background:var(--panel-3); color:var(--dim); border:1px solid var(--line); }
+  .fromchip { display:inline-block; font-size:11px; padding:1px 7px; border-radius:9px; margin:1px 2px 1px 0; border:1px solid var(--line); white-space:nowrap; }
+  .fromchip b { font-weight:700; font-variant-numeric:tabular-nums; }
+  .fromchip.raw { background:var(--panel-3); color:var(--dim); }
+  .fromchip.raw b { color:var(--ink); }
+  .fromchip.comp { background:rgba(143,179,201,.10); border-color:var(--steel); color:var(--steel); }
 
   details { border:1px solid var(--line); border-radius:6px; margin-bottom:5px; background:var(--panel-2); }
   details[open] { background:var(--panel-2); border-color:var(--gold-2); }
@@ -334,12 +342,20 @@
 
     <div>
       <div class="box">
-        <h3>Materials Needed <span class="sp"><button class="b" id="buyBtn" style="display:none" onclick="buyShortfalls()">Buy missing</button></span></h3>
-        <p class="hint">Raw materials for the order (held ingots already deducted), checked against stock.</p>
+        <h3>Materials to Buy <span class="sp"><button class="b" id="buyBtn" style="display:none" onclick="buyShortfalls()">Buy missing</button></span></h3>
+        <p class="hint">Every <strong>raw</strong> material the order boils down to — ores, coal, wood, hides — after held components and customer-brought parts are deducted. Charcoal and coke are <strong>bought</strong> here, never smelted.</p>
         <table><thead><tr>
           <th>Material</th><th class="n">Need</th><th class="n">Have</th><th class="n">Short</th><th class="n">Buy cost</th>
         </tr></thead><tbody id="needBody"></tbody></table>
         <div id="needEmpty" class="empty">Add items to see what you'll need.</div>
+      </div>
+
+      <div class="box" id="craftBox" style="display:none">
+        <h3>To Craft</h3>
+        <p class="hint">Components you must smelt or assemble for this order — ingots and strips — with what each batch consumes (fuel included). Held component stock is already subtracted.</p>
+        <table><thead><tr>
+          <th>Component</th><th class="n">Craft</th><th>Made from</th>
+        </tr></thead><tbody id="craftBody"></tbody></table>
       </div>
     </div>
   </div>
@@ -381,8 +397,8 @@
   <div class="box">
     <h3>Trade Materials &amp; Components <span class="sp"><span class="pill">fluctuating buy / sell</span></span></h3>
     <p class="hint">Record what you <em>actually</em> paid or received — prices float trade to trade. This moves stock and
-      builds price history for analysis; it never changes your fixed calc price. Pick a <strong>component</strong>
-      (e.g. Poor Charcoal) to buy it ready-made instead of smelting it.</p>
+      builds price history for analysis; it never changes your fixed calc price. Coal &amp; fuel are bought here
+      like any material; pick a <strong>component</strong> (e.g. an ingot) to buy it ready-made instead of smelting it.</p>
     <div class="row" style="align-items:flex-end">
       <label class="k" style="margin:0"><span style="display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Material</span>
         <select id="trMat" style="min-width:150px" onchange="prefillTradeUnit(true)"></select></label>
@@ -669,7 +685,8 @@
 /* ═════════ Data ═════════ */
 const uid = () => Math.random().toString(36).slice(2,9);
 const L = (ingredient, qty) => ({ ingredient, qty });
-const CATALOG_VERSION = 3;   // bump when a new baked catalog ships; triggers the one-click backup+migrate
+const CATALOG_VERSION = 4;   // bump when a new baked catalog ships; triggers the one-click backup+migrate
+                             // v4: charcoals + coke moved from components to bought materials
 
 // Preview mode: yoursite/?demo (or the gate's "see a live demo" link) opens a sandboxed
 // tour on fixed sample numbers. It never reads or writes the real book (localStorage) and
@@ -695,6 +712,11 @@ const DEFAULT = {
     { id:uid(), name:"Bone Meal", price:0, stock:0 },
     { id:uid(), name:"Chaurus Chitin", price:0, stock:0 },
     { id:uid(), name:"Chitin Plate", price:0, stock:0 },
+    // Fuels are bought from woodworkers, never smelted here — modelled as raw materials.
+    { id:uid(), name:"Charcoal", price:0, stock:0 },
+    { id:uid(), name:"Charcoal Briquette", price:0, stock:0 },
+    { id:uid(), name:"Coke", price:0, stock:0 },
+    { id:uid(), name:"Poor Charcoal", price:0, stock:0 },
     { id:uid(), name:"Corundum Ore", price:0, stock:0 },
     { id:uid(), name:"Daedra Heart", price:0, stock:0 },
     { id:uid(), name:"Deer Hide", price:0, stock:0 },
@@ -738,9 +760,6 @@ const DEFAULT = {
   ],
   intermediates: [
     { id:uid(), name:"Amethyst", yield:1, labor:0, stock:0, lines:[ L("Ruby",1), L("Sapphire",1) ] },
-    { id:uid(), name:"Charcoal", yield:1, labor:0, stock:0, lines:[ L("Firewood",4) ] },
-    { id:uid(), name:"Charcoal Briquette", yield:1, labor:0, stock:0, lines:[ L("Firewood",7) ] },
-    { id:uid(), name:"Coke", yield:1, labor:0, stock:0, lines:[ L("Firewood",12) ] },
     { id:uid(), name:"Corundum Ingot", yield:1, labor:0, stock:0, lines:[ L("Corundum Ore",8), L("Poor Charcoal",8) ] },
     { id:uid(), name:"Dwarven Metal Ingot", yield:2, labor:0, stock:0, lines:[ L("Large Decorative Dwemer Strut",1) ] },
     { id:uid(), name:"Ebony Ingot", yield:1, labor:0, stock:0, lines:[ L("Ebony Ore",2), L("Coke",2) ] },
@@ -748,7 +767,6 @@ const DEFAULT = {
     { id:uid(), name:"Iron Ingot", yield:1, labor:0, stock:0, lines:[ L("Iron Ore",6), L("Poor Charcoal",6) ] },
     { id:uid(), name:"Leather Strips", yield:4, labor:0, stock:0, lines:[ L("Leather",1) ] },
     { id:uid(), name:"Orichalcum Ingot", yield:1, labor:0, stock:0, lines:[ L("Orichalcum Ore",6), L("Charcoal Briquette",6) ] },
-    { id:uid(), name:"Poor Charcoal", yield:1, labor:0, stock:0, lines:[ L("Firewood",2) ] },
     { id:uid(), name:"Quicksilver Ingot", yield:1, labor:0, stock:0, lines:[ L("Quicksilver Ore",6), L("Coke",6) ] },
     { id:uid(), name:"Refined Malachite", yield:1, labor:0, stock:0, lines:[ L("Malachite Ore",6), L("Coke",6) ] },
     { id:uid(), name:"Refined Moonstone", yield:1, labor:0, stock:0, lines:[ L("Moonstone Ore",6), L("Charcoal Briquette",6) ] },
@@ -1567,6 +1585,24 @@ function unitCost(name, seen = new Set()){
   if (_pass) _ucMemo.set(name, v);
   return v;
 }
+// Raw-material grouping for the buy list, inventory and pickers. Ores first, then the
+// bought fuels (charcoals + coke — smiths buy these, never smelt them), then gems, hides,
+// wood and everything else. Classified by name so user-added materials sort too.
+const COAL_SET = new Set(["Charcoal","Poor Charcoal","Charcoal Briquette","Coke"]);
+const GEM_SET  = new Set(["Diamond","Emerald","Garnet","Ruby","Sapphire"]);
+const ORE_SET  = new Set(["Stalhrim"]);   // smithing base metals that aren't named "…Ore"
+function matCat(name){
+  if (COAL_SET.has(name))                    return "Coal";
+  if (/\bore$/i.test(name) || ORE_SET.has(name)) return "Ore";
+  if (/^flawless /i.test(name) || GEM_SET.has(name)) return "Gem";
+  if (/pelt|hide|leather/i.test(name))        return "Hide";
+  if (/wood/i.test(name))                     return "Wood";
+  return "Misc";
+}
+const CAT_RANK  = { Ore:0, Coal:1, Gem:2, Hide:3, Wood:4, Misc:5 };
+const CAT_LABEL = { Ore:"Ores", Coal:"Coal & fuel", Gem:"Gems", Hide:"Hides & pelts", Wood:"Wood", Misc:"Other materials" };
+const catRank = name => CAT_RANK[matCat(name)] ?? 99;
+
 function stdMarkup(){ return (data.customers && data.customers[0]) ? (+data.customers[0].markup||0) : (+data.settings.markup||2); }
 function activeCustomer(){
   return (data.customers||[]).find(c=>c.id===data.settings.customer)
@@ -1984,15 +2020,18 @@ function maxCraftable(name){
 }
 // Stock-aware: spend held ingots/strips first, break the rest down to raw ore.
 function planConsumption(){
-  const inter={}, raw={}, avail={};
+  const inter={}, raw={}, avail={}, craft={};
   data.intermediates.forEach(it=>avail[it.name]=+it.stock||0);
+  // craft[name] = finished units of that component the order forces you to smelt/produce,
+  // net of any held component stock. Feeds the "To craft" build sheet.
   function need(name, qty){
     if(findMat(name)){ raw[name]=(raw[name]||0)+qty; return; }
     const it=findInter(name); if(!it) return;
     const use=Math.min(qty, avail[name]||0);
     if(use>0){ inter[name]=(inter[name]||0)+use; avail[name]-=use; }
     const remain=qty-use;
-    if(remain>1e-9){ const y=+it.yield||1, batches=remain/(y>0?y:1);
+    if(remain>1e-9){ craft[name]=(craft[name]||0)+remain;
+      const y=+it.yield||1, batches=remain/(y>0?y:1);
       (it.lines||[]).forEach(l=>need(l.ingredient, batches*(+l.qty||0))); }
   }
   data.order.forEach(o=>{
@@ -2004,7 +2043,16 @@ function planConsumption(){
       const supplied=Math.max(0, Math.min(+br[l.ingredient]||0, total));
       const rem=total-supplied; if(rem>1e-9) need(l.ingredient, rem);
     }); });
-  return { inter, raw };
+  return { inter, raw, craft };
+}
+// How deep an intermediate sits in the build tree (leaf-raw = 0). Ingots depend on
+// charcoal, so they sort above their fuel in the craft sheet.
+function interDepth(name, seen){
+  const it=findInter(name); if(!it) return 0;
+  seen = seen || new Set(); if(seen.has(name)) return 0;
+  const next = new Set([...seen, name]);
+  let d=0; (it.lines||[]).forEach(l=>{ if(findInter(l.ingredient)) d=Math.max(d, 1+interDepth(l.ingredient, next)); });
+  return d;
 }
 // Checkout = the order was crafted and sold: consume stock, bank the sale, clear order.
 function checkout(){
@@ -2292,15 +2340,21 @@ function renderNeeds(){
   const empty = document.getElementById("needEmpty");
   body.innerHTML = "";
   const buyBtn = document.getElementById("buyBtn");
-  const acc = planConsumption().raw;
-  const keys = Object.keys(acc).filter(k => acc[k] > 1e-4).sort();
+  const plan = planConsumption();
+  const acc = plan.raw;
+  renderCraftSheet(plan.craft);
+  const keys = Object.keys(acc).filter(k => acc[k] > 1e-4)
+    .sort((a,b) => (catRank(a)-catRank(b)) || a.localeCompare(b));   // ores, then coal, then the rest
   const has = keys.length > 0;
   body.parentElement.style.display = has ? "" : "none";
   empty.style.display = has ? "none" : "";
   if (!has){ if(buyBtn) buyBtn.style.display="none"; return; }
 
-  let buyTotal = 0, anyShort = false;
+  let buyTotal = 0, anyShort = false, lastCat = null;
   keys.forEach(k => {
+    const cat = matCat(k);
+    if (cat !== lastCat){ lastCat = cat;
+      body.insertAdjacentHTML("beforeend", `<tr class="catrow"><td colspan="5">${CAT_LABEL[cat]||cat}</td></tr>`); }
     const need = ceil(acc[k]);
     const mat = data.materials.find(x => x.name === k);
     const have = mat ? (+mat.stock||0) : 0;
@@ -2320,6 +2374,27 @@ function renderNeeds(){
   body.insertAdjacentHTML("beforeend",
     `<tr class="tot"><td colspan="4">Cost to buy what's missing</td><td class="n gold">${exact(buyTotal)}</td></tr>`);
   if (buyBtn) buyBtn.style.display = anyShort ? "" : "none";
+}
+// Build sheet: every component the order forces you to make, deepest first (ingots above
+// the charcoal they burn), each with the ingredients one production run consumes.
+function renderCraftSheet(craft){
+  const box  = document.getElementById("craftBox");
+  const body = document.getElementById("craftBody");
+  if(!box || !body) return;
+  const names = Object.keys(craft||{}).filter(n => craft[n] > 1e-4);
+  if(!names.length){ box.style.display="none"; body.innerHTML=""; return; }
+  box.style.display="";
+  const num = v => { const r=Math.round(v*100)/100; return (Math.abs(r-Math.round(r))<1e-9?Math.round(r):r).toLocaleString(); };
+  names.sort((a,b) => (interDepth(b)-interDepth(a)) || a.localeCompare(b));
+  body.innerHTML = names.map(n => {
+    const it = findInter(n), units = craft[n];
+    const y = it ? (+it.yield||1) : 1, batches = units/(y>0?y:1);
+    const from = ((it&&it.lines)||[]).map(l => {
+      const q = (+l.qty||0)*batches, isRaw = !!findMat(l.ingredient);
+      return `<span class="fromchip ${isRaw?'raw':'comp'}">${esc(l.ingredient)} <b>${num(q)}</b></span>`;
+    }).join(" ");
+    return `<tr><td>${esc(n)}</td><td class="n">${num(units)}</td><td>${from||'<span class="dim">—</span>'}</td></tr>`;
+  }).join("");
 }
 function buyShortfalls(){
   const raw = planConsumption().raw;
@@ -2501,22 +2576,32 @@ function renderInventory(){
   if (trSel){
     const keep = trSel.value;
     const opt = x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`;
-    trSel.innerHTML =
-      `<optgroup label="Materials">${data.materials.map(opt).join("")}</optgroup>`
+    const matGroups = Object.keys(CAT_RANK).map(cat => {
+      const ms = data.materials.filter(m => matCat(m.name)===cat)
+        .sort((a,b)=>a.name.localeCompare(b.name));
+      return ms.length ? `<optgroup label="${CAT_LABEL[cat]}">${ms.map(opt).join("")}</optgroup>` : "";
+    }).join("");
+    trSel.innerHTML = matGroups
       + (data.intermediates.length ? `<optgroup label="Components">${data.intermediates.map(opt).join("")}</optgroup>` : "");
     if (keep && (data.materials.some(m => m.name === keep) || data.intermediates.some(it => it.name === keep))) trSel.value = keep;
     prefillTradeUnit(false);
   }
   const rc = document.getElementById("realCost"); if (rc) rc.checked = data.settings.realCost === true;
 
-  let rawVal = 0;
-  document.getElementById("invBody").innerHTML = data.materials.map((m,i) => {
+  let rawVal = 0, lastCat = null;
+  // Keep each material's real index (handlers write back to data.materials[i]) while
+  // presenting them grouped: ores, then coal & fuel, then the rest.
+  const ordered = data.materials.map((m,i) => ({m,i}))
+    .sort((a,b) => (catRank(a.m.name)-catRank(b.m.name)) || a.m.name.localeCompare(b.m.name));
+  document.getElementById("invBody").innerHTML = ordered.map(({m,i}) => {
     const cost = matCost(m.name), v = (+m.stock||0) * cost; rawVal += v;
     const s = matTradeStats(m.name), calc = +m.price||0, avgBuy = s.buy ? s.buy.avg : null;
     let calcCell = exact(calc);
     if (avgBuy != null && Math.abs(avgBuy - calc) > 0.005)
       calcCell += ` <button class="brought-t" title="Adopt avg buy ${exact(avgBuy)} as the calc price" onclick="adoptCalc(${i})">→${exact(avgBuy)}</button>`;
-    return `<tr>
+    const cat = matCat(m.name);
+    const head = cat !== lastCat ? (lastCat = cat, `<tr class="catrow"><td colspan="9">${CAT_LABEL[cat]||cat}</td></tr>`) : "";
+    return head + `<tr>
       <td>${esc(m.name)}</td>
       <td class="n dim">${calcCell}</td>
       <td class="n"><span class="step">${stepPre(null,10)}<input class="bare n w60" type="number" min="0" step="1" value="${+m.stock||0}"
@@ -3055,7 +3140,10 @@ function adoptCatalog(){
   const nameSet = a => new Set(a.map(o => nz(o.name)));
 
   // catalog is authoritative for materials/intermediates; apply the user's prices by name.
-  data.materials = fresh.materials.map(m => { const o=oMat[nz(m.name)]; return o ? {...m, price:o.price, stock:o.stock} : m; });
+  // A material may have moved out of the old components list (the fuels): fall back to the
+  // old component record so its held stock survives the move (components carry no price).
+  data.materials = fresh.materials.map(m => { const o=oMat[nz(m.name)] || oInt[nz(m.name)];
+    return o ? {...m, price:(o.price ?? m.price), stock:(o.stock ?? m.stock)} : m; });
 
   data.intermediates = fresh.intermediates.map(x => { const o=oInt[nz(x.name)]; return o ? {...x, labor:o.labor, stock:o.stock} : x; });
 
