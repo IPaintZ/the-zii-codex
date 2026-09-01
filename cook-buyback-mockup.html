@@ -1,0 +1,379 @@
+<meta charset="utf-8">
+<title>Cook & Counter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<style>
+  :root{
+    --bg:#16130f; --panel:#211c16; --panel-2:#2b241b; --panel-3:#332a1f; --line:#3d3325;
+    --ink:#ece3d2; --dim:#a99b81; --gold:#e0913c; --gold-2:#b96f28;
+    --ember:#c85a2e; --good:#6fae5f; --bad:#d06a5a; --steel:#8fb3c9;
+    --serif:"Spectral", Georgia, "Times New Roman", serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 22px 90px;}
+  .tnum{font-variant-numeric:tabular-nums;}
+
+  header.mast{padding:54px 0 30px; border-bottom:1px solid var(--line);}
+  .eyebrow{font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--gold-2); margin:0 0 16px;}
+  .eyebrow .dot{color:var(--dim);}
+  h1{font-family:var(--serif); font-weight:700; font-size:52px; line-height:1.02; letter-spacing:-.01em; margin:0; text-wrap:balance;}
+  h1 em{font-style:italic; color:var(--gold);}
+  .dek{font-family:var(--serif); font-size:20px; line-height:1.5; color:var(--dim); max-width:62ch; margin:18px 0 0;}
+  .dek b{color:var(--ink); font-weight:600;}
+
+  section{padding:44px 0 0;}
+  .kicker{display:flex; align-items:baseline; gap:12px; margin:0 0 18px;}
+  .kicker .no{font-family:var(--mono); font-size:12px; color:var(--gold-2);}
+  .kicker h2{font-family:var(--serif); font-size:27px; font-weight:600; margin:0; letter-spacing:-.01em;}
+  p{max-width:66ch;} p.lede{font-size:16.5px;}
+
+  /* flow strip */
+  .flow{display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:stretch; gap:10px; margin-top:8px;}
+  .flow .node{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 16px 18px;}
+  .flow .node.k{border-top:3px solid var(--ember);}
+  .flow .node.s{border-top:3px solid var(--steel);}
+  .flow .node.c{border-top:3px solid var(--gold);}
+  .flow .node h3{font-family:var(--serif); font-size:17px; margin:0 0 5px;}
+  .flow .node p{font-size:12.5px; color:var(--dim); margin:0; line-height:1.5;}
+  .flow .arrow{display:flex; align-items:center; color:var(--gold-2); font-size:20px;}
+  @media(max-width:720px){ .flow{grid-template-columns:1fr;} .flow .arrow{justify-content:center; transform:rotate(90deg);} h1{font-size:40px;} }
+
+  /* app shell */
+  .app{background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-top:6px;}
+  .app-top{display:flex; align-items:center; gap:10px; padding:11px 16px; border-bottom:1px solid var(--line); background:linear-gradient(180deg,var(--panel-2),var(--panel));}
+  .app-top .brand{font-weight:700; color:var(--gold); font-size:14px;}
+  .tabs{display:flex; gap:2px; margin-left:8px;}
+  .tabs button{background:none; border:none; border-bottom:2px solid transparent; color:var(--dim); font-family:inherit; font-size:13px; padding:8px 14px; cursor:pointer;}
+  .tabs button.on{color:var(--gold); border-bottom-color:var(--gold); font-weight:600;}
+  .app-top .who{margin-left:auto; font-size:12px; color:var(--dim);} .app-top .who b{color:var(--ink);}
+  .app-body{padding:16px;}
+  .view{display:none;} .view.on{display:block;}
+  .subtle{font-size:12.5px; color:var(--dim); margin:0 0 14px;}
+
+  /* pantry strip */
+  .pantry{display:flex; flex-wrap:wrap; gap:7px; padding:10px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; margin-bottom:14px;}
+  .pantry .lbl{font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); align-self:center; margin-right:4px;}
+  .pchip{font-size:11.5px; border:1px solid var(--line); border-radius:16px; padding:2px 9px; font-family:var(--mono); color:var(--dim); background:var(--panel-3);}
+  .pchip .par{color:var(--dim);}
+  .pchip.short{border-color:var(--ember); color:var(--ember);}
+  .pchip.over{border-color:#4a5a3a; color:var(--good);}
+  .pchip.staple{opacity:.6;}
+
+  /* generic rows */
+  .row{display:flex; align-items:center; gap:11px; padding:11px 12px; border:1px solid var(--line); border-radius:9px; background:var(--panel-2); margin-bottom:9px;}
+  .row .nm{font-weight:600; font-size:14px;}
+  .row .meta{font-size:11.5px; color:var(--dim); margin-top:1px;}
+  .row .meta b{color:var(--ink); font-weight:600;}
+  .row .sp{margin-left:auto; display:flex; align-items:center; gap:11px;}
+  .badge{font-size:10px; letter-spacing:.03em; border-radius:8px; padding:2px 8px; white-space:nowrap;}
+  .badge.made{background:rgba(143,179,201,.14); color:var(--steel); border:1px solid #33424b;}
+  .badge.mto{background:rgba(200,90,46,.16); color:var(--ember); border:1px solid #5a3a2a;}
+  .badge.stock{background:rgba(111,174,95,.14); color:var(--good); border:1px solid #3a4a38;}
+
+  .step{display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+  .step button{width:25px; height:25px; background:var(--panel-3); border:none; color:var(--ink); cursor:pointer; font-size:14px;}
+  .step button:hover{color:var(--gold);} .step button:disabled{opacity:.3; cursor:default;}
+  .step .q{min-width:28px; text-align:center; font-family:var(--mono); font-size:12.5px; align-self:center;}
+  button.b{background:var(--panel-3); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:6px 13px; cursor:pointer; font-size:12.5px; font-family:inherit;}
+  button.b:hover{border-color:var(--gold-2); color:var(--gold);}
+  button.b.pri{background:var(--gold-2); color:#1c1710; border-color:var(--gold); font-weight:600;}
+  button.b:disabled{opacity:.35; cursor:default; color:var(--dim);}
+
+  h4.sec{font-family:var(--sans); font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--gold-2); margin:18px 0 9px;}
+
+  /* trade-in */
+  .trade{border:1px dashed var(--gold-2); border-radius:10px; background:rgba(224,145,60,.05); padding:4px 0;}
+  .tline{display:flex; align-items:center; gap:10px; padding:9px 13px; border-top:1px solid rgba(61,51,37,.6);}
+  .tline:first-child{border-top:none;}
+  .tline .ing{flex:1;} .tline .ing .n{font-size:13px; font-weight:500;}
+  .tline .ing .st{font-size:10.5px; font-family:var(--mono); color:var(--dim); margin-top:1px;}
+  .tline .ing .st .short{color:var(--ember);} .tline .ing .st .over{color:var(--good);}
+  .tline .ctrl{width:96px; display:flex; justify-content:center;}
+  .tline .cr{width:150px; text-align:right;}
+  .tline .cr .amt{font-family:var(--mono); font-size:13px; color:var(--good);} .tline .cr .amt.z{color:var(--dim);}
+  .tline .cr .br{display:block; font-size:9.5px; font-family:var(--mono); color:var(--dim); margin-top:1px;}
+  .tline .cr .br .o{color:var(--good);} .tline .cr .br .x{color:var(--ember);}
+  .tline.off{opacity:.5;} .tline.off .ing .n{color:var(--dim);}
+  .tradefoot{font-size:11.5px; color:var(--steel); font-style:italic; padding:9px 13px 4px;}
+
+  /* rate strip */
+  .ratebar{display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; margin-top:14px; padding:11px 13px; background:var(--panel-2); border:1px solid var(--line); border-radius:9px;}
+  .ratebar .grp{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--dim);}
+  .ratebar .grp b{font-family:var(--mono); font-size:13px; color:var(--good);}
+  .ratebar .grp b.x{color:var(--ember);}
+  .r2{display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+  .r2 button{width:22px; height:22px; background:var(--panel-3); border:none; color:var(--ink); cursor:pointer;}
+  .r2 button:hover{color:var(--gold);}
+
+  /* totals */
+  .totals{margin-top:14px; border-top:1px solid var(--line); padding-top:12px;}
+  .trow{display:flex; gap:10px; padding:3px 2px; font-size:13.5px; align-items:baseline;}
+  .trow .lab{color:var(--dim);} .trow .lab small{color:var(--gold-2);}
+  .trow .amt{margin-left:auto; font-family:var(--mono); font-variant-numeric:tabular-nums;}
+  .trow.credit .lab,.trow.credit .amt{color:var(--good);}
+  .trow.pantry{font-size:12px;} .trow.pantry .lab{color:var(--steel); font-style:italic;} .trow.pantry .amt{color:var(--steel);}
+  .trow.grand{margin-top:6px; padding-top:11px; border-top:1px solid var(--line);}
+  .trow.grand .lab{color:var(--ink); font-weight:600;} .trow.grand .amt{color:var(--gold); font-weight:700; font-size:18px;}
+  .trow.profit .lab{color:var(--ink);} .trow.profit .amt{color:var(--good); font-weight:600;}
+  .strike{color:var(--dim); text-decoration:line-through; margin-right:7px; font-size:12px;}
+
+  /* callouts & rule table */
+  .rule{width:100%; border-collapse:collapse; margin-top:4px; font-size:13.5px;}
+  .rule th,.rule td{padding:10px 12px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top;}
+  .rule th{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--gold-2); font-weight:600;}
+  .rule td:first-child{font-weight:600; color:var(--ink); white-space:nowrap;}
+  .rule td{color:var(--dim);}
+  .rule .hi{color:var(--good); font-weight:600;} .rule .lo{color:var(--ember); font-weight:600;}
+  .rulewrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
+  .principle{font-family:var(--serif); font-size:19px; font-style:italic; color:var(--ink); border-left:3px solid var(--gold); padding:6px 0 6px 16px; margin:16px 0; line-height:1.45;}
+  .principle b{font-style:normal; color:var(--gold);}
+
+  .cards2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;}
+  @media(max-width:680px){ .cards2{grid-template-columns:1fr;} }
+  .callout{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 20px;}
+  .callout.mto{border-left:3px solid var(--ember);} .callout.par{border-left:3px solid var(--steel);}
+  .callout h3{font-family:var(--serif); font-size:18px; margin:0 0 8px;}
+  .callout p{font-size:13px; color:var(--dim); margin:0 0 8px;} .callout p:last-child{margin-bottom:0;}
+  .callout b{color:var(--ink);}
+  .ex{font-family:var(--mono); font-size:11.5px; color:var(--steel); background:var(--panel-2); border:1px solid var(--line); border-radius:7px; padding:8px 10px; margin:9px 0; line-height:1.6;}
+  .ex .hi{color:var(--good);} .ex .lo{color:var(--ember);}
+
+  footer{margin-top:52px; padding-top:22px; border-top:1px solid var(--line); font-size:12.5px; color:var(--dim); font-family:var(--serif); font-style:italic;}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <p class="eyebrow">Cookfire <span class="dot">·</span> Workflow rework <span class="dot">·</span> mockup</p>
+    <h1>Cook the batch,<br>then work the <em>counter</em></h1>
+    <p class="dek">Cooks don't make a stew per customer — they <b>precook</b> a larder of food, then sell it. So Cookfire splits in two: a <b>Kitchen</b> that turns ingredients into finished-goods stock, and a <b>Counter</b> that sells that stock. Buyback moves to the counter as a <b>trade-in</b> — ingredients for a discount, straight into your pantry, valued by how badly you need them.</p>
+  </header>
+
+  <section>
+    <div class="kicker"><span class="no">01</span><h2>Two steps, one larder</h2></div>
+    <div class="flow">
+      <div class="node k"><h3>🍳 Kitchen</h3><p>Cook batches ahead of time. Ingredients out of the pantry, finished servings in.</p></div>
+      <div class="arrow">→</div>
+      <div class="node s"><h3>📦 Finished stock</h3><p>Cooked dishes wait on the shelf. The tool tracks how many of each you've got.</p></div>
+      <div class="arrow">→</div>
+      <div class="node c"><h3>🪙 Counter</h3><p>Sell the stock to buyers. They can trade ingredients back in for a discount.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="no">02</span><h2>Try it — cook, then sell</h2></div>
+    <p class="lede">You're <b>short on Raw Beef</b> (2 of a target 8) and <b>flush with Cabbage</b>. Cook a batch in the Kitchen, then switch to the Counter, where an Innkeeper buys finished food and trades in ingredients. Watch the <b>trade-in rate follow your stock</b>: beef you need pays well, cabbage you're drowning in pays little.</p>
+
+    <div class="app">
+      <div class="app-top">
+        <span class="brand">🔥 Cookfire</span>
+        <span class="tabs"><button id="tab-kitchen" class="on" onclick="setTab('kitchen')">🍳 Kitchen</button><button id="tab-counter" onclick="setTab('counter')">🪙 Counter</button></span>
+        <span class="who" id="who"></span>
+      </div>
+      <div class="app-body">
+
+        <div id="view-kitchen" class="view on">
+          <p class="subtle">Cook batches for stock. A dish can only be cooked while its ingredients last.</p>
+          <div class="pantry" id="pantryK"></div>
+          <h4 class="sec">Cookbook</h4>
+          <div id="cookRows"></div>
+        </div>
+
+        <div id="view-counter" class="view">
+          <p class="subtle">Sell finished stock to the buyer. In-stock dishes sell off the shelf; anything you're out of is cooked to order.</p>
+          <h4 class="sec">Order</h4>
+          <div id="cartRows"></div>
+          <h4 class="sec">🧺 Trade-in <span style="text-transform:none;letter-spacing:0;color:var(--dim);font-weight:400">— ingredients for credit, all into your pantry</span></h4>
+          <div class="trade" id="tradeRows"></div>
+          <div class="ratebar">
+            <div class="grp">Restock rate <span class="r2"><button onclick="rateStep('rate',-1)">−</button></span><b id="rRate">75%</b><span class="r2"><button onclick="rateStep('rate',1)">+</button></span></div>
+            <div class="grp">Overstock rate <span class="r2"><button onclick="rateStep('over',-1)">−</button></span><b class="x" id="rOver">50%</b><span class="r2"><button onclick="rateStep('over',1)">+</button></span></div>
+            <div class="grp" style="color:var(--dim);font-style:italic">both cascade per buyer, like markup</div>
+          </div>
+          <div class="totals" id="counterTotals"></div>
+        </div>
+
+      </div>
+    </div>
+    <p class="subtle" style="margin-top:10px;font-style:italic">Cooking spends live pantry stock; the trade-in is a preview of what the sale would add back. Illustrative pricing throughout.</p>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="no">03</span><h2>How the trade-in rate is set</h2></div>
+    <p class="lede">One rule covers both selling pre-made food and cooking to order — the only thing that changes is what counts as a "need."</p>
+    <p class="principle"><b>High rate</b> for the portion that meets a real need; <b>low rate</b> for the excess.</p>
+    <div class="rulewrap">
+      <table class="rule">
+        <thead><tr><th>Situation</th><th>Restock rate applies to…</th><th>Overstock rate applies to…</th><th>Where the ingredients go</th></tr></thead>
+        <tbody>
+          <tr><td>Counter trade-in<br><span style="font-weight:400;color:var(--dim);font-size:12px">(food already cooked)</span></td>
+            <td class="hi">units that fill the gap up to your target stock</td>
+            <td class="lo">anything beyond target</td>
+            <td>all → pantry</td></tr>
+          <tr><td>Made-to-order<br><span style="font-weight:400;color:var(--dim);font-size:12px">(cook it now)</span></td>
+            <td class="hi">what the recipe actually consumes — it cuts the dish's cost</td>
+            <td class="lo">anything beyond the recipe</td>
+            <td>needed cooked in; excess → pantry</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cards2">
+      <div class="callout mto"><h3>Made-to-order still cuts cost</h3>
+        <p>Out of stock and the buyer wants it fresh? You cook it now — and the ingredients they brought go straight into the pot, so they knock that dish's cost down at the restock rate.</p>
+        <div class="ex">Beef Stew to order, needs 1 beef<br>buyer brings 3 beef →<br><span class="hi">1 @ 75%</span> cuts the stew's cost · <span class="lo">2 @ 50%</span> → pantry</div>
+        <p>The prep chain still applies here too (bring Milk toward a Cheese Wheel) — decided earlier, unchanged.</p></div>
+      <div class="callout par"><h3>The "target" is opt-in</h3>
+        <p>Tiering needs to know short-vs-flush, which means a <b>target (par) stock</b> per ingredient. To skip busywork: leave it blank and that ingredient just uses the flat restock rate — no tiering.</p>
+        <p>Set a target only on the few that matter (beef, milk). It lives beside stock and the buyback-eligible flag in the <b>Pantry</b> tab.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker"><span class="no">04</span><h2>Where this leaves the build</h2></div>
+    <p class="lede">The decisions still stand — this rework just relocates them.</p>
+    <ul style="max-width:66ch;color:var(--dim);font-size:14px;line-height:1.7">
+      <li><b style="color:var(--ink)">Kitchen / Counter tabs</b> over shared catalog, pantry, buyers — plus a new <b style="color:var(--ink)">finished-goods stock</b> count per dish.</li>
+      <li><b style="color:var(--ink)">Buyback → trade-in</b> at the counter; every ingredient lands in the pantry (your call). Rate keyed to stock vs. target, replacing the old recipe-need anchor.</li>
+      <li><b style="color:var(--ink)">Two rates</b> (restock / overstock) and the <b style="color:var(--ink)">per-buyer cascade</b> carry over. Made-to-order keeps the cost-cutting and the prep-chain tracing.</li>
+      <li><b style="color:var(--ink)">Per-ingredient</b> buyback-eligible flag <em>and</em> optional target both live in the Pantry tab.</li>
+    </ul>
+  </section>
+
+  <footer>Cookfire · Cook &amp; Counter mockup — illustrative pricing, no real recipe data. Ember palette matched to the app so the two tabs can drop into the real thing.</footer>
+</div>
+
+<script>
+  /* ── shared state ── */
+  let tab='kitchen';
+  const ING = {
+    "Raw Beef": {stock:2,  target:8,    unit:32, eligible:true},
+    "Cabbage":  {stock:6,  target:4,    unit:5,  eligible:true},
+    "Carrot":   {stock:5,  target:null, unit:4,  eligible:true},
+    "Garlic":   {stock:5,  target:null, unit:6,  eligible:true},
+    "Salt Pile":{stock:50, target:null, unit:2,  eligible:false},
+  };
+  const DISHES = [
+    { name:"Beef Stew",    yield:1, labor:4, markup:2, demand:1, made:2, batch:1,
+      lines:[["Salt Pile",1],["Garlic",1],["Carrot",1],["Raw Beef",1]] },
+    { name:"Cabbage Soup", yield:1, labor:3, markup:2, demand:1, made:4, batch:1,
+      lines:[["Salt Pile",1],["Cabbage",1]] },
+  ];
+  const state = { rate:0.75, over:0.50 };
+  const cart    = { "Beef Stew":2, "Cabbage Soup":2 };
+  const brought = { "Raw Beef":8, "Cabbage":3, "Carrot":0, "Garlic":0, "Salt Pile":0 };
+
+  const g = v => (Math.round(v*100)/100).toLocaleString() + "g";
+  const pct = r => Math.round(r*100)+"%";
+  const dishCost  = d => (d.lines.reduce((a,[n,q])=>a+ING[n].unit*q,0) + d.labor) / d.yield;
+  const dishPrice = d => Math.round(dishCost(d)*d.markup*d.demand);
+  const canCook   = d => { let m=Infinity; d.lines.forEach(([n,q])=>{ m=Math.min(m, Math.floor(ING[n].stock/q)); }); return (m===Infinity?0:m)*d.yield; };
+
+  /* stock-level split for a brought ingredient */
+  function split(name, qty){
+    const i=ING[name];
+    if(!i || !i.eligible) return {restock:0, over:0, credit:0, noPar:false};
+    const shortfall = (i.target==null) ? Infinity : Math.max(0, i.target - i.stock);
+    const restock = Math.min(qty, shortfall);
+    const over = qty - restock;
+    return { restock, over, noPar:(i.target==null),
+             credit: restock*i.unit*state.rate + over*i.unit*state.over };
+  }
+
+  /* ── handlers ── */
+  function setTab(t){ tab=t; render(); }
+  function batchStep(di,d){ const x=DISHES[di]; x.batch=Math.max(1,x.batch+d); render(); }
+  function cook(di){ const x=DISHES[di]; const canBatches=Math.floor(canCook(x)/x.yield); const n=Math.min(x.batch,canBatches); if(n<=0) return;
+    x.lines.forEach(([nm,q])=>{ ING[nm].stock-=q*n; }); x.made+=n*x.yield; render(); }
+  function cartStep(name,d){ cart[name]=Math.max(0,(cart[name]||0)+d); render(); }
+  function broughtStep(name,d){ brought[name]=Math.max(0,(brought[name]||0)+d); render(); }
+  function rateStep(key,d){ const k=key==='rate'?'rate':'over'; state[k]=Math.max(0,Math.round((state[k]+d*0.05)*100)/100); render(); }
+
+  function stepper(fn,arg,val,dis){ const d=dis?'disabled':''; return `<span class="step"><button ${d} onclick="${fn}('${arg}',-1)">−</button><span class="q">${val}</span><button ${d} onclick="${fn}('${arg}',1)">+</button></span>`; }
+  function stepperN(fn,arg,val){ return `<span class="step"><button onclick="${fn}(${arg},-1)">−</button><span class="q">${val}</span><button onclick="${fn}(${arg},1)">+</button></span>`; }
+
+  function render(){
+    document.getElementById('tab-kitchen').classList.toggle('on',tab==='kitchen');
+    document.getElementById('tab-counter').classList.toggle('on',tab==='counter');
+    document.getElementById('view-kitchen').classList.toggle('on',tab==='kitchen');
+    document.getElementById('view-counter').classList.toggle('on',tab==='counter');
+    document.getElementById('who').innerHTML = tab==='counter' ? 'Buyer: <b>Innkeeper</b> ×2' : 'Batch cooking';
+    document.getElementById('rRate').textContent=pct(state.rate);
+    document.getElementById('rOver').textContent=pct(state.over);
+
+    // pantry strip (Kitchen)
+    document.getElementById('pantryK').innerHTML = '<span class="lbl">Pantry</span>' +
+      Object.entries(ING).map(([n,i])=>{
+        let cls=''; if(i.target!=null){ cls = i.stock < i.target ? 'short' : 'over'; } if(!i.eligible) cls+=' staple';
+        const par = i.target!=null ? `<span class="par">/${i.target}</span>` : '';
+        return `<span class="pchip ${cls}">${n} ${i.stock}${par}</span>`;
+      }).join('');
+
+    // Kitchen cookbook
+    document.getElementById('cookRows').innerHTML = DISHES.map((d,di)=>{
+      const cc=canCook(d), can=cc>=d.yield;
+      return `<div class="row">
+        <div><div class="nm">${d.name}</div>
+          <div class="meta">cost <b>${g(dishCost(d))}</b> · sells <b>${g(dishPrice(d))}</b> · <span class="badge made">${d.made} made</span> · can cook ${cc}</div></div>
+        <div class="sp">${stepperN('batchStep',di,d.batch)}
+          <button class="b pri" ${can?'':'disabled'} onclick="cook(${di})">Cook ${Math.min(d.batch,Math.floor(cc/d.yield))||''}</button></div>
+      </div>`;
+    }).join('');
+
+    // Counter — order
+    let food=0, cogs=0;
+    document.getElementById('cartRows').innerHTML = Object.keys(cart).map(name=>{
+      const d=DISHES.find(x=>x.name===name); const q=cart[name]; if(q<=0 && d.made<=0){}
+      const price=dishPrice(d); food+=price*q; cogs+=dishCost(d)*q;
+      const fromStock=Math.min(q,d.made), mto=Math.max(0,q-d.made);
+      const tag = mto>0 ? `<span class="badge mto">${mto} to order</span>${fromStock>0?` <span class="badge stock">${fromStock} from stock</span>`:''}`
+                        : `<span class="badge stock">from stock (${d.made} made)</span>`;
+      return `<div class="row">
+        <div><div class="nm">${d.name}</div><div class="meta">${g(price)} each · ${tag}</div></div>
+        <div class="sp">${stepper('cartStep',name,q,false)}<div style="font-family:var(--mono);color:var(--gold);font-weight:600;min-width:56px;text-align:right">${g(price*q)}</div></div>
+      </div>`;
+    }).join('');
+
+    // Counter — trade-in
+    let restockCredit=0, overCredit=0; const gained=[];
+    document.getElementById('tradeRows').innerHTML = Object.keys(ING).map(name=>{
+      const i=ING[name], q=brought[name]||0, s=split(name,q);
+      if(i.eligible){ restockCredit+=s.restock*i.unit*state.rate; overCredit+=s.over*i.unit*state.over; if(q>0) gained.push([name,q,i.unit]); }
+      const parTxt = !i.eligible ? '<span style="color:var(--steel)">staple · not traded</span>'
+        : (i.target==null ? `stock ${i.stock} · <span style="color:var(--dim)">no par → flat rate</span>`
+          : (i.stock<i.target ? `stock ${i.stock}/${i.target} · <span class="short">short ${i.target-i.stock}</span>` : `stock ${i.stock}/${i.target} · <span class="over">overstocked</span>`));
+      let br='', amt='—', az='z';
+      if(i.eligible && q>0){
+        amt='−'+g(s.credit); az='';
+        const parts=[]; if(s.restock>0) parts.push(`<span class="o">${s.restock} @ ${pct(state.rate)}</span>`); if(s.over>0) parts.push(`<span class="x">${s.over} @ ${pct(state.over)}</span>`);
+        br=`<span class="br">${parts.join(' · ')}</span>`;
+      }
+      return `<div class="tline ${i.eligible?'':'off'}">
+        <div class="ing"><div class="n">${name} <span style="color:var(--dim);font-weight:400;font-family:var(--mono);font-size:11px">${i.unit}g ea</span></div><div class="st">${parTxt}</div></div>
+        <div class="ctrl">${i.eligible?stepper('broughtStep',name,q,false):''}</div>
+        <div class="cr"><span class="amt ${az}">${amt}</span>${br}</div>
+      </div>`;
+    }).join('') + `<div class="tradefoot">Every traded ingredient lands in your pantry — the credit only sets how much you pay for it.</div>`;
+
+    // Counter — totals
+    const credit=restockCredit+overCredit;
+    const cash=Math.max(0, food-credit);
+    const storeCredit=Math.max(0, credit-food);
+    const profit=food-cogs;
+    const gainVal=gained.reduce((a,[,q,u])=>a+q*u,0);
+    const gainTxt=gained.map(([n,q])=>`+${q} ${n}`).join(', ');
+    const rows=[`<div class="trow"><span class="lab">Food sold</span><span class="amt">${g(food)}</span></div>`];
+    if(restockCredit>0) rows.push(`<div class="trow credit"><span class="lab">Trade-in <small>restock @ ${pct(state.rate)}</small></span><span class="amt">−${g(restockCredit)}</span></div>`);
+    if(overCredit>0) rows.push(`<div class="trow credit"><span class="lab">Trade-in <small>overstock @ ${pct(state.over)}</small></span><span class="amt">−${g(overCredit)}</span></div>`);
+    rows.push(`<div class="trow grand"><span class="lab">Customer pays (cash)</span><span class="amt">${credit>0?`<span class="strike">${g(food)}</span>`:''}${g(cash)}</span></div>`);
+    if(storeCredit>0) rows.push(`<div class="trow credit"><span class="lab">↳ store credit owed</span><span class="amt">+${g(storeCredit)}</span></div>`);
+    if(gainTxt) rows.push(`<div class="trow pantry"><span class="lab">↳ into pantry</span><span class="amt">${gainTxt} · booked ${g(credit)} (worth ${g(gainVal)})</span></div>`);
+    rows.push(`<div class="trow"><span class="lab">Cost of food sold</span><span class="amt">−${g(cogs)}</span></div>`);
+    rows.push(`<div class="trow profit"><span class="lab">Profit on the food</span><span class="amt">${g(profit)}</span></div>`);
+    document.getElementById('counterTotals').innerHTML=rows.join('');
+  }
+  render();
+</script>
