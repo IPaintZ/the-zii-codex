@@ -401,14 +401,26 @@ const TOOLS = {
 const TOOL_IDS = Object.keys(TOOLS);
 
 const LK = {
-  cfg:   "keisaal_gh_cfg",
-  token: "keisaal_gh_token",
-  notes: "keisaal_code_notes",
-  plain: "keisaal_code_plain",       // admin-only: plaintext of codes generated on this device, keyed by hash
-  code:  "keisaal_access_code",
-  tool:  "keisaal_last_tool",
-  master:"keisaal_master"        // admin passphrase used as a personal, never-expiring master key
+  cfg:   "keizaal_gh_cfg",
+  token: "keizaal_gh_token",
+  notes: "keizaal_code_notes",
+  plain: "keizaal_code_plain",       // admin-only: plaintext of codes generated on this device, keyed by hash
+  code:  "keizaal_access_code",
+  tool:  "keizaal_last_tool",
+  master:"keizaal_master"        // admin passphrase used as a personal, never-expiring master key
 };
+/* One-time migration (added 2026-09-06): the storage prefix was corrected from
+   the mis-spelled "keisaal_" to "keizaal_". For each key, if the new name has no
+   value but the old one does, copy it forward. Old keys are intentionally LEFT in
+   place this release — do not delete them here. Safe to remove this block and the
+   old "keisaal_*" stragglers after ~2027-03. Must run before the init reads below. */
+(function migrateLKPrefix(){ try {
+  Object.values(LK).forEach(nk => {
+    const ok = nk.replace(/^keizaal_/, "keisaal_");
+    if (ok !== nk && localStorage.getItem(nk) === null && localStorage.getItem(ok) !== null)
+      localStorage.setItem(nk, localStorage.getItem(ok));
+  });
+} catch(e){} })();
 const ADMIN_PASS_HASH = "580a22ea7cbadfe2cfb8242ca85fc71fe8c352127409f86e0cd9db0bc9f50ca5";
 
 let selectedTool = TOOLS[localStorage.getItem(LK.tool)] ? localStorage.getItem(LK.tool) : "smithy";

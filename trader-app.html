@@ -314,7 +314,15 @@ const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,"");
 
 // Access is owned by the launcher shell; this app runs unlocked in its iframe.
 // ?demo loads the sample market and never persists.
-const KEY="keisaal_trader_v1";
+const KEY="keizaal_trader_v1";
+/* One-time migration (added 2026-09-06): storage prefix corrected keisaal_ → keizaal_.
+   Carry saved data forward if only the old key exists. Old key is left in place
+   this release; safe to delete this block after ~2027-03. */
+(function(){ try {
+  const ok = KEY.replace("keizaal_", "keisaal_");
+  if (localStorage.getItem(KEY) === null && localStorage.getItem(ok) !== null)
+    localStorage.setItem(KEY, localStorage.getItem(ok));
+} catch(e){} })();
 const IS_DEMO=new URLSearchParams(location.search).has("demo");
 if(IS_DEMO) document.body.classList.add("demo");
 

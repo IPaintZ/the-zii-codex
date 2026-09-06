@@ -715,7 +715,17 @@ const DEFAULT = {
   trades: []
 };
 
-const KEY = "keisaal_calc_v7";
+const KEY = "keizaal_calc_v7";
+/* One-time migration (added 2026-09-06): storage prefix corrected keisaal_ → keizaal_.
+   Carry the saved book (and its __backup twin) forward if only the old key exists.
+   Old keys are left in place this release; safe to delete this block after ~2027-03. */
+(function(){ try {
+  [KEY, KEY + "__backup"].forEach(nk => {
+    const ok = nk.replace("keizaal_", "keisaal_");
+    if (localStorage.getItem(nk) === null && localStorage.getItem(ok) !== null)
+      localStorage.setItem(nk, localStorage.getItem(ok));
+  });
+} catch(e){} })();
 let data = load();
 let dbSortKey = "name", dbSortDir = 1;
 

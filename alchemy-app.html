@@ -341,7 +341,15 @@ let queue = [ {id:"RestoreHealth02", qty:5}, {id:"KzlSkooma", qty:3} ];
    Each visitor's own prices, stock, shop settings and brew queue are kept in
    this browser under one key — nothing is shared, nothing leaves the device.
    Debounced so rapid typing/stepping doesn't stringify on every event. */
-const KEY = "keisaal_alchemy";
+const KEY = "keizaal_alchemy";
+/* One-time migration (added 2026-09-06): storage prefix corrected keisaal_ → keizaal_.
+   Carry saved data forward if only the old key exists. Old key is left in place
+   this release; safe to delete this block after ~2027-03. */
+(function(){ try {
+  const ok = KEY.replace("keizaal_", "keisaal_");
+  if (localStorage.getItem(KEY) === null && localStorage.getItem(ok) !== null)
+    localStorage.setItem(KEY, localStorage.getItem(ok));
+} catch(e){} })();
 // Preview mode: the shell opens this app with ?demo for a sandboxed tour on the
 // fixed sample cellar (the baked prices/stock below). It never reads or writes
 // the real book (localStorage), so the sample numbers stay put.

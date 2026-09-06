@@ -417,7 +417,15 @@
 /* ═════════ Shared cooking engine (Smithy/Tailor model + recipe-level yield) ═════════ */
 const uid = () => Math.random().toString(36).slice(2,9);
 const L = (ingredient, qty) => ({ ingredient, qty });
-const KEY = "keisaal_cook_mockB";
+const KEY = "keizaal_cook_mockB";
+/* One-time migration (added 2026-09-06): storage prefix corrected keisaal_ → keizaal_.
+   Carry saved data forward if only the old key exists. Old key is left in place
+   this release; safe to delete this block after ~2027-03. */
+(function(){ try {
+  const ok = KEY.replace("keizaal_", "keisaal_");
+  if (localStorage.getItem(KEY) === null && localStorage.getItem(ok) !== null)
+    localStorage.setItem(KEY, localStorage.getItem(ok));
+} catch(e){} })();
 
 // Preview mode: the shell opens this app with ?demo for a sandboxed tour on a
 // fixed sample kitchen. It never reads or writes the real book (localStorage).
