@@ -224,6 +224,10 @@
   #appFrame { display:none; }
   body.running #appFrame { display:block; border:none; width:100%; height:calc(100vh - 34px); background:var(--bg); }
 </style>
+<!-- GoatCounter: privacy-friendly, cookieless page analytics. Auto-counts the shell load;
+     per-tool virtual pageviews (tool/<name>) are fired from enterApp() below. -->
+<script data-goatcounter="https://ipaintz.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="tool-smithy locked">
 
@@ -584,6 +588,21 @@ function enterApp(tool){
   const src = TOOLS[tool].app + (demo ? "?demo" : "");
   const f = document.getElementById("appFrame");
   if (f.getAttribute("data-src") !== src){ f.src = src; f.setAttribute("data-src", src); }
+  countTool(tool);
+}
+/* Fire a virtual pageview per tool so the GoatCounter dashboard shows per-tool
+   usage (tool/smithy, demo/cook, …). This is a label sent to analytics only —
+   it never changes the browser URL. Guarded in case the async script hasn't loaded. */
+function countTool(tool){
+  try {
+    if (window.goatcounter && window.goatcounter.count){
+      window.goatcounter.count({
+        path:  (demo ? "demo/" : "tool/") + tool,
+        title: TOOLS[tool].name + (demo ? " (demo)" : ""),
+        event: false
+      });
+    }
+  } catch(e){ /* analytics must never break the app */ }
 }
 function showGate(tool, msg){
   demo = false;
