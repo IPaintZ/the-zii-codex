@@ -711,7 +711,7 @@ async function genCode(){
   ghmsg("Code added (" + tools.map(t=>TOOLS[t].short).join(" & ") + ", thru week " + ghState.codes[h].thru + ") — Publish to activate.", "dim");
 }
 function removeCode(h){ delete ghState.codes[h]; delete codeNotes[h]; delete codePlain[h]; localStorage.setItem(LK.notes, JSON.stringify(codeNotes)); localStorage.setItem(LK.plain, JSON.stringify(codePlain)); setDirty(true); renderCodes(); ghmsg("Removed — Publish to apply.", "dim"); }
-function killAll(){ if (!confirm("Remove ALL access codes? Everyone is locked out of both tools after you Publish.")) return; ghState.codes = {}; codePlain = {}; localStorage.setItem(LK.plain, JSON.stringify(codePlain)); setDirty(true); renderCodes(); ghmsg("All codes cleared — Publish to apply.", "dim"); }
+function killAll(){ if (!confirm("Remove ALL access codes? Everyone is locked out of every workshop after you Publish.")) return; ghState.codes = {}; codePlain = {}; localStorage.setItem(LK.plain, JSON.stringify(codePlain)); setDirty(true); renderCodes(); ghmsg("All codes cleared — Publish to apply.", "dim"); }
 function copyPlain(h){ if (codePlain[h]) navigator.clipboard.writeText(codePlain[h]); }
 async function lookupCode(){
   const raw = document.getElementById("lookupCode").value;
