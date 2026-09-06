@@ -89,6 +89,16 @@
   body.demo #demoBar { display:flex; }
   #demoBar a { color:#06100d; text-decoration:underline; font-weight:700; cursor:pointer; }
   #demoBar .tag { background:rgba(6,16,13,.22); border-radius:20px; padding:2px 10px; font-variant:small-caps; letter-spacing:.5px; }
+  /* B2 demo bar — pulsing pill + Discord button */
+  #demoBar .pill { display:inline-flex; align-items:center; gap:6px; background:#100b04; color:var(--gold); border-radius:20px; padding:3px 11px; font-weight:800; font-size:10.5px; letter-spacing:.14em; }
+  #demoBar .pill .dot { width:7px; height:7px; border-radius:50%; background:var(--gold); animation:demopulse 1.6s infinite; }
+  @keyframes demopulse { 0%,100%{opacity:1} 50%{opacity:.28} }
+  #demoBar .msg b { font-weight:800; }
+  #demoBar .sp { margin-left:auto; }
+  #demoBar a.back { font-size:11.5px; }
+  #demoBar a.disc { display:inline-flex; align-items:center; gap:6px; background:#5865F2; color:#fff; border:1px solid #4752c4; border-radius:6px; padding:5px 11px; text-decoration:none; font-weight:700; font-size:11.5px; }
+  #demoBar a.disc:hover { background:#4752c4; }
+  #demoBar a.disc svg { width:15px; height:15px; flex:none; }
   .k label { display:block; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
   .knobs { display:flex; gap:14px; flex-wrap:wrap; }
   .note { font-size:11.5px; color:var(--dim); margin-top:7px; }
@@ -136,9 +146,11 @@
 <body>
 
 <div id="demoBar">
-  <span><span class="tag">Preview</span> &nbsp;Sample market — this is a live demo, nothing you change is saved.</span>
-  <a onclick="parent.postMessage({keisaal:'gate'},'*')">← Back to login</a>
-  <a href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener">Get access →</a>
+  <span class="pill"><span class="dot"></span>DEMO MODE</span>
+  <span class="msg">You're exploring <b>a sample market</b> — nothing you change is saved.</span>
+  <span class="sp"></span>
+  <a class="back" onclick="parent.postMessage({keisaal:'gate'},'*')">← Back to login</a>
+  <a class="disc" href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.6A19 19 0 0 0 15.6 3l-.3.5a17 17 0 0 1 4.1 1.3 15.6 15.6 0 0 0-11 0A17 17 0 0 1 12.6 3.5L12.4 3A19 19 0 0 0 7.7 4.6C4.6 9.2 3.8 13.6 4.2 18a19 19 0 0 0 5.7 2.9l.4-.6a12 12 0 0 1-1.9-.9l.5-.4a13.5 13.5 0 0 0 11.4 0l.5.4a12 12 0 0 1-1.9.9l.4.6a19 19 0 0 0 5.7-2.9c.5-5-.8-9.4-3.6-13.4ZM9.7 15.3c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Zm4.6 0c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Z"/></svg>Get a code on Discord</a>
 </div>
 
 <div class="top"><div class="top-in">
@@ -154,6 +166,7 @@
     <span class="lz">📍<select id="locSel" onchange="curLoc=this.value;render()"></select></span>
     <span class="pill" id="weekPill">Week 1</span>
     <button class="b" onclick="advanceMarket()" title="Drift every price by supply &amp; demand and start a new week">↻ Advance market</button>
+    <a class="discNav" href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener" title="Discord — community &amp; weekly codes" style="display:inline-flex;align-items:center;gap:6px;background:#5865F2;color:#fff;border:1px solid #4752c4;border-radius:5px;padding:4px 9px;text-decoration:none;font-weight:600;font-size:12px"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;flex:none"><path d="M20.3 4.6A19 19 0 0 0 15.6 3l-.3.5a17 17 0 0 1 4.1 1.3 15.6 15.6 0 0 0-11 0A17 17 0 0 1 12.6 3.5L12.4 3A19 19 0 0 0 7.7 4.6C4.6 9.2 3.8 13.6 4.2 18a19 19 0 0 0 5.7 2.9l.4-.6a12 12 0 0 1-1.9-.9l.5-.4a13.5 13.5 0 0 0 11.4 0l.5.4a12 12 0 0 1-1.9.9l.4.6a19 19 0 0 0 5.7-2.9c.5-5-.8-9.4-3.6-13.4ZM9.7 15.3c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Zm4.6 0c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Z"/></svg>Discord</a>
     <button class="b" id="lockBtn" onclick="parent.postMessage({keisaal:'lock'},'*')" title="Lock — back to the code screen">🔒 Lock</button>
   </div>
 </div></div>

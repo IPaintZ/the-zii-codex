@@ -137,6 +137,16 @@
     color:#1a1206; font-size:12.5px; font-weight:600; letter-spacing:.3px; text-align:center; }
   #demoBar .tag { background:rgba(26,18,6,.22); border-radius:20px; padding:2px 10px; font-variant:small-caps; letter-spacing:.5px; }
   #demoBar a { color:#1a1206; text-decoration:underline; font-weight:700; cursor:pointer; }
+  /* B2 demo bar — pulsing pill + Discord button */
+  #demoBar .pill { display:inline-flex; align-items:center; gap:6px; background:#100b04; color:var(--gold); border-radius:20px; padding:3px 11px; font-weight:800; font-size:10.5px; letter-spacing:.14em; }
+  #demoBar .pill .dot { width:7px; height:7px; border-radius:50%; background:var(--gold); animation:demopulse 1.6s infinite; }
+  @keyframes demopulse { 0%,100%{opacity:1} 50%{opacity:.28} }
+  #demoBar .msg b { font-weight:800; }
+  #demoBar .sp { margin-left:auto; }
+  #demoBar a.back { font-size:11.5px; }
+  #demoBar a.disc { display:inline-flex; align-items:center; gap:6px; background:#5865F2; color:#fff; border:1px solid #4752c4; border-radius:6px; padding:5px 11px; text-decoration:none; font-weight:700; font-size:11.5px; }
+  #demoBar a.disc:hover { background:#4752c4; }
+  #demoBar a.disc svg { width:15px; height:15px; flex:none; }
   /* Sample sheet is fixed in preview — data-entry surfaces are look-only; Kitchen & Sales stay interactive. */
   body.demo #view-pantry input, body.demo #view-pantry select, body.demo #view-pantry button,
   body.demo #view-buyers input, body.demo #view-buyers select, body.demo #view-buyers button,
@@ -148,9 +158,11 @@
 
 <!-- ══ PREVIEW BANNER (shown only in ?demo mode; the shell hosts this app in an iframe) ══ -->
 <div id="demoBar">
-  <span><span class="tag">Preview</span> &nbsp;Sample kitchen — this is a live demo, nothing you change is saved.</span>
-  <a onclick="parent.postMessage({keisaal:'gate'},'*')">← Back to login</a>
-  <a href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener">Get access →</a>
+  <span class="pill"><span class="dot"></span>DEMO MODE</span>
+  <span class="msg">You're exploring <b>a sample kitchen</b> — nothing you change is saved.</span>
+  <span class="sp"></span>
+  <a class="back" onclick="parent.postMessage({keisaal:'gate'},'*')">← Back to login</a>
+  <a class="disc" href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.6A19 19 0 0 0 15.6 3l-.3.5a17 17 0 0 1 4.1 1.3 15.6 15.6 0 0 0-11 0A17 17 0 0 1 12.6 3.5L12.4 3A19 19 0 0 0 7.7 4.6C4.6 9.2 3.8 13.6 4.2 18a19 19 0 0 0 5.7 2.9l.4-.6a12 12 0 0 1-1.9-.9l.5-.4a13.5 13.5 0 0 0 11.4 0l.5.4a12 12 0 0 1-1.9.9l.4.6a19 19 0 0 0 5.7-2.9c.5-5-.8-9.4-3.6-13.4ZM9.7 15.3c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Zm4.6 0c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Z"/></svg>Get a code on Discord</a>
 </div>
 
 <div class="top"><div class="top-in">
@@ -168,6 +180,7 @@
       <select id="custSel" onchange="data.settings.customer=this.value; render()" style="margin-left:4px"></select></label>
     <span class="traychip" id="trayChip" onclick="view('kitchen')">Queue <b>0</b> · 0g</span>
     <span class="traychip" id="saleChip" onclick="view('counter')">Sale <b>0</b> · 0g</span>
+    <a class="discNav" href="https://discord.gg/cg4GT8Pd7" target="_blank" rel="noopener" title="Discord — community &amp; weekly codes" style="display:inline-flex;align-items:center;gap:6px;background:#5865F2;color:#fff;border:1px solid #4752c4;border-radius:5px;padding:4px 9px;text-decoration:none;font-weight:600;font-size:12px"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;flex:none"><path d="M20.3 4.6A19 19 0 0 0 15.6 3l-.3.5a17 17 0 0 1 4.1 1.3 15.6 15.6 0 0 0-11 0A17 17 0 0 1 12.6 3.5L12.4 3A19 19 0 0 0 7.7 4.6C4.6 9.2 3.8 13.6 4.2 18a19 19 0 0 0 5.7 2.9l.4-.6a12 12 0 0 1-1.9-.9l.5-.4a13.5 13.5 0 0 0 11.4 0l.5.4a12 12 0 0 1-1.9.9l.4.6a19 19 0 0 0 5.7-2.9c.5-5-.8-9.4-3.6-13.4ZM9.7 15.3c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Zm4.6 0c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9Z"/></svg>Discord</a>
   </div>
 </div></div>
 
