@@ -1,71 +1,78 @@
-# Keisaal Smithy — live site & running it
+# The Zii Codex — one-time setup
 
-**Live URL:** https://ipaintz.github.io/keisaal-calculator/
-**Repo:** https://github.com/IPaintZ/keisaal-calculator (public)
+Do this once. For the weekly running of the site, see **RUNBOOK.md**.
 
-The calculator opens behind an **access gate**. Users need a weekly code you sell. You manage
-everything from the built-in **admin panel**. Access lives in `status.json` next to the page.
-Fail-closed: if `status.json` can't be reached, nobody gets in.
+## What this is
 
-The shipped database has the full item/recipe catalog but **zero pricing** — every visitor fills
-in their own prices, saved in their own browser (`localStorage`). Nothing they enter touches anyone else.
+The Zii Codex is a static site with five workshops behind a single access gate:
 
----
+- **Emberforge** — weapons, armour & ingots
+- **Loomhall** — clothing, cloth & thread
+- **Trademoot** — buy low, sell high, haul & haggle
+- **Elixirhall** — potions, poisons & reagents
+- **Cookfire** — food, drink & produce
 
-## Admin passphrase
+Players need a code to get in. You sell codes and manage everything from the built‑in
+**admin panel**. Who has access is decided by a public file, `status.json`, that sits next to
+the page: it holds the current **week number** and the SHA‑256 **hashes** of every active code.
+A code works only while the week it's paid through is ≥ the current week. If `status.json`
+can't be loaded, nobody gets in (fail‑closed).
 
-    frost-cinder-frost-94
+The site ships with the full item catalog but **no prices** — every player fills in their own,
+saved only in their own browser.
 
-Only its hash is in the source, so this is safe to ship publicly. To change it, tell Claude a new
-passphrase and it'll re-bake the hash. Note: even the passphrase is a courtesy lock — the panel is
-**powerless without your GitHub token**, which never leaves your browser.
-
-## One-time: make a GitHub token
-
-1. GitHub → **Settings → Developer settings → Fine-grained tokens → Generate new token**.
-2. **Repository access → Only select repositories →** `keisaal-calculator`.
-3. **Repository permissions → Contents → Read and write**. Nothing else.
-4. Generate and copy the `github_pat_…` string.
-
-## One-time: connect the admin panel
-
-Do this **on the live https site** (GitHub blocks writes from a local file).
-
-1. Open the live URL → click **admin** at the bottom of the gate.
-2. Passphrase: `frost-cinder-frost-94`.
-3. Fill in: Owner = `IPaintZ`, Repository = `keisaal-calculator`, Branch = `main`,
-   Path = `status.json`, and paste your **token**. Click **Save settings** → **Load from GitHub**.
-4. **Generate** a code for yourself → **Publish to GitHub**.
-5. Close admin and **Unlock** with that code.
+- **Repo:** https://github.com/IPaintZ/the-zii-codex (public)
+- **Live URL:** https://ipaintz.github.io/the-zii-codex/
 
 ---
 
-## Weekly running
+## 1. Create the GitHub token
 
-| Task | Steps |
-|------|-------|
-| **Weekly reset** | admin → **Advance week ▸** → **Publish**. Codes paid only through last week die. |
-| **Sell access** | admin → buyer note + weeks paid → **Generate** → send code to buyer → **Publish**. |
-| **Revoke a leaker** | admin → **✕** on their row → **Publish**. Locked out within a minute. |
-| **Lock everyone** | admin → **Kill switch** → **Publish**. |
-| **Backup** | admin → **Download backup** (your codes + private buyer notes). |
+The admin panel writes `status.json` through the GitHub API using a token you paste into it.
+Make a **fine‑grained** token scoped to this one repo and nothing else:
 
-Buyer notes stay local to your browser (never published), so no names leak into the public file.
-Always run admin from the same browser, and keep a backup.
+1. GitHub → **Settings → Developer settings → Fine‑grained tokens → Generate new token**.
+2. **Repository access → Only select repositories →** `the-zii-codex`.
+3. **Permissions → Repository permissions → Contents → Read and write**. Leave everything else at
+   *No access*.
+4. Set an expiry you'll remember to renew (e.g. 90 days), generate, and copy the
+   `github_pat_…` string.
 
-## Updating the tool later
+The token lives only in the browser you paste it into. It is never written into any file and
+never committed. If it leaks, revoke it on GitHub and make a new one.
 
-Edit `index.html` and push:
+## 2. Connect the admin panel
 
-```bash
-git add index.html && git commit -m "update" && git push
-```
+> **Do this on the live https site, not a local file.** GitHub blocks writes coming from a
+> `file://` page, so the panel can only publish when you open it from the live URL.
 
-## Honest limits
+1. Open **https://ipaintz.github.io/the-zii-codex/** → click **admin** at the bottom of the gate.
+2. Enter the admin passphrase (you set this — see the note at the end).
+3. Go to the **Settings** tab and fill in **GitHub connection**:
+   - **Owner:** `IPaintZ`
+   - **Repository:** `the-zii-codex`
+   - **Branch:** `main`
+   - **Status file path:** `status.json`
+   - **GitHub token:** paste your `github_pat_…`
+4. Click **Save settings**, then **Reload live list**. You should see a green
+   "Loaded. Week N, … codes." line. If you get an error, re‑check the owner, repo, and token.
 
-- Friction for an honest game community, not unbreakable DRM: the tool's logic is visible in a
-  public repo, so someone who reads the source could bypass the gate. What's protected: your token
-  never ships, and only un-reversible SHA-256 hashes are published — nobody can mint valid codes,
-  read anyone's code, or use the admin panel against your repo.
-- Clock-rollback doesn't work: validity is decided by the week number in your hosted file, not the
-  user's PC clock.
+Settings are saved in **this browser only**. See RUNBOOK.md → "Golden rules" — always admin
+from the same browser.
+
+## 3. Generate your first code and unlock
+
+1. In the **Customers** tab, under **New customer**, leave the tool chips as you like, type a
+   note (e.g. `me`), set **weeks**, and click **Generate**. Copy the `KSL-…` code it shows.
+2. Click **Publish to GitHub**. **The code does not work until you Publish.**
+3. Close the admin panel, paste the code into the gate, and click **Unlock**. You're in.
+
+That's setup done. Everything from here on — weekly resets, selling, renewing, revoking,
+backups — is in **RUNBOOK.md**.
+
+---
+
+*The admin passphrase is not written in this repo on purpose: only its hash ships in
+`index.html`, so a public reader can't recover it. Keep the passphrase in your own password
+manager. It also works as a personal, never‑expiring key on the gate — if you ever lock
+yourself out, type the passphrase into the code box.*
