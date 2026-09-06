@@ -40,6 +40,13 @@
         "alchemy",
         "cooking"
       ]
+    },
+    "436a19ec72cc734e1f3c6742a3d715ff87c308da0fa8d6e4b2c383ed35fc00ac": {
+      "thru": 5,
+      "tools": [
+        "tailor",
+        "traders"
+      ]
     }
   }
 }
