@@ -1,0 +1,146 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Zii Codex — media contact sheet</title>
+<link rel="icon" href="png/web/favicon-32.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Metamorphous&family=Spectral:ital@0;1&display=swap">
+<style>
+  :root{--bg:#16130f;--panel:#211c16;--panel2:#2b241b;--line:#3d3325;
+        --ink:#ece3d2;--dim:#a99b81;--gold:#d9a441;--disp:'Metamorphous',Georgia,serif;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI",system-ui,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 22px 90px}
+  header{text-align:center;padding:28px 0 34px;border-bottom:1px solid var(--line);margin-bottom:34px}
+  header img{width:104px;height:104px}
+  header h1{font-family:var(--disp);font-size:30px;letter-spacing:.06em;margin:16px 0 4px;font-weight:400}
+  header h1 em{font-style:normal;color:var(--gold)}
+  header p{font-family:'Spectral',Georgia,serif;font-style:italic;color:var(--dim);margin:0}
+  h2{font-family:var(--disp);font-size:17px;font-weight:400;letter-spacing:.05em;color:var(--gold);
+     margin:46px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  h2 + .lede{color:var(--dim);margin:0 0 18px;font-size:12.5px}
+  h3{font-family:var(--disp);font-size:14px;font-weight:400;color:var(--ink);margin:26px 0 10px}
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+  figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  figure.wide{grid-column:span 2}
+  .shot{display:grid;place-items:center;padding:14px;background:var(--panel2);min-height:96px}
+  .shot img{max-width:100%;height:auto;display:block}
+  figure.sq .shot img{width:150px;height:150px}
+  figure.tall .shot img{max-height:300px;width:auto}
+  figure.alpha .shot{background:repeating-conic-gradient(#2a2a2a 0 25%,#1e1e1e 0 50%) 0 0/18px 18px}
+  figure.light .shot{background:#e9dcbe}
+  figcaption{padding:9px 12px;font-size:12px;display:flex;flex-direction:column;gap:2px}
+  figcaption span{color:var(--dim);font-family:Consolas,monospace;font-size:11px}
+  .discord{display:flex;background:#1e1f22;border-radius:12px;padding:14px 10px;width:max-content}
+  .rail{display:flex;flex-direction:column;align-items:center;gap:7px;width:132px}
+  .rail img{width:48px;height:48px;border-radius:50%;transition:border-radius .15s}
+  .rail:hover img{border-radius:16px}
+  .rail em{font-style:normal;font-size:10.5px;color:#949ba4}
+  .strip{display:flex;align-items:center;gap:16px;padding:10px 14px;background:var(--panel);
+         border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+  .strip span{font-family:var(--disp);font-size:12px;width:170px;color:var(--dim)}
+  .sws{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .sw{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);
+      border-radius:8px;padding:8px 10px}
+  .sw i{width:26px;height:26px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  .sw b{font-weight:500;font-size:12px}
+  .sw code{color:var(--dim);font-size:11px;margin-left:auto}
+  .portable{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);
+    border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 26px;color:var(--dim);font-size:12.5px}
+  .portable code{color:var(--ink)}
+</style></head><body><div class="wrap">
+
+<header>
+  <img src="png/crest/crest-dark-512.png" alt="">
+  <h1>THE ZII <em>CODEX</em></h1>
+  <p>The soul of every recipe — media contact sheet</p>
+</header>
+
+<h2>The crest</h2>
+<p class="lede">The .brand-head crest from index.html, reproduced exactly, in each colour treatment.
+Composed inside a 460&nbsp;px safe circle on a 512&nbsp;px board so Discord's circular crop never clips it.</p>
+<div class="grid"><figure class="sq"><div class="shot"><img src="png/crest/crest-dark-512.png" alt="on panel"></div>
+       <figcaption><b>on panel</b><span>crest/crest-dark-{1024,512,256}.png</span></figcaption></figure><figure class="sq"><div class="shot"><img src="png/crest/crest-black-512.png" alt="on ground"></div>
+       <figcaption><b>on ground</b><span>crest/crest-black-{1024,512,256}.png</span></figcaption></figure><figure class="sq alpha"><div class="shot"><img src="png/crest/crest-alpha-512.png" alt="transparent"></div>
+       <figcaption><b>transparent</b><span>crest/crest-alpha-{1024,512,256}.png</span></figcaption></figure><figure class="sq alpha"><div class="shot"><img src="png/crest/crest-gold-512.png" alt="flat gold"></div>
+       <figcaption><b>flat gold</b><span>crest/crest-gold-{1024,512,256}.png</span></figcaption></figure><figure class="sq light"><div class="shot"><img src="png/crest/crest-light-512.png" alt="on parchment"></div>
+       <figcaption><b>on parchment</b><span>crest/crest-light-{1024,512,256}.png</span></figcaption></figure></div>
+
+<h2>The small-size drawing</h2>
+<p class="lede">The identity's own favicon artwork — one filled hexagon, heavier stroke, no inner ring.
+Use this below roughly 128&nbsp;px instead of shrinking the crest.</p>
+<div class="grid"><figure class="sq"><div class="shot"><img src="png/crest/crest-small-dark-512.png" alt="on panel"></div>
+       <figcaption><b>on panel</b><span>crest/crest-small-dark-*.png</span></figcaption></figure><figure class="sq"><div class="shot"><img src="png/crest/crest-small-black-512.png" alt="on ground"></div>
+       <figcaption><b>on ground</b><span>crest/crest-small-black-*.png</span></figcaption></figure><figure class="sq alpha"><div class="shot"><img src="png/crest/crest-small-alpha-512.png" alt="transparent"></div>
+       <figcaption><b>transparent</b><span>crest/crest-small-alpha-*.png</span></figcaption></figure><figure class="sq alpha"><div class="shot"><img src="png/crest/crest-small-gold-512.png" alt="flat gold"></div>
+       <figcaption><b>flat gold</b><span>crest/crest-small-gold-*.png</span></figcaption></figure><figure class="sq light"><div class="shot"><img src="png/crest/crest-small-light-512.png" alt="on parchment"></div>
+       <figcaption><b>on parchment</b><span>crest/crest-small-light-*.png</span></figcaption></figure></div>
+
+<h2>In a Discord server list</h2>
+<p class="lede">Actual size, 48&nbsp;px. Hover for the rounded-square (active server) crop.</p>
+<div class="discord"><div class="rail"><img src="png/discord/server-icon-512.png" alt=""><em>brand-head crest</em></div><div class="rail"><img src="png/discord/server-icon-small-512.png" alt=""><em>favicon drawing</em></div></div>
+
+<h2>Small-size legibility</h2>
+<p class="lede">128 · 64 · 32 · 16&nbsp;px, both drawings, so you can see where the crest gives out.</p>
+<div class="strip"><span>brand-head crest</span>
+       <img src="png/crest/crest-dark-256.png" style="width:128px;height:128px">
+       <img src="png/crest/crest-dark-256.png" style="width:64px;height:64px">
+       <img src="png/crest/crest-dark-256.png" style="width:32px;height:32px">
+       <img src="png/crest/crest-dark-256.png" style="width:16px;height:16px"></div><div class="strip"><span>favicon drawing</span>
+       <img src="png/crest/crest-small-dark-256.png" style="width:128px;height:128px">
+       <img src="png/crest/crest-small-dark-256.png" style="width:64px;height:64px">
+       <img src="png/crest/crest-small-dark-256.png" style="width:32px;height:32px">
+       <img src="png/crest/crest-small-dark-256.png" style="width:16px;height:16px"></div>
+
+<h2>Lockups</h2>
+<p class="lede">Crest and type together, trimmed to their ink. Stacked follows the app's own
+.brand-head spacing; inline follows the .zii shell lockup.</p>
+<div class="grid"><figure class="wide alpha"><div class="shot"><img src="png/lockup/horizontal-2400.png" alt="horizontal · transparent"></div>
+       <figcaption><b>horizontal · transparent</b><span>lockup/horizontal-2400.png</span></figcaption></figure><figure class="tall alpha"><div class="shot"><img src="png/lockup/stacked-1600.png" alt="stacked · transparent"></div>
+       <figcaption><b>stacked · transparent</b><span>lockup/stacked-1600.png</span></figcaption></figure><figure class="wide alpha"><div class="shot"><img src="png/lockup/wordmark-1800.png" alt="wordmark · transparent"></div>
+       <figcaption><b>wordmark · transparent</b><span>lockup/wordmark-1800.png</span></figcaption></figure><figure class="wide alpha"><div class="shot"><img src="png/lockup/inline-1600.png" alt="inline · transparent"></div>
+       <figcaption><b>inline · transparent</b><span>lockup/inline-1600.png</span></figcaption></figure><figure class="wide alpha"><div class="shot"><img src="png/lockup/horizontal-gold-2400.png" alt="horizontal · flat gold"></div>
+       <figcaption><b>horizontal · flat gold</b><span>lockup/horizontal-gold-2400.png</span></figcaption></figure><figure class="tall alpha"><div class="shot"><img src="png/lockup/stacked-gold-1600.png" alt="stacked · flat gold"></div>
+       <figcaption><b>stacked · flat gold</b><span>lockup/stacked-gold-1600.png</span></figcaption></figure><figure class="wide alpha"><div class="shot"><img src="png/lockup/wordmark-gold-1800.png" alt="wordmark · flat gold"></div>
+       <figcaption><b>wordmark · flat gold</b><span>lockup/wordmark-gold-1800.png</span></figcaption></figure><figure class="wide alpha"><div class="shot"><img src="png/lockup/inline-gold-1600.png" alt="inline · flat gold"></div>
+       <figcaption><b>inline · flat gold</b><span>lockup/inline-gold-1600.png</span></figcaption></figure><figure class="wide light"><div class="shot"><img src="png/lockup/horizontal-light-2400.png" alt="horizontal · on parchment"></div>
+       <figcaption><b>horizontal · on parchment</b><span>lockup/horizontal-light-2400.png</span></figcaption></figure><figure class="tall light"><div class="shot"><img src="png/lockup/stacked-light-1600.png" alt="stacked · on parchment"></div>
+       <figcaption><b>stacked · on parchment</b><span>lockup/stacked-light-1600.png</span></figcaption></figure><figure class="wide light"><div class="shot"><img src="png/lockup/wordmark-light-1800.png" alt="wordmark · on parchment"></div>
+       <figcaption><b>wordmark · on parchment</b><span>lockup/wordmark-light-1800.png</span></figcaption></figure><figure class="wide light"><div class="shot"><img src="png/lockup/inline-light-1600.png" alt="inline · on parchment"></div>
+       <figcaption><b>inline · on parchment</b><span>lockup/inline-light-1600.png</span></figcaption></figure></div>
+
+<h2>Banners</h2>
+<p class="lede">Every style at every surface size. The five-colour hairline along the bottom is the one ornament the app does not itself have — set <code>ACCENT_RULE=false</code> in build.mjs to drop it.</p>
+
+    <h3>Forge Dark</h3>
+    <div class="grid"><figure class="wide"><div class="shot"><img src="png/discord/discord-banner-forge-960x540.png" alt="960×540"></div>
+       <figcaption><b>960×540</b><span>Discord server banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/hero-forge-1920x1080.png" alt="1920×1080"></div>
+       <figcaption><b>1920×1080</b><span>Discord invite splash / Nexus hero</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/profile-banner-forge-600x240.png" alt="600×240"></div>
+       <figcaption><b>600×240</b><span>Discord profile banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/og-card-forge-1200x630.png" alt="1200×630"></div>
+       <figcaption><b>1200×630</b><span>Open Graph link preview</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/github-social-forge-1280x640.png" alt="1280×640"></div>
+       <figcaption><b>1280×640</b><span>GitHub social preview</span></figcaption></figure></div>
+    <h3>Five Workshops</h3>
+    <div class="grid"><figure class="wide"><div class="shot"><img src="png/discord/discord-banner-workshops-960x540.png" alt="960×540"></div>
+       <figcaption><b>960×540</b><span>Discord server banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/hero-workshops-1920x1080.png" alt="1920×1080"></div>
+       <figcaption><b>1920×1080</b><span>Discord invite splash / Nexus hero</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/profile-banner-workshops-600x240.png" alt="600×240"></div>
+       <figcaption><b>600×240</b><span>Discord profile banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/og-card-workshops-1200x630.png" alt="1200×630"></div>
+       <figcaption><b>1200×630</b><span>Open Graph link preview</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/github-social-workshops-1280x640.png" alt="1280×640"></div>
+       <figcaption><b>1280×640</b><span>GitHub social preview</span></figcaption></figure></div>
+    <h3>Ember Spotlight</h3>
+    <div class="grid"><figure class="wide"><div class="shot"><img src="png/discord/discord-banner-spotlight-960x540.png" alt="960×540"></div>
+       <figcaption><b>960×540</b><span>Discord server banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/hero-spotlight-1920x1080.png" alt="1920×1080"></div>
+       <figcaption><b>1920×1080</b><span>Discord invite splash / Nexus hero</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/profile-banner-spotlight-600x240.png" alt="600×240"></div>
+       <figcaption><b>600×240</b><span>Discord profile banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/og-card-spotlight-1200x630.png" alt="1200×630"></div>
+       <figcaption><b>1200×630</b><span>Open Graph link preview</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/github-social-spotlight-1280x640.png" alt="1280×640"></div>
+       <figcaption><b>1280×640</b><span>GitHub social preview</span></figcaption></figure></div>
+    <h3>Codex Page</h3>
+    <div class="grid"><figure class="wide"><div class="shot"><img src="png/discord/discord-banner-page-960x540.png" alt="960×540"></div>
+       <figcaption><b>960×540</b><span>Discord server banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/hero-page-1920x1080.png" alt="1920×1080"></div>
+       <figcaption><b>1920×1080</b><span>Discord invite splash / Nexus hero</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/discord/profile-banner-page-600x240.png" alt="600×240"></div>
+       <figcaption><b>600×240</b><span>Discord profile banner</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/og-card-page-1200x630.png" alt="1200×630"></div>
+       <figcaption><b>1200×630</b><span>Open Graph link preview</span></figcaption></figure><figure class="wide"><div class="shot"><img src="png/social/github-social-page-1280x640.png" alt="1280×640"></div>
+       <figcaption><b>1280×640</b><span>GitHub social preview</span></figcaption></figure></div>
+
+<h2>Palette</h2>
+<div class="sws"><div class="sw"><i style="background:#16130f"></i><b>Ground</b><code>#16130f</code></div><div class="sw"><i style="background:#211c16"></i><b>Panel</b><code>#211c16</code></div><div class="sw"><i style="background:#3d3325"></i><b>Line</b><code>#3d3325</code></div><div class="sw"><i style="background:#ece3d2"></i><b>Ink</b><code>#ece3d2</code></div><div class="sw"><i style="background:#a99b81"></i><b>Dim</b><code>#a99b81</code></div><div class="sw"><i style="background:#d9a441"></i><b>Gold</b><code>#d9a441</code></div><div class="sw"><i style="background:#b98a34"></i><b>Gold deep</b><code>#b98a34</code></div><div class="sw"><i style="background:#d9a441"></i><b>Emberforge</b><code>#d9a441</code></div><div class="sw"><i style="background:#c98aa8"></i><b>Loomhall</b><code>#c98aa8</code></div><div class="sw"><i style="background:#d98a4f"></i><b>Cookfire</b><code>#d98a4f</code></div><div class="sw"><i style="background:#a07fd0"></i><b>Elixirhall</b><code>#a07fd0</code></div><div class="sw"><i style="background:#4fb39a"></i><b>Trademoot</b><code>#4fb39a</code></div></div>
+
+</div></body></html>

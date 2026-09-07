@@ -1,3 +1,10 @@
 # Local dev/staging copy of the calculator — test here before syncing to index.html.
 # Never deployed; intentionally kept out of git.
 keisaal-calculator.html
+
+# Generated media sheets that embed every asset as base64 — 13 MB between them,
+# and a fresh copy every time the artwork changes. Rebuild with:
+#   node media/build.mjs
+# The loose PNG/SVG files and the small linked contact sheet stay in git.
+media/download-catalog.html
+media/contact-sheet-portable.html

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Zii Codex small crest - on panel">
+  <title>Zii Codex small crest - on panel</title>
+  <defs></defs>
+  <g id="content"><rect width="512" height="512" fill="#211c16"/>
+      <g transform="translate(28.8 28.8) scale(14.2)">
+        <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="#211c16" stroke="#d9a441" stroke-width="2"/>
+        <g fill="#d9a441"><path d="M 15.376 10.75 L 16.624 10.75 L 16.624 22 L 15.376 22 Z"/><path d="M 11.703 10.75 L 13.146 10.75 L 15.376 14.575 L 15.376 16.474 Z"/><path d="M 20.298 10.75 L 18.854 10.75 L 16.624 14.575 L 16.624 16.474 Z"/></g>
+      </g></g>
+</svg>
