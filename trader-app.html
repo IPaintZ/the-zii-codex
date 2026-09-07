@@ -29,6 +29,20 @@
   .box > h3 { margin:0 0 9px; font-size:13px; color:var(--gold); font-variant:small-caps; letter-spacing:.5px; display:flex; align-items:center; gap:8px; }
   .box > h3 .sp { margin-left:auto; display:flex; gap:6px; align-items:center; }
   .hint { color:var(--dim); font-size:11.5px; margin:-4px 0 9px; }
+  /* ── Foldable section frames ──
+     Settings stacks a wide location grid, a customer table and a bulk import
+     tree; folding the ones you are not using keeps the page one screen. A
+     folded frame keeps its header as a bookmark. State is UI-only, remembered
+     per browser, and never written into the book or an export. */
+  .box.fold > h3 { cursor:pointer; user-select:none; }
+  .box.fold > h3:hover { color:var(--ink); }
+  .box.fold > h3 .cav { color:var(--dim); font-size:9px; width:9px; flex:none; transition:transform .12s; }
+  .box.fold > h3:hover .cav { color:var(--gold); }
+  .box.fold.folded > h3 .cav { transform:rotate(-90deg); }
+  .box.fold > h3 .cnt { color:var(--dim); font-size:11px; font-variant:normal; letter-spacing:0; font-weight:400; }
+  .box.fold.folded { padding-bottom:11px; }
+  .box.fold.folded > h3 { margin-bottom:0; }
+  .box.fold.folded .fold-body { display:none; }
   .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
   @media(max-width:860px){ .cols { grid-template-columns:1fr; } }
 
@@ -253,39 +267,59 @@
 
 <!-- ══ LEDGER ══ -->
 <div id="tab-ledger" class="tab">
-  <div class="box">
-    <h3>Coffers</h3>
-    <div class="row" id="cofferRow" style="gap:10px"></div>
-    <div class="note">Running totals across recorded deals. In the full tool these accumulate from the Trade Desk on checkout.</div>
+  <div class="box fold" id="secCoffers">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyCoffers"
+        onclick="toggleSec(event,'coffers')" onkeydown="secKey(event,'coffers')">
+      <span class="cav">▾</span>Coffers</h3>
+    <div class="fold-body" id="bodyCoffers">
+      <div class="row" id="cofferRow" style="gap:10px"></div>
+      <div class="note">Running totals across recorded deals. In the full tool these accumulate from the Trade Desk on checkout.</div>
+    </div>
   </div>
-  <div class="box">
-    <h3>Deal Ledger <span class="sp"><span class="pill" id="ledgerCount"></span></span></h3>
+  <div class="box fold" id="secLedger">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyLedger"
+        onclick="toggleSec(event,'ledger')" onkeydown="secKey(event,'ledger')">
+      <span class="cav">▾</span>Deal Ledger <span class="sp"><span class="pill" id="ledgerCount"></span></span></h3>
+    <div class="fold-body" id="bodyLedger">
     <table><thead><tr>
       <th>When</th><th>Side</th><th>Good</th><th>Where</th><th class="n">Qty</th><th class="n">Unit</th><th class="n">Total</th><th class="n">Profit</th><th>Counterparty</th>
     </tr></thead><tbody id="ledgerBody"></tbody></table>
+    </div>
   </div>
 </div>
 
 <!-- ══ SETTINGS ══ -->
 <div id="tab-settings" class="tab">
   <div class="cols">
-    <div class="box">
-      <h3>Locations <span class="sp"><span class="pill">price level by category</span></span></h3>
-      <p class="hint">Each hold has a price multiplier per category — under 1 means goods there are cheap (good to buy), over 1 means dear (good to sell). This is what drives arbitrage.</p>
-      <div id="locTable" style="overflow-x:auto"></div>
+    <div class="box fold" id="secLocations">
+      <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyLocations"
+          onclick="toggleSec(event,'locations')" onkeydown="secKey(event,'locations')">
+        <span class="cav">▾</span>Locations <span class="cnt" id="cntLocations"></span>
+        <span class="sp"><span class="pill">price level by category</span></span></h3>
+      <div class="fold-body" id="bodyLocations">
+        <p class="hint">Each hold has a price multiplier per category — under 1 means goods there are cheap (good to buy), over 1 means dear (good to sell). This is what drives arbitrage.</p>
+        <div id="locTable" style="overflow-x:auto"></div>
+      </div>
     </div>
-    <div class="box">
-      <h3>Customers &amp; reputation</h3>
+    <div class="box fold" id="secCustomers">
+      <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyCustomers"
+          onclick="toggleSec(event,'customers')" onkeydown="secKey(event,'customers')">
+        <span class="cav">▾</span>Customers &amp; reputation <span class="cnt" id="cntCustomers"></span></h3>
+      <div class="fold-body" id="bodyCustomers">
       <p class="hint"><strong>Rate</strong> multiplies your list price for that customer. <strong>Rep</strong> sets their haggle band — how far the price can move before it's a hard sell.</p>
       <table><thead><tr><th>Name</th><th class="n">Rate ×</th><th>Reputation</th></tr></thead><tbody id="custBody"></tbody></table>
       <div class="knobs" style="margin-top:10px">
         <div class="k"><label>Currency</label><input id="currency" class="w60" value="g" onchange="settings.cur=this.value;render()"></div>
         <div class="k"><label>Rounding</label><label class="row" style="gap:6px"><input type="checkbox" id="roundOn" checked onchange="settings.round=this.checked;render()" style="width:auto"> whole numbers</label></div>
       </div>
+      </div>
     </div>
   </div>
-  <div class="box">
-    <h3>Import items <span class="sp"><span class="pill">add craftable goods in bulk</span></span></h3>
+  <div class="box fold" id="secImport">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyImport"
+        onclick="toggleSec(event,'import')" onkeydown="secKey(event,'import')">
+      <span class="cav">▾</span>Import items <span class="sp"><span class="pill">add craftable goods in bulk</span></span></h3>
+    <div class="fold-body" id="bodyImport">
     <p class="hint">Add sets of items to your goods list. Existing goods and prices stay untouched; imported goods start at price 0 for you to set in the Market tab.</p>
     <div class="imp-bar">
       <div class="imp-lab">Material tier &mdash; weapons &amp; armor only; none = all</div>
@@ -296,9 +330,13 @@
       <div class="row" style="gap:14px"><span class="lnk" onclick="impAll(true)">Select all</span><span class="lnk" onclick="impAll(false)">Select none</span></div>
       <button class="b" id="impBtn" onclick="impDo()">Import 0 items</button>
     </div>
+    </div>
   </div>
-  <div class="box">
-    <h3>Backup &amp; Restore</h3>
+  <div class="box fold" id="secBackup">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyBackup"
+        onclick="toggleSec(event,'backup')" onkeydown="secKey(event,'backup')">
+      <span class="cav">▾</span>Backup &amp; Restore</h3>
+    <div class="fold-body" id="bodyBackup">
     <div class="row">
       <button class="b" onclick="exportData()">⬇ Export</button>
       <button class="b" onclick="document.getElementById('impF').click()">⬆ Import</button>
@@ -307,6 +345,7 @@
       <span class="pill" id="saveState">saved</span>
     </div>
     <div class="note">Goods, prices, locations, customers and the ledger save in this browser only. Export before switching devices or clearing cache.</div>
+    </div>
   </div>
 </div>
 
@@ -719,9 +758,50 @@ const TAB_RENDER={
   ledger:   ()=>{ renderLedger(); },
   settings: ()=>{ renderSettings(); },
 };
+/* ═════════ Foldable frames ═════════ */
+// Settings stacks a wide location grid, a customer table, a bulk import tree
+// and backup; folding the ones you are not using keeps the page one screen.
+// A folded frame keeps its header - title, count, its own pill - so it stays a
+// bookmark rather than a black hole. State is UI-only under its own storage
+// key, so it never rides along in the book or an export.
+const SEC_KEY = "keizaal_trader_folds";
+const SEC_BOX = {
+  coffers:   { box:"secCoffers" },
+  ledger:    { box:"secLedger" },
+  locations: { box:"secLocations", cnt:() => locations.length },
+  customers: { box:"secCustomers", cnt:() => customers.length },
+  import:    { box:"secImport" },
+  backup:    { box:"secBackup" },
+};
+// Folded by default: the occasional tools that sit below what you actually
+// tune. The ledger and coffers you came to read stay open.
+const SEC_DEFAULT = { coffers:false, ledger:false, locations:false, customers:false,
+                      import:true, backup:true };
+let SEC = (() => {
+  try { return Object.assign({}, SEC_DEFAULT, JSON.parse(localStorage.getItem(SEC_KEY) || "{}")); }
+  catch(e) { return Object.assign({}, SEC_DEFAULT); }
+})();
+function saveSec(){ try { localStorage.setItem(SEC_KEY, JSON.stringify(SEC)); } catch(e){} }
+function applySec(){
+  for (const k in SEC_BOX){
+    const box = document.getElementById(SEC_BOX[k].box); if (!box) continue;
+    box.classList.toggle("folded", !!SEC[k]);
+    const h = box.querySelector("h3"); if (h) h.setAttribute("aria-expanded", SEC[k] ? "false" : "true");
+    const el = document.getElementById("cnt" + k[0].toUpperCase() + k.slice(1));
+    if (el && SEC_BOX[k].cnt) el.textContent = SEC_BOX[k].cnt();
+  }
+}
+// A frame's own header controls must not fold the frame under them.
+function toggleSec(e,k){
+  if (e && e.target.closest("button,input,select,textarea,label,a")) return;
+  SEC[k] = !SEC[k]; saveSec(); applySec();
+}
+function secKey(e,k){ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(null,k); } }
+
 function render(){
   if(CUR_TAB!=="settings") renderSettings();          // keep header + desk custSel fresh everywhere
   (TAB_RENDER[CUR_TAB]||TAB_RENDER.desk)();
+  applySec();
   persistDebounced();
 }
 

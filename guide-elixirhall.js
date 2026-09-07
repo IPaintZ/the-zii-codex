@@ -102,9 +102,12 @@
     { tab:"inventory", resolve:()=> document.querySelector("#invIngBody tr") || firstBox("inventory"),
       title:"Set prices & stock",
       body:"This is your stockroom, and where you set ingredient prices. Every price you type flows into every recipe's cost." },
-    { tab:"catalog",   resolve:()=> document.querySelector("#catalogList details") || firstBox("catalog"),
+    // Catalog groups start folded, so spotlight a visible group heading rather
+    // than a <details> hidden inside one.
+    { tab:"catalog",   resolve:()=> document.querySelector("#catalogList .grp-b:not(.folded) details")
+                                  || document.querySelector("#catalogList .grp") || firstBox("catalog"),
       title:"Look anything up",
-      body:"The Catalog is every recipe grouped by effect, with live costs. Open one to see its ingredients and tier." },
+      body:"The Catalog is every recipe grouped by effect, with live costs. Click a group to open it, or search to jump straight to a recipe." },
     { tab:"sales",     resolve:()=> document.querySelector("#salesBody tr") || firstBox("sales"),
       title:"See your takings",
       body:"Every sale lands in the log with the gold it brought. That's the whole loop — happy brewing!" },

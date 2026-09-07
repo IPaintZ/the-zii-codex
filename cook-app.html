@@ -45,6 +45,19 @@
   .panel-h h2 { margin:0; font-size:13px; color:var(--gold); font-variant:small-caps; letter-spacing:.5px; }
   .panel-h .sp { margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .panel-b { padding:12px 14px; }
+  /* ── Foldable panels ──
+     Reference panels (logs, prepped stock, demand) sit below the ones you
+     actually work in and push them off screen. Folding one leaves its header
+     as a bookmark; the choice is remembered per browser (UI only — it never
+     goes into the book or an export). */
+  .panel.fold > .panel-h { cursor:pointer; user-select:none; }
+  .panel.fold > .panel-h:hover h2 { color:var(--ink); }
+  .panel.fold > .panel-h .cav { color:var(--dim); font-size:9px; width:9px; flex:none; transition:transform .12s; }
+  .panel.fold > .panel-h:hover .cav { color:var(--gold); }
+  .panel.fold.folded > .panel-h .cav { transform:rotate(-90deg); }
+  .panel.fold > .panel-h .cnt { color:var(--dim); font-size:11px; }
+  .panel.fold.folded > .panel-h { border-bottom:none; }
+  .panel.fold.folded > .panel-b { display:none; }
 
   .filters { display:flex; gap:6px; flex-wrap:wrap; padding:0 14px 10px; align-items:center; }
   .chip { background:var(--panel-2); border:1px solid var(--line); color:var(--dim); border-radius:16px; padding:3px 11px; font-size:11.5px; cursor:pointer; }
@@ -152,6 +165,8 @@
   body.demo #view-buyers input, body.demo #view-buyers select, body.demo #view-buyers button,
   body.demo #view-settings input, body.demo #view-settings select, body.demo #view-settings button {
     pointer-events:none; opacity:.6; cursor:not-allowed; }
+  /* Folding only changes what you are looking at, so it stays live in the preview. */
+  body.demo .panel.fold > .panel-h { pointer-events:auto; opacity:1; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -268,8 +283,11 @@
 
 <!-- ══ PANTRY ══ -->
 <div id="view-pantry" class="view">
-  <div class="panel">
-    <div class="panel-h"><h2>Record a Trade</h2><span class="sp"><span class="pill">what you actually paid / received</span></span></div>
+  <div class="panel fold" id="secTrade">
+    <div class="panel-h" role="button" tabindex="0" aria-expanded="true"
+         onclick="toggleSec(event,'trade')" onkeydown="secKey(event,'trade')">
+      <span class="cav">▾</span><h2>Record a Trade</h2>
+      <span class="sp"><span class="pill">what you actually paid / received</span></span></div>
     <div class="panel-b">
       <div class="kv">
         <label style="width:auto">Item</label><select id="trMat" style="min-width:150px" title="Pick an ingredient, or a component (e.g. Sack of Flour) to buy it ready-made instead of prepping it"></select>
@@ -288,8 +306,11 @@
   </div>
 
   <div class="stack">
-    <div class="panel">
-      <div class="panel-h"><h2>Ingredients</h2><span class="sp"><span class="pill" id="invValue"></span></span></div>
+    <div class="panel fold" id="secIngredients">
+      <div class="panel-h" role="button" tabindex="0" aria-expanded="true"
+           onclick="toggleSec(event,'ingredients')" onkeydown="secKey(event,'ingredients')">
+        <span class="cav">▾</span><h2>Ingredients</h2><span class="cnt" id="cntIngredients"></span>
+        <span class="sp"><span class="pill" id="invValue"></span></span></div>
       <div class="panel-b">
         <p class="note" style="margin-top:0"><strong>Calc price</strong> is your fixed cost basis; <span class="dim">→</span> adopts the average you've actually paid. <strong>Par</strong> is your target stock — trade-ins pay the restock rate up to it, the overstock rate beyond (blank = flat rate). <strong>Buy?</strong> lets a buyer trade it back in.</p>
         <div style="overflow-x:auto"><table><thead><tr>
@@ -300,8 +321,11 @@
     </div>
 
     <div>
-      <div class="panel">
-        <div class="panel-h"><h2>Mill &amp; Prep</h2><span class="sp"><span class="pill">flour · butter · cheese</span></span></div>
+      <div class="panel fold" id="secPrep">
+        <div class="panel-h" role="button" tabindex="0" aria-expanded="true"
+             onclick="toggleSec(event,'prep')" onkeydown="secKey(event,'prep')">
+          <span class="cav">▾</span><h2>Mill &amp; Prep</h2>
+          <span class="sp"><span class="pill">flour · butter · cheese</span></span></div>
         <div class="panel-b">
           <div class="kv"><label>Component</label><select id="prepSel" style="flex:1" onchange="updPrep()"></select></div>
           <div class="kv"><label>Batches</label><span class="step"><button onclick="stepField('prepQty',-1)">−</button>
@@ -310,16 +334,21 @@
           <div class="note" id="prepInfo"></div>
         </div>
       </div>
-      <div class="panel">
-        <div class="panel-h"><h2>Prepped Components</h2></div>
+      <div class="panel fold" id="secPrepped">
+        <div class="panel-h" role="button" tabindex="0" aria-expanded="true"
+             onclick="toggleSec(event,'prepped')" onkeydown="secKey(event,'prepped')">
+          <span class="cav">▾</span><h2>Prepped Components</h2><span class="cnt" id="cntPrepped"></span></div>
         <div class="panel-b"><table><thead><tr><th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th><th class="n">Last buy</th><th class="n">Avg buy</th></tr></thead>
           <tbody id="interBody"></tbody></table></div>
       </div>
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-h"><h2>Trade Log</h2><span class="sp"><span class="pill" id="trCount"></span><span class="dim" id="trTotals" style="font-size:11px"></span></span></div>
+  <div class="panel fold" id="secTradeLog">
+    <div class="panel-h" role="button" tabindex="0" aria-expanded="true"
+         onclick="toggleSec(event,'tradeLog')" onkeydown="secKey(event,'tradeLog')">
+      <span class="cav">▾</span><h2>Trade Log</h2>
+      <span class="sp"><span class="pill" id="trCount"></span><span class="dim" id="trTotals" style="font-size:11px"></span></span></div>
     <div class="panel-b">
       <table><thead><tr><th>When</th><th>Ingredient</th><th>Side</th><th class="n">Qty</th><th class="n">Unit</th><th class="n">Total</th><th>Note</th><th></th></tr></thead>
         <tbody id="trBody"></tbody></table>
@@ -364,8 +393,11 @@
         <tbody id="buyersBody"></tbody></table>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-h"><h2>Demand &amp; Prices</h2><span class="sp"><span class="pill">from real sales</span></span></div>
+  <div class="panel fold" id="secDemand">
+    <div class="panel-h" role="button" tabindex="0" aria-expanded="true"
+         onclick="toggleSec(event,'demand')" onkeydown="secKey(event,'demand')">
+      <span class="cav">▾</span><h2>Demand &amp; Prices</h2>
+      <span class="sp"><span class="pill">from real sales</span></span></div>
     <div class="panel-b">
       <p class="note" style="margin-top:0">What actually sells and the average price paid.</p>
       <table><thead><tr><th>Dish</th><th class="n">Sold</th><th class="n">Avg price</th></tr></thead><tbody id="demandBody"></tbody></table>
@@ -409,8 +441,11 @@
       </div>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-h"><h2>Backup &amp; Restore</h2><span class="sp"><span class="pill" id="saveState">saved</span></span></div>
+  <div class="panel fold" id="secBackup">
+    <div class="panel-h" role="button" tabindex="0" aria-expanded="true"
+         onclick="toggleSec(event,'backup')" onkeydown="secKey(event,'backup')">
+      <span class="cav">▾</span><h2>Backup &amp; Restore</h2>
+      <span class="sp"><span class="pill" id="saveState">saved</span></span></div>
     <div class="panel-b">
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="b" onclick="exportData()">⬇ Export</button>
@@ -578,6 +613,50 @@ function buySplit(name, qty, c){
   return { ok:true, restock, over, val, credit: restock*val*effRate(c) + over*val*effOver(c) };
 }
 
+/* ═════════ Foldable panels ═════════ */
+// The Pantry stacks a trade form, the ingredient table, prep, and the log;
+// folding the reference halves keeps the working halves on the first screen.
+// A folded panel keeps its header - title, count, its own pill - so it stays a
+// bookmark rather than a black hole. State is UI-only: its own storage key, so
+// it never rides along in the book or an export, and it is per browser.
+const SEC_KEY = "keizaal_cook_folds";
+const SEC_BOX = {
+  trade:       { box:"secTrade" },
+  ingredients: { box:"secIngredients", cnt:() => data.materials.length },
+  prep:        { box:"secPrep" },
+  prepped:     { box:"secPrepped",     cnt:() => data.intermediates.length },
+  tradeLog:    { box:"secTradeLog" },
+  demand:      { box:"secDemand" },
+  backup:      { box:"secBackup" },
+};
+// Folded by default: the reference panels that sit below what you work in.
+const SEC_DEFAULT = { trade:false, ingredients:false, prep:false,
+                      prepped:true, tradeLog:true, demand:true, backup:true };
+let SEC = (() => {
+  try { return Object.assign({}, SEC_DEFAULT, JSON.parse(localStorage.getItem(SEC_KEY) || "{}")); }
+  catch(e) { return Object.assign({}, SEC_DEFAULT); }
+})();
+function saveSec(){ try { localStorage.setItem(SEC_KEY, JSON.stringify(SEC)); } catch(e){} }
+function applySec(){
+  for (const k in SEC_BOX){
+    const box = document.getElementById(SEC_BOX[k].box); if (!box) continue;
+    box.classList.toggle("folded", !!SEC[k]);
+    const h = box.querySelector(".panel-h"); if (h) h.setAttribute("aria-expanded", SEC[k] ? "false" : "true");
+  }
+}
+// A panel's own header buttons (+ Tier, Reset) must not fold the panel under them.
+function toggleSec(e,k){
+  if (e && e.target.closest("button,input,select,textarea,label,a")) return;
+  SEC[k] = !SEC[k]; saveSec(); applySec();
+}
+function secKey(e,k){ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(null,k); } }
+function renderSecCounts(){
+  for (const k in SEC_BOX){
+    const el = document.getElementById("cnt" + k[0].toUpperCase() + k.slice(1));
+    if (el && SEC_BOX[k].cnt) el.textContent = SEC_BOX[k].cnt();
+  }
+}
+
 /* ═════════ Views ═════════ */
 function view(v){
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
@@ -589,6 +668,7 @@ function render(){
   saveDebounced(); syncCustomers();
   renderFilters(); renderCards(); renderDetail(); renderTray(); renderPresets();
   renderCounter(); renderPantry(); renderSales(); renderBuyers(); renderSettings();
+  renderSecCounts(); applySec();
 }
 function syncCustomers(){
   if(!data.settings.customer) data.settings.customer=data.customers[0].id;

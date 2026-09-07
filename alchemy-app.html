@@ -36,6 +36,25 @@
     display:flex; align-items:center; gap:8px; }
   .box > h3 .sp { margin-left:auto; display:flex; gap:6px; align-items:center; }
   .hint { color:var(--dim); font-size:11.5px; margin:-4px 0 9px; }
+  /* ── Foldable frames and catalog groups ──
+     46 recipes across a dozen effect groups is a long scroll; folding a group
+     (or a whole frame) leaves its header as a bookmark with its count. State
+     is remembered per browser — UI only, never written into the book. */
+  .box.fold > h3 { cursor:pointer; user-select:none; }
+  .box.fold > h3:hover { color:var(--ink); }
+  .box.fold > h3 .cav, .grp .cav { color:var(--dim); font-size:9px; width:9px; flex:none; transition:transform .12s; }
+  .box.fold > h3:hover .cav, .grp:hover .cav { color:var(--gold); }
+  .box.fold.folded > h3 .cav, .grp.folded .cav { transform:rotate(-90deg); }
+  .box.fold > h3 .cnt { color:var(--dim); font-size:11px; font-variant:normal; letter-spacing:0; font-weight:400; }
+  .box.fold.folded { padding-bottom:11px; }
+  .box.fold.folded > h3 { margin-bottom:0; }
+  .box.fold.folded .fold-body { display:none; }
+  /* Catalog effect groups */
+  .grp { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
+         color:var(--gold); font-variant:small-caps; letter-spacing:.5px; font-size:12.5px;
+         margin:14px 0 6px; }
+  .grp .n2 { color:var(--dim); font-size:11px; font-variant:normal; letter-spacing:0; }
+  .grp-b.folded { display:none; }
   .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
   @media(max-width:900px){ .cols { grid-template-columns:1fr; } }
 
@@ -162,6 +181,9 @@
   body.demo #tab-inventory input, body.demo #tab-inventory select, body.demo #tab-inventory button,
   body.demo #tab-settings input, body.demo #tab-settings select, body.demo #tab-settings button {
     pointer-events:none; opacity:.6; cursor:not-allowed; }
+  /* Folding only changes what you are looking at, so it stays live in the preview. */
+  body.demo .box.fold > h3 input, body.demo .box.fold > h3 select {
+    pointer-events:auto; opacity:1; cursor:auto; }
 
 </style>
 </head>
@@ -236,25 +258,35 @@
   <div class="box">
     <h3>Recipe Catalog
       <span class="sp">
+        <button class="b" id="grpAllBtn" onclick="toggleAllGroups()">Open all</button>
         <input id="catSearch" placeholder="Search…" style="width:150px" oninput="renderCatalog()">
         <span class="pill" id="catCount"></span></span></h3>
-    <p class="hint">All 46 Keizaal alchemy recipes, grouped by effect. Tier ladders (Minor → Plentiful, Potion → Draught) shown together. Costs use your ingredient prices.</p>
+    <p class="hint">All 46 Keizaal alchemy recipes, grouped by effect — click a group to open it. Tier ladders (Minor → Plentiful, Potion → Draught) shown together. Costs use your ingredient prices. Searching opens every group that matches.</p>
     <div id="catalogList"></div>
   </div>
 </div>
 
 <!-- ══ REAGENTS (intermediate crafting, like the smithy's smelter) ══ -->
 <div id="tab-reagents" class="tab">
-  <div class="box">
-    <h3>Reagent Crafting <span class="sp"><span class="pill">salts &amp; gems made at the same station</span></span></h3>
-    <p class="hint">A few recipes turn raw materials into reagents that other potions need — Keizaal's version of the smithy's
-      smelter. Note the chain: <strong>Amethyst</strong> (Ruby + Sapphire) feeds <strong>Void Salts</strong>, which several Fortify/Resist potions require.</p>
-    <div id="reagentList"></div>
+  <div class="box fold" id="secReagents">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyReagents"
+        onclick="toggleSec(event,'reagents')" onkeydown="secKey(event,'reagents')">
+      <span class="cav">▾</span>Reagent Crafting <span class="cnt" id="cntReagents"></span>
+      <span class="sp"><span class="pill">salts &amp; gems made at the same station</span></span></h3>
+    <div class="fold-body" id="bodyReagents">
+      <p class="hint">A few recipes turn raw materials into reagents that other potions need — Keizaal's version of the smithy's
+        smelter. Note the chain: <strong>Amethyst</strong> (Ruby + Sapphire) feeds <strong>Void Salts</strong>, which several Fortify/Resist potions require.</p>
+      <div id="reagentList"></div>
+    </div>
   </div>
-  <div class="box">
-    <h3>Where reagents are used</h3>
-    <table><thead><tr><th>Reagent</th><th class="n">Craft cost</th><th>Needed by</th></tr></thead>
-      <tbody id="reagentUse"></tbody></table>
+  <div class="box fold" id="secReagentUse">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyReagentUse"
+        onclick="toggleSec(event,'reagentUse')" onkeydown="secKey(event,'reagentUse')">
+      <span class="cav">▾</span>Where reagents are used</h3>
+    <div class="fold-body" id="bodyReagentUse">
+      <table><thead><tr><th>Reagent</th><th class="n">Craft cost</th><th>Needed by</th></tr></thead>
+        <tbody id="reagentUse"></tbody></table>
+    </div>
   </div>
 </div>
 
@@ -396,6 +428,59 @@ function price(r){ return Math.round(brewCost(r)*settings.markup); }
 function craftableNow(r){ return Math.min(...r.lines.map(([nm,q])=> Math.floor((ingBy[nm]?.stock||0)/q))); }
 function usedByCount(nm){ return RECIPES.filter(r=>r.lines.some(([n])=>n===nm)).length; }
 
+/* ═══════════════ foldable frames & groups ═══════════════ */
+// Two things fold here: whole frames (the Reagents tab's two boxes) and the
+// Catalog's effect groups, which are the real scroll: 46 recipes under a dozen
+// headings. Folded, each keeps its heading and count, so the page reads as an
+// index you open one line of. State is UI-only under its own storage key, so it
+// never rides along in the book or an export.
+const SEC_KEY = "keizaal_alchemy_folds";
+const SEC_BOX = {
+  reagents:   { box:"secReagents",   cnt:() => RECIPES.filter(r => r.kind === "reagent").length },
+  reagentUse: { box:"secReagentUse" },
+};
+const SEC_DEFAULT = { reagents:false, reagentUse:true };
+let SEC = (() => {
+  try { return Object.assign({}, SEC_DEFAULT, JSON.parse(localStorage.getItem(SEC_KEY) || "{}")); }
+  catch(e) { return Object.assign({}, SEC_DEFAULT); }
+})();
+function saveSec(){ try { localStorage.setItem(SEC_KEY, JSON.stringify(SEC)); } catch(e){} }
+function applySec(){
+  for (const k in SEC_BOX){
+    const box = document.getElementById(SEC_BOX[k].box); if (!box) continue;
+    box.classList.toggle("folded", !!SEC[k]);
+    const h = box.querySelector("h3"); if (h) h.setAttribute("aria-expanded", SEC[k] ? "false" : "true");
+    const el = document.getElementById("cnt" + k[0].toUpperCase() + k.slice(1));
+    if (el && SEC_BOX[k].cnt) el.textContent = SEC_BOX[k].cnt();
+  }
+}
+// A frame's own header controls (the catalog search, a button) must not fold it.
+function toggleSec(e,k){
+  if (e && e.target.closest("button,input,select,textarea,label,a")) return;
+  SEC[k] = !SEC[k]; saveSec(); applySec();
+}
+function secKey(e,k){ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(null,k); } }
+
+// Catalog effect groups. Stored as the set of groups you have OPENED, so a new
+// effect category added later starts folded like the rest.
+const GRP_KEY = "keizaal_alchemy_catgroups";
+let GRP_OPEN = (() => {
+  try { return new Set(JSON.parse(localStorage.getItem(GRP_KEY) || "[]")); } catch(e) { return new Set(); }
+})();
+function saveGrp(){ try { localStorage.setItem(GRP_KEY, JSON.stringify([...GRP_OPEN])); } catch(e){} }
+function toggleGroup(cat){
+  if (GRP_OPEN.has(cat)) GRP_OPEN.delete(cat); else GRP_OPEN.add(cat);
+  saveGrp(); renderCatalog();
+}
+// While a search is running every matching group is open regardless — a hidden
+// match is worse than a long page.
+function grpOpen(cat, searching){ return searching || GRP_OPEN.has(cat); }
+function toggleAllGroups(){
+  const cats = [...new Set(RECIPES.map(r => r.cat))];
+  if (cats.every(c => GRP_OPEN.has(c))) GRP_OPEN.clear(); else cats.forEach(c => GRP_OPEN.add(c));
+  saveGrp(); renderCatalog();
+}
+
 /* ═══════════════ tabs ═══════════════ */
 function tab(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -403,7 +488,7 @@ function tab(id){
   document.getElementById('tab-'+id).classList.add('on');
   document.getElementById('t-'+id).classList.add('on');
   if(id==='catalog') renderCatalog();
-  if(id==='reagents') renderReagents();
+  if(id==='reagents') { renderReagents(); applySec(); }
   if(id==='inventory') renderInv();
   if(id==='sales') renderSales();
 }
@@ -534,6 +619,7 @@ function renderQueue(){
 /* ═══════════════ CATALOG ═══════════════ */
 function renderCatalog(){
   const q=(document.getElementById('catSearch').value||'').toLowerCase();
+  const searching = q.length > 0;
   const cats=[...new Set(RECIPES.map(r=>r.cat))].sort((a,b)=>catRank(a)-catRank(b));
   let shown=0;
   const html=cats.map(c=>{
@@ -553,9 +639,17 @@ function renderCatalog(){
           <div class="ing-line" style="border-top:1px solid var(--line);margin-top:4px;padding-top:4px"><span class="dim">Ingredients + labor (${g(settings.labor)})</span><span class="c"></span><span class="c gold">${g(brewCost(r))}</span></div>
         </div></details>`;
     }).join('');
-    return `<h3 style="color:var(--gold);font-variant:small-caps;letter-spacing:.5px;font-size:12.5px;margin:14px 0 6px">${c} <span class="dim" style="font-size:11px">· ${rs.length}</span></h3>${body}`;
+    const open = grpOpen(c, searching);
+    return `<h3 class="grp ${open?'':'folded'}" role="button" tabindex="0"
+        aria-expanded="${open}" onclick="toggleGroup('${c.replace(/'/g,"\\'")}')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGroup('${c.replace(/'/g,"\\'")}')}">
+        <span class="cav">▾</span>${c} <span class="n2">· ${rs.length}</span></h3>
+      <div class="grp-b ${open?'':'folded'}">${body}</div>`;
   }).join('');
   document.getElementById('catCount').textContent=shown+' recipes';
+  const cats2=[...new Set(RECIPES.map(r=>r.cat))];
+  const allBtn=document.getElementById('grpAllBtn');
+  if(allBtn) allBtn.textContent = cats2.every(c=>GRP_OPEN.has(c)) ? 'Fold all' : 'Open all';
   document.getElementById('catalogList').innerHTML=html || '<div class="empty">No recipe matches.</div>';
 }
 

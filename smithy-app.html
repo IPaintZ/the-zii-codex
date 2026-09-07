@@ -33,6 +33,20 @@
               display:flex; align-items:center; gap:8px; }
   .box > h3 .sp { margin-left:auto; display:flex; gap:6px; }
   .hint { color:var(--dim); font-size:11.5px; margin:-4px 0 9px; }
+  /* ── Foldable section frames ──
+     Long stacks (materials, components) push the list you actually want far
+     down the page. Folding a frame leaves its header as a bookmark, keeps the
+     count visible, and the choice is remembered per browser (UI only — it is
+     never written into the book or an export). */
+  .box.fold > h3 { cursor:pointer; user-select:none; }
+  .box.fold > h3:hover { color:var(--ink); }
+  .box.fold > h3 .cav { color:var(--dim); font-size:9px; width:9px; flex:none; transition:transform .12s; }
+  .box.fold > h3:hover .cav { color:var(--gold); }
+  .box.fold.folded > h3 .cav { transform:rotate(-90deg); }
+  .box.fold > h3 .cnt { color:var(--dim); font-size:11px; font-variant:normal; letter-spacing:0; font-weight:400; }
+  .box.fold.folded { padding-bottom:11px; }
+  .box.fold.folded > h3 { margin-bottom:0; }
+  .box.fold.folded .fold-body { display:none; }
   .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
   @media(max-width:860px){ .cols { grid-template-columns:1fr; } }
 
@@ -186,6 +200,10 @@
   body.demo #tab-add input, body.demo #tab-add select, body.demo #tab-add textarea, body.demo #tab-add button,
   body.demo #tab-settings input, body.demo #tab-settings select, body.demo #tab-settings button {
     pointer-events:none; opacity:.6; cursor:not-allowed; }
+  /* Folding and the header filter only change what you're looking at, so they
+     stay live in the preview. */
+  body.demo .box.fold > h3 input, body.demo .box.fold > h3 select {
+    pointer-events:auto; opacity:1; cursor:auto; }
 
   /* ── Access gate & admin panel ── */
   body.locked .top, body.locked main { display:none; }
@@ -407,8 +425,12 @@
 
 <!-- ══ INVENTORY ══ -->
 <div id="tab-inventory" class="tab">
-  <div class="box">
-    <h3>Trade Materials &amp; Components <span class="sp"><span class="pill">fluctuating buy / sell</span></span></h3>
+  <div class="box fold" id="secTrade">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyTrade"
+        onclick="toggleSec(event,'trade')" onkeydown="secKey(event,'trade')">
+      <span class="cav">▾</span>Trade Materials &amp; Components
+      <span class="sp"><span class="pill">fluctuating buy / sell</span></span></h3>
+    <div class="fold-body" id="bodyTrade">
     <p class="hint">Record what you <em>actually</em> paid or received — prices float trade to trade. This moves stock and
       builds price history for analysis; it never changes your fixed calc price. Coal &amp; fuel are bought here
       like any material; pick a <strong>component</strong> (e.g. an ingot) to buy it ready-made instead of smelting it.</p>
@@ -438,10 +460,15 @@
       <button class="b pri" onclick="recordTrade()" style="margin-bottom:1px">Record</button>
       <span id="trTotal" class="dim" style="font-size:12px;margin-bottom:5px"></span>
     </div>
+    </div>
   </div>
 
-  <div class="box">
-    <h3>Materials <span class="sp"><span class="pill" id="invValue"></span></span></h3>
+  <div class="box fold" id="secInvMats">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyInvMats"
+        onclick="toggleSec(event,'invMats')" onkeydown="secKey(event,'invMats')">
+      <span class="cav">▾</span>Materials <span class="cnt" id="cntInvMats"></span>
+      <span class="sp"><span class="pill" id="invValue"></span></span></h3>
+    <div class="fold-body" id="bodyInvMats">
     <p class="hint">Set each material's <strong>price</strong> here — the <span class="dim">→</span>
       button adopts the average you've actually paid. The rest is live trade history for price-making.</p>
     <table><thead><tr>
@@ -449,18 +476,27 @@
       <th class="n">Last buy</th><th class="n">Avg buy</th><th class="n">Last sell</th><th class="n">Avg sell</th>
       <th>Trend</th>
     </tr></thead><tbody id="invBody"></tbody></table>
+    </div>
   </div>
 
-  <div class="box">
-    <h3>Trade Log <span class="sp"><span class="pill" id="trCount"></span><span class="dim" id="trTotals" style="font-size:11px"></span></span></h3>
-    <table><thead><tr>
-      <th>When</th><th>Material</th><th>Side</th><th class="n">Qty</th><th class="n">Unit</th><th class="n">Total</th><th>Note</th><th></th>
-    </tr></thead><tbody id="trBody"></tbody></table>
-    <div id="trEmpty" class="empty">No trades yet — record a buy or sell above.</div>
+  <div class="box fold" id="secTradeLog">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyTradeLog"
+        onclick="toggleSec(event,'tradeLog')" onkeydown="secKey(event,'tradeLog')">
+      <span class="cav">▾</span>Trade Log
+      <span class="sp"><span class="pill" id="trCount"></span><span class="dim" id="trTotals" style="font-size:11px"></span></span></h3>
+    <div class="fold-body" id="bodyTradeLog">
+      <table><thead><tr>
+        <th>When</th><th>Material</th><th>Side</th><th class="n">Qty</th><th class="n">Unit</th><th class="n">Total</th><th>Note</th><th></th>
+      </tr></thead><tbody id="trBody"></tbody></table>
+      <div id="trEmpty" class="empty">No trades yet — record a buy or sell above.</div>
+    </div>
   </div>
 
-  <div class="box">
-    <h3>Smelting <span class="sp"><span class="pill">ore → ingot</span></span></h3>
+  <div class="box fold" id="secSmelt">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodySmelt"
+        onclick="toggleSec(event,'smelt')" onkeydown="secKey(event,'smelt')">
+      <span class="cav">▾</span>Smelting <span class="sp"><span class="pill">ore → ingot</span></span></h3>
+    <div class="fold-body" id="bodySmelt">
     <p class="hint">Log a smelt: pick a component, choose how many batches you ran, and Smelt. This
       <strong>subtracts the ores &amp; fuel</strong> from your materials and <strong>adds the finished
       ingots</strong> to Crafted Components below.</p>
@@ -478,24 +514,33 @@
       <button class="b pri" onclick="doSmelt()" style="margin-bottom:1px" title="Consume the inputs and add the smelted output to inventory">🔥 Smelt</button>
     </div>
     <div id="smInfo" class="note" style="margin-top:8px"></div>
+    </div>
   </div>
 
-  <div class="box">
-    <h3>Smelt Log <span class="sp"><span class="pill" id="smCount"></span></span></h3>
-    <table><thead><tr>
-      <th>When</th><th>Made</th><th class="n">Qty</th><th>Consumed</th><th></th>
-    </tr></thead><tbody id="smBody"></tbody></table>
-    <div id="smEmpty" class="empty">No smelts yet — log one above.</div>
+  <div class="box fold" id="secSmeltLog">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodySmeltLog"
+        onclick="toggleSec(event,'smeltLog')" onkeydown="secKey(event,'smeltLog')">
+      <span class="cav">▾</span>Smelt Log <span class="sp"><span class="pill" id="smCount"></span></span></h3>
+    <div class="fold-body" id="bodySmeltLog">
+      <table><thead><tr>
+        <th>When</th><th>Made</th><th class="n">Qty</th><th>Consumed</th><th></th>
+      </tr></thead><tbody id="smBody"></tbody></table>
+      <div id="smEmpty" class="empty">No smelts yet — log one above.</div>
+    </div>
   </div>
 
-  <div class="box">
-    <h3>Crafted Components</h3>
-    <p class="hint">Ingots and strips you've already smelted and are holding.</p>
-    <table><thead><tr>
-      <th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th>
-      <th class="n">Last buy</th><th class="n">Avg buy</th>
-    </tr></thead><tbody id="invInterBody"></tbody></table>
-    <div class="note" id="invTotal"></div>
+  <div class="box fold" id="secInvInter">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyInvInter"
+        onclick="toggleSec(event,'invInter')" onkeydown="secKey(event,'invInter')">
+      <span class="cav">▾</span>Crafted Components <span class="cnt" id="cntInvInter"></span></h3>
+    <div class="fold-body" id="bodyInvInter">
+      <p class="hint">Ingots and strips you've already smelted and are holding.</p>
+      <table><thead><tr>
+        <th>Component</th><th class="n">Cost/unit</th><th class="n">Stock</th><th class="n">Value</th>
+        <th class="n">Last buy</th><th class="n">Avg buy</th>
+      </tr></thead><tbody id="invInterBody"></tbody></table>
+      <div class="note" id="invTotal"></div>
+    </div>
   </div>
 </div>
 
@@ -624,23 +669,43 @@
 
 <!-- ══ RECIPES ══ -->
 <div id="tab-recipes" class="tab">
-  <div class="box">
-    <h3>Raw Materials <span class="sp"><button class="b" onclick="addMaterial()">+ Material</button></span></h3>
-    <p class="hint">Prices are set in <strong>Inventory → Materials</strong> now — shown here for reference while you edit recipes.</p>
-    <table><thead><tr><th>Name</th><th class="n">Cost / unit</th><th></th></tr></thead>
-      <tbody id="matBody"></tbody></table>
+  <div class="box fold" id="secMats">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyMats"
+        onclick="toggleSec(event,'mats')" onkeydown="secKey(event,'mats')">
+      <span class="cav">▾</span>Raw Materials <span class="cnt" id="cntMats"></span>
+      <span class="sp"><button class="b" onclick="event.stopPropagation();addMaterial()">+ Material</button></span></h3>
+    <div class="fold-body" id="bodyMats">
+      <p class="hint">Prices are set in <strong>Inventory → Materials</strong> now — shown here for reference while you edit recipes.</p>
+      <table><thead><tr><th>Name</th><th class="n">Cost / unit</th><th></th></tr></thead>
+        <tbody id="matBody"></tbody></table>
+    </div>
   </div>
 
-  <div class="box">
-    <h3 class="steel">Intermediates <span class="sp"><button class="b" onclick="addIntermediate()">+ Component</button></span></h3>
-    <p class="hint"><strong>Yield</strong> = units produced per batch (1 leather → 4 strips). Cost/unit = (ingredients + labor) ÷ yield.</p>
-    <div id="interList"></div>
+  <div class="box fold" id="secInter">
+    <h3 class="steel" role="button" tabindex="0" aria-expanded="true" aria-controls="bodyInter"
+        onclick="toggleSec(event,'inter')" onkeydown="secKey(event,'inter')">
+      <span class="cav">▾</span>Intermediates <span class="cnt" id="cntInter"></span>
+      <span class="sp"><button class="b" onclick="event.stopPropagation();addIntermediate()">+ Component</button></span></h3>
+    <div class="fold-body" id="bodyInter">
+      <p class="hint"><strong>Yield</strong> = units produced per batch (1 leather → 4 strips). Cost/unit = (ingredients + labor) ÷ yield.</p>
+      <div id="interList"></div>
+    </div>
   </div>
 
-  <div class="box">
-    <h3>Items <span class="sp"><button class="b" onclick="addRecipe()">+ Item</button></span></h3>
-    <p class="hint">Price = (ingredients + labor) × markup × demand, then rounded.</p>
-    <div id="itemList"></div>
+  <div class="box fold" id="secItems">
+    <h3 role="button" tabindex="0" aria-expanded="true" aria-controls="bodyItems"
+        onclick="toggleSec(event,'items')" onkeydown="secKey(event,'items')">
+      <span class="cav">▾</span>Items <span class="cnt" id="cntItems"></span>
+      <span class="sp">
+        <select id="rcpFam"  style="width:104px" onchange="filterItems()"></select>
+        <select id="rcpSlot" style="width:96px"  onchange="filterItems()"></select>
+        <input id="rcpSearch" placeholder="Search…" style="width:120px" oninput="filterItems()">
+        <button class="b" onclick="event.stopPropagation();addRecipe()">+ Item</button>
+      </span></h3>
+    <div class="fold-body" id="bodyItems">
+      <p class="hint">Price = (ingredients + labor) × markup × demand, then rounded.</p>
+      <div id="itemList"></div>
+    </div>
   </div>
 </div>
 
@@ -2299,9 +2364,38 @@ function renameInter(i,v){ const o = data.intermediates[i].name; data.intermedia
 const addInterLine = i => { data.intermediates[i].lines.push(L(data.materials[0]?.name||"",1)); render(); };
 const delInterLine = (a,b) => { data.intermediates[a].lines.splice(b,1); render(); };
 
+// The item list is the longest thing in the app (hundreds of recipes), so it
+// carries the same family / slot / search filter as the Database. ITEM_SHOWN
+// feeds the header count ("37 of 664") via renderSecCounts.
+let ITEM_SHOWN = null;
+function fillRcpFilter(id, label, values){
+  const sel = document.getElementById(id); if (!sel) return;
+  const keep = sel.value;
+  sel.innerHTML = `<option value="">All ${label}</option>` + values.map(v => `<option>${esc(v)}</option>`).join("");
+  if (keep && values.includes(keep)) sel.value = keep;
+}
+// Typing in the header while the frame is folded would show nothing, so a
+// filter change opens it.
+function filterItems(){ openSec("items"); renderItemEditor(); renderSecCounts(); }
+function clearItemFilter(){
+  const q = document.getElementById("rcpSearch"); if (q) q.value = "";
+  ["rcpFam","rcpSlot"].forEach(id => { const s2 = document.getElementById(id); if (s2) s2.value = ""; });
+  filterItems();
+}
 function renderItemEditor(){
   const wasOpen = openIds("itemList");
-  document.getElementById("itemList").innerHTML = data.recipes.map((r,ri) => {
+  fillRcpFilter("rcpFam",  "materials", [...new Set(data.recipes.map(r => r.fam ||"Other"))].sort());
+  fillRcpFilter("rcpSlot", "slots",     [...new Set(data.recipes.map(r => r.slot||"Other"))].sort());
+  const q     = (document.getElementById("rcpSearch")?.value || "").toLowerCase();
+  const fFam  =  document.getElementById("rcpFam")?.value  || "";
+  const fSlot =  document.getElementById("rcpSlot")?.value || "";
+  const shown = data.recipes
+    .map((r,ri) => ({ r, ri }))
+    .filter(x => x.r.name.toLowerCase().includes(q)
+              && (!fFam  || (x.r.fam ||"Other") === fFam)
+              && (!fSlot || (x.r.slot||"Other") === fSlot));
+  ITEM_SHOWN = shown.length;
+  document.getElementById("itemList").innerHTML = shown.map(({r,ri}) => {
     const c = calc(r);
     const ings = (r.lines||[]).map((l,li) => `
       <div class="ing">
@@ -2334,7 +2428,8 @@ function renderItemEditor(){
         </div>
         <div class="note">(${exact(c.mat)} + ${exact(c.labor)} labor) × ${c.markup} × ${c.demand} = <span class="gold">${money(c.price)}</span></div>
       </div></details>`;
-  }).join("");
+  }).join("") || `<div class="empty">No items match this filter.
+      <button class="b" onclick="clearItemFilter()">Clear filter</button></div>`;
   restoreOpen("itemList", wasOpen);
 }
 const addRecipe = () => { data.recipes.push({id:uid(),name:"New Item",value:null,labor:null,demand:1,lines:[]}); render(); };
@@ -2493,6 +2588,60 @@ function restoreBackup(){
   catch(e){ alert("Backup could not be read."); }
 }
 
+/* ═════════ Foldable frames ═════════ */
+// Recipes and Inventory each stack several long lists; folding the ones you are
+// not working in keeps the one you are near the top of the page instead of a
+// screen of scrolling. A folded frame keeps its header — title, count and its
+// own action buttons — so it stays a bookmark rather than a black hole.
+// State is UI-only: its own storage key, so it never rides along in the book or
+// an export, and it is per browser.
+const SEC_KEY = "keizaal_smithy_folds";
+// cnt() fills the header's count chip. Frames whose header already carries a
+// count pill of its own (Trade Log, Smelt Log) leave it out.
+const SEC_BOX = {
+  mats:     { box:"secMats",     cnt:() => data.materials.length },
+  inter:    { box:"secInter",    cnt:() => data.intermediates.length },
+  items:    { box:"secItems",    cnt:() => ITEM_SHOWN === null || ITEM_SHOWN === data.recipes.length
+                                            ? data.recipes.length
+                                            : ITEM_SHOWN + " of " + data.recipes.length },
+  trade:    { box:"secTrade" },
+  invMats:  { box:"secInvMats",  cnt:() => data.materials.length },
+  tradeLog: { box:"secTradeLog" },
+  smelt:    { box:"secSmelt" },
+  smeltLog: { box:"secSmeltLog" },
+  invInter: { box:"secInvInter", cnt:() => data.intermediates.length },
+};
+// Folded by default: everything except the two frames you land on to work —
+// the Inventory trade form and the Materials price table.
+const SEC_DEFAULT = { mats:true, inter:true, items:true,
+                      trade:false, invMats:false, tradeLog:true, smelt:true, smeltLog:true, invInter:true };
+let SEC = (() => {
+  try { return Object.assign({}, SEC_DEFAULT, JSON.parse(localStorage.getItem(SEC_KEY) || "{}")); }
+  catch(e) { return Object.assign({}, SEC_DEFAULT); }
+})();
+function saveSec(){ try { localStorage.setItem(SEC_KEY, JSON.stringify(SEC)); } catch(e){} }
+function applySec(){
+  for (const k in SEC_BOX){
+    const box = document.getElementById(SEC_BOX[k].box); if (!box) continue;
+    box.classList.toggle("folded", !!SEC[k]);
+    const h = box.querySelector("h3"); if (h) h.setAttribute("aria-expanded", SEC[k] ? "false" : "true");
+  }
+}
+// Header actions (+ Material, the Items search box, a filter dropdown) live in
+// the same clickable header — using one must not fold the frame under it.
+function toggleSec(e,k){
+  if (e && e.target.closest("button,input,select,textarea,label,a")) return;
+  SEC[k] = !SEC[k]; saveSec(); applySec();
+}
+function secKey(e,k){ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSec(null,k); } }
+function openSec(k){ if (SEC[k]) { SEC[k] = false; saveSec(); applySec(); } }
+function renderSecCounts(){
+  for (const k in SEC_BOX){
+    const el = document.getElementById("cnt" + k[0].toUpperCase() + k.slice(1));
+    if (el && SEC_BOX[k].cnt) el.textContent = SEC_BOX[k].cnt();
+  }
+}
+
 /* ═════════ Render ═════════ */
 // Only the visible tab is rebuilt. Hidden panels stay in the DOM but are not
 // re-rendered until their tab is shown (tab() re-renders on switch), so no
@@ -2501,11 +2650,11 @@ function restoreBackup(){
 const TAB_RENDER = {
   craft:     () => { fillAddItem(); fillPresetSel(); fillBuyerSel(); renderCraft(); renderQuote(); renderTill(); },
   database:  () => { renderDatabase(); },
-  inventory: () => { renderInventory(); },
+  inventory: () => { renderInventory(); renderSecCounts(); applySec(); },
   sales:     () => { renderTill(); },
   buyers:    () => { renderBuyers(); },
   add:       () => { fillVariantBase(); renderPack(); },
-  recipes:   () => { renderMatEditor(); renderInterEditor(); renderItemEditor(); },
+  recipes:   () => { renderMatEditor(); renderInterEditor(); renderItemEditor(); renderSecCounts(); applySec(); },
   settings:  () => { renderTiers(); renderCustomers(); syncStackBox(); },
 };
 function render(){
