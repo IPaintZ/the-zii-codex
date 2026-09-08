@@ -57,7 +57,7 @@
     "cdd12e543dbd378e2c622155da961f4d19e7c0ed2b666284dad3c2a7dfe71332": {
       "thru": 4,
       "tools": [
-        "smithy"
+        "tailor"
       ]
     }
   }
