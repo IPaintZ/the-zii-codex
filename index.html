@@ -227,17 +227,18 @@
 <!-- GoatCounter: privacy-friendly, cookieless page analytics. Auto-counts the shell load;
      per-tool virtual pageviews (tool/<name>) are fired from enterApp() below.
 
-     The beacon is loaded from ANALYTICS_HOST — a Cloudflare Worker (analytics/worker.js)
-     that re-serves count.js and forwards hits to the same GoatCounter dashboard. Blocklists
-     name gc.zgo.at and goatcounter.com outright, so coming from our own hostname is what
-     keeps those visitors counted. Set ANALYTICS_HOST to "" to go straight to GoatCounter.
+     ANALYTICS_HOST, when set, is a Cloudflare Worker (analytics/worker.js) that re-serves
+     count.js and forwards hits to the same GoatCounter dashboard. Blocklists name gc.zgo.at
+     and goatcounter.com outright, so coming from our own hostname is what keeps those
+     visitors counted. Empty is the safe default — hits go straight to GoatCounter, exactly
+     as they always have. Fill it in once the Worker is deployed (SETUP.md section 4).
 
      count.js is async, but bootGate() enters a tool synchronously for returning visitors —
      well before the script lands. Hits made that early are queued here and flushed on load
      instead of being dropped on the floor. -->
 <script>
 (function () {
-  var ANALYTICS_HOST = "https://REPLACE-ME.workers.dev";   /* "" → straight to GoatCounter */
+  var ANALYTICS_HOST = "";   /* "" → straight to GoatCounter; else the Worker's URL, no trailing slash */
 
   var src      = ANALYTICS_HOST ? ANALYTICS_HOST + "/count.js" : "https://gc.zgo.at/count.js",
       endpoint = ANALYTICS_HOST ? ANALYTICS_HOST + "/count"
