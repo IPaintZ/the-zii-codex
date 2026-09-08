@@ -87,6 +87,39 @@
   td.n,th.n { text-align:right; } tbody tr:last-child td { border-bottom:none; }
   tbody tr:hover { background:var(--panel-2); }
 
+  /* Read-only recipe table (the dish card is a reference sheet, not a form) */
+  .rt { width:100%; border-collapse:collapse; margin-top:8px; }
+  .rt th { color:var(--dim); font-size:9px; text-transform:uppercase; letter-spacing:.45px; font-weight:600; text-align:left; padding:0 5px 4px; white-space:nowrap; }
+  .rt th.n, .rt td.n { text-align:right; }
+  .rt td { padding:5px; border-top:1px solid var(--line); vertical-align:middle; }
+  .rt tr.lim td { background:rgba(208,106,90,.07); }
+  .rt .ing { font-weight:600; }
+  .rt .sub { display:block; font-size:10px; color:var(--dim); font-weight:400; }
+  .rt .cover { font-size:10.5px; }
+  .rt tfoot td { border-top:1px solid var(--line); color:var(--dim); font-size:11px; padding-top:7px; }
+  .rt tfoot .tot { color:var(--gold); font-weight:700; font-size:13px; }
+  .cbar { height:3px; border-radius:2px; background:var(--panel-3); margin-top:3px; overflow:hidden; }
+  .cbar i { display:block; height:100%; background:var(--good); }
+  .cbar.no i { background:var(--bad); }
+  .cbar.low i { background:var(--ember); }
+  .stocklink { background:none; border:none; border-bottom:1px dotted var(--dim); color:var(--ink); font:inherit;
+               font-weight:700; cursor:pointer; padding:0 1px; }
+  .stocklink:hover { color:var(--gold); border-bottom-color:var(--gold); }
+  .stocklink.bad { color:var(--bad); }
+  .yieldline { font-size:12px; }
+  .dishmenu { background:none; border:none; color:var(--dim); cursor:pointer; font-size:14px; line-height:1; padding:0 3px; }
+  .dishmenu:hover { color:var(--gold); }
+  .fixbar { display:flex; align-items:center; gap:8px; padding:7px 10px; margin-bottom:10px; border-radius:7px;
+            background:rgba(200,90,46,.12); border:1px solid rgba(200,90,46,.4); font-size:11.5px; }
+  .fixbar > div { flex:1; }
+  .msg { display:flex; gap:8px; align-items:flex-start; margin-top:8px; padding:8px 10px; border-radius:7px; font-size:11.5px; line-height:1.55; }
+  .msg > div { flex:1; }
+  .msg.bad { background:rgba(208,106,90,.10); border:1px solid rgba(208,106,90,.35); }
+  .msg.warn { background:rgba(200,90,46,.10); border:1px solid rgba(200,90,46,.35); }
+  .msg.info { background:var(--panel-2); border:1px solid var(--line); color:var(--dim); }
+  .msg strong { color:var(--gold); }
+  .msg.info strong { color:var(--ink); }
+  .tobuy { display:inline-flex; align-items:center; gap:2px; color:var(--ember); font-weight:700; }
   .ingline { display:grid; grid-template-columns:1fr 52px 58px 58px 26px 20px; gap:6px; align-items:center; margin-bottom:5px; }
   .ingline .c { text-align:right; color:var(--dim); }
   .ingline .badge { font-size:8.5px; padding:1px 4px; border-radius:7px; text-align:center; }
@@ -130,6 +163,11 @@
 
   .tray-row { display:grid; grid-template-columns:1fr auto 70px 20px; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
   .tray-row .lp { text-align:right; color:var(--gold); font-weight:600; }
+  /* Queue rows carry a margin figure and a sub-line, so they need their own track list.
+     Declared after .tray-row deliberately — same specificity, later wins. */
+  .tray-row.qrow { grid-template-columns:1fr auto auto 62px 20px; }
+  .tray-row.qrow .mgn { font-size:10.5px; white-space:nowrap; }
+  .tray-row.qrow .qsub { grid-column:1 / -1; font-size:10.5px; color:var(--dim); margin-top:2px; }
   .totals { display:flex; gap:20px; margin:10px 0; flex-wrap:wrap; }
   .totals .cell .lab { font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--dim); }
   .totals .cell .val { font-size:18px; font-weight:700; }
@@ -239,6 +277,14 @@
           </div>
         </div>
       </div>
+
+      <div class="panel fold" id="secNeeds">
+        <div class="panel-h" role="button" tabindex="0" aria-expanded="false"
+             onclick="toggleSec(event,'needs')" onkeydown="secKey(event,'needs')">
+          <span class="cav">▾</span><h2>Ingredients for this queue</h2><span class="cnt" id="cntNeeds"></span>
+          <span class="sp"><span class="pill" id="needsPill"></span></span></div>
+        <div class="panel-b" id="needsBody"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -314,7 +360,7 @@
       <div class="panel-b">
         <p class="note" style="margin-top:0"><strong>Calc price</strong> is your fixed cost basis; <span class="dim">→</span> adopts the average you've actually paid. <strong>Par</strong> is your target stock — trade-ins pay the restock rate up to it, the overstock rate beyond (blank = flat rate). <strong>Buy?</strong> lets a buyer trade it back in.</p>
         <div style="overflow-x:auto"><table><thead><tr>
-          <th>Ingredient</th><th class="n">Calc</th><th class="n">Stock</th><th class="n">Par</th><th class="n" title="Can a buyer trade this back in?">Buy?</th><th class="n">Value</th>
+          <th>Ingredient</th><th class="n">Calc</th><th class="n">Stock</th><th class="n" title="Shortfall pushed here from the cook queue">To buy</th><th class="n">Par</th><th class="n" title="Can a buyer trade this back in?">Buy?</th><th class="n">Value</th>
           <th class="n">Last buy</th><th class="n">Avg buy</th><th class="n">Avg sell</th><th></th>
         </tr></thead><tbody id="invBody"></tbody></table></div>
       </div>
@@ -592,6 +638,50 @@ function recipePrice(r, markup){ markup = markup ?? currentCustomer().markup; re
 function rawNeeds(name, qty, acc){ const i=inter(name); if(i){ for(const l of i.lines) rawNeeds(l.ingredient, qty*l.qty/(i.yield||1), acc); return; } acc[name]=(acc[name]||0)+qty; }
 function dishRaw(r, qty, acc){ const b=Math.ceil(qty/recipeYield(r)); for(const l of r.lines) rawNeeds(l.ingredient, l.qty*b, acc); }
 function canMake(r){ let m=Infinity; for(const l of r.lines){ const s=mat(l.ingredient)||inter(l.ingredient); const have=s?(+s.stock||0):0; m=Math.min(m,Math.floor(have/l.qty)); } return (m===Infinity?0:m)*recipeYield(r); }
+// Profit per serving, always priced against the STANDARD buyer. The queue is
+// production, not a sale — you cook stock before you know who walks in, so
+// picking a buyer at the counter must not reshuffle who gets the last cabbage.
+function marginEach(r){ return recipePrice(r, standardCust().markup) - unitCost(r); }
+function ingHave(n){ const o=ingObj(n); return o?(+o.stock||0):0; }
+function unpricedIng(n){ const m=mat(n); if(m) return !(+matCost(m)>0);
+  const i=inter(n); if(i) return i.lines.some(l=>unpricedIng(l.ingredient)); return true; }
+// How many of a prepped component you could make from raw stock right now.
+// Guidance only — nothing is ever prepped automatically.
+function prepPossible(name){ const it=inter(name); if(!it) return 0;
+  let m=Infinity; for(const l of it.lines) m=Math.min(m, Math.floor(ingHave(l.ingredient)/l.qty));
+  return m===Infinity?0:m*(it.yield||1); }
+
+/* ── Queue allocation ────────────────────────────────────────────────
+   One shared pantry spent through the queue in margin order, so two dishes can
+   no longer both claim the last cabbage. A cook spends the recipe's OWN lines:
+   a prepped component is stock in its own right and is never conjured from raw
+   milk behind your back — you prep it on the Pantry tab.
+   ─────────────────────────────────────────────────────────────────── */
+function queuePool(){ const p={}; [...data.materials,...data.intermediates].forEach(o=>p[o.name]=+o.stock||0); return p; }
+function takeBatch(pool, r){
+  for(const l of r.lines) if((pool[l.ingredient]||0) < l.qty) return false;
+  for(const l of r.lines) pool[l.ingredient] -= l.qty;
+  return true;
+}
+function analyseTray(list){
+  list = list || tray;
+  const need={}, short={};
+  list.forEach(t=>{ const r=rec(t.id); if(!r) return;
+    const batches=Math.ceil(t.qty/recipeYield(r));
+    r.lines.forEach(l=>{ need[l.ingredient]=(need[l.ingredient]||0)+l.qty*batches; }); });
+  Object.keys(need).forEach(n=>{ const d=need[n]-ingHave(n); if(d>0) short[n]=d; });
+  const order=[...list].sort((a,b)=>{ const ra=rec(a.id), rb=rec(b.id);
+    if(!ra||!rb) return 0; return marginEach(rb)-marginEach(ra) || ra.name.localeCompare(rb.name); });
+  const ap=queuePool(), rows=[];
+  order.forEach(t=>{ const r=rec(t.id); if(!r) return;
+    const y=recipeYield(r), want=Math.ceil(t.qty/y); let done=0;
+    while(done<want && takeBatch(ap,r)) done++;
+    const blocked=[];
+    if(done<want) for(const l of r.lines) if((ap[l.ingredient]||0) < l.qty) blocked.push(l.ingredient);
+    rows.push({ t, r, want, done, made:done*y, spare:Math.max(0,done*y-t.qty),
+                cookable:Math.min(t.qty,done*y), margin:marginEach(r), blocked }); });
+  return { need, short, rows, after:ap };
+}
 function benches(){ return [...new Set(data.recipes.map(r=>r.bench))].sort(); }
 function sources(){ return [...new Set(data.recipes.map(r=>r.src))].sort(); }
 function bulkPctFor(count, cust){
@@ -621,6 +711,7 @@ function buySplit(name, qty, c){
 // it never rides along in the book or an export, and it is per browser.
 const SEC_KEY = "keizaal_cook_folds";
 const SEC_BOX = {
+  needs:       { box:"secNeeds" },
   trade:       { box:"secTrade" },
   ingredients: { box:"secIngredients", cnt:() => data.materials.length },
   prep:        { box:"secPrep" },
@@ -630,7 +721,7 @@ const SEC_BOX = {
   backup:      { box:"secBackup" },
 };
 // Folded by default: the reference panels that sit below what you work in.
-const SEC_DEFAULT = { trade:false, ingredients:false, prep:false,
+const SEC_DEFAULT = { needs:true, trade:false, ingredients:false, prep:false,
                       prepped:true, tradeLog:true, demand:true, backup:true };
 let SEC = (() => {
   try { return Object.assign({}, SEC_DEFAULT, JSON.parse(localStorage.getItem(SEC_KEY) || "{}")); }
@@ -704,30 +795,102 @@ function renderCards(){
 }
 function select(id){ selId=id; renderCards(); renderDetail(); }
 
-/* ── Detail (editable, no create) ── */
+/* ── Detail ──────────────────────────────────────────────────────────
+   The recipe is catalog data extracted from the mod: name, station, yield and
+   the ingredient lines are FIXED and render as text, not inputs. What stays
+   editable is your own shop policy — labor and demand — plus how many servings
+   you want. Editing the recipe itself is an escape hatch for extraction errors,
+   reached from the ⋯ menu (see fixMode).
+   ─────────────────────────────────────────────────────────────────── */
+let fixMode=false, pantryFocus=null;
+function toggleFix(on){ fixMode = (on===undefined) ? !fixMode : !!on; renderDetail(); }
+function dishMenu(id){
+  if(confirm("Is this recipe wrong?\n\nRecipes are read from the mod, so they shouldn't need changing — but a few were extracted badly.\n\nOK  — unlock editing for this dish\nCancel — close"))
+    toggleFix(true);
+}
 function renderDetail(){
   const r=rec(selId);
   const title=document.getElementById("detailTitle"), tools=document.getElementById("detailTools"), body=document.getElementById("detailBody");
   if(!r){ title.textContent="Select a dish"; tools.innerHTML=""; body.innerHTML=`<div class="empty">Pick a dish from the cookbook to see its ingredients, price it, and add servings to the tray.</div>`; return; }
-  const c=currentCustomer(), y=recipeYield(r);
-  title.innerHTML=`<input value="${r.name.replace(/"/g,'&quot;')}" onchange="rSet('${r.id}','name',this.value)" style="font-size:14px;color:var(--gold);font-weight:700;width:190px">`;
-  tools.innerHTML=`<span class="pill src">${r.src}</span><button class="x" title="Remove this dish (extraction fix)" onclick="delDish('${r.id}')">✕</button>`;
+  const c=currentCustomer(), y=recipeYield(r), cookable=canMake(r), batches=Math.floor(cookable/y);
   const opts=[...data.materials.map(m=>m.name),...data.intermediates.map(i=>i.name)];
-  body.innerHTML=`
-    <div class="kv"><label>Station</label><input value="${r.bench}" onchange="rSet('${r.id}','bench',this.value)" style="width:110px">
-      <label style="width:auto">Yield</label><input class="n" type="number" min="1" value="${y}" onchange="rSet('${r.id}','yield',this.value)" style="width:50px" title="servings produced per cook"></div>
-    <div class="ing-h"><span>Ingredient</span><span>Qty</span><span>Unit</span><span>Line</span><span>Have</span><span></span></div>
-    ${r.lines.map((l,ix)=>{
-      const src=mat(l.ingredient)||inter(l.ingredient); const have=src?(+src.stock||0):0; const ok=have>=l.qty;
-      return `<div class="ingline">
+
+  title.innerHTML = fixMode
+    ? `<input value="${r.name.replace(/"/g,'&quot;')}" onchange="rSet('${r.id}','name',this.value)" style="font-size:14px;color:var(--gold);font-weight:700;width:180px">`
+    : r.name;
+  tools.innerHTML=`<span class="bench-tag">${r.bench}</span><span class="pill src">${r.src}</span>`+
+    `<button class="dishmenu" title="Recipe menu" onclick="dishMenu('${r.id}')">⋯</button>`;
+
+  // Coverage per line, and the honest joint limit. The per-line figure is that
+  // ingredient's own ceiling; `batches` is what the pantry really allows, and
+  // `lims` is what stops the next cook after those.
+  const cov=r.lines.map(l=>{ const have=ingHave(l.ingredient), it=inter(l.ingredient);
+    return { l, have, isInter:!!it, canPrep: it?prepPossible(l.ingredient):0,
+             cooks:Math.floor(have/l.qty) }; });
+  const minCooks=cov.length?Math.min(...cov.map(x=>x.cooks)):0;
+  const maxCooks=cov.length?Math.max(1,...cov.map(x=>x.cooks)):1;
+  const pool=queuePool(); for(let b=0;b<batches;b++) takeBatch(pool,r);
+  const lims=r.lines.filter(l=>(pool[l.ingredient]||0)<l.qty).map(l=>l.ingredient);
+  const missing=r.lines.filter(l=>unpricedIng(l.ingredient)).map(l=>l.ingredient);
+
+  const fixBar = fixMode ? `<div class="fixbar"><span>⚠</span>
+      <div><strong>Fixing a recipe.</strong> This is catalog data from the mod — only change it to correct an extraction error.</div>
+      <button class="b sm" onclick="delDish('${r.id}')">Delete dish</button>
+      <button class="b sm" onclick="toggleFix(false)">Done</button></div>` : "";
+
+  const rows = cov.map((x,ix)=>{
+    const l=x.l, up=unpricedIng(l.ingredient);
+    const fill=Math.min(100,(x.cooks/maxCooks)*100);
+    const barCls=x.cooks===0?"cbar no":(x.cooks<=2?"cbar low":"cbar");
+    if(fixMode) return `<div class="ingline">
         <select onchange="lineSet('${r.id}',${ix},'ingredient',this.value)">${opts.map(o=>`<option ${o===l.ingredient?'selected':''}>${o}</option>`).join("")}</select>
         <input class="n" type="number" min="0" value="${l.qty}" onchange="lineSet('${r.id}',${ix},'qty',this.value)">
         <span class="c">${g(ingUnit(l.ingredient))}</span>
         <span class="c gold">${g(ingUnit(l.ingredient)*l.qty)}</span>
-        <span class="badge ${ok?'b-ok':'b-no'}">${have}</span>
+        <span class="badge ${x.have>=l.qty?'b-ok':'b-no'}">${x.have}</span>
         <button class="x" onclick="delLine('${r.id}',${ix})">✕</button></div>`;
-    }).join("")}
-    <button class="b sm" style="margin-top:4px" onclick="addLine('${r.id}')">+ ingredient</button>
+    return `<tr class="${lims.includes(l.ingredient)?'lim':''}">
+      <td><span class="ing">${l.ingredient}</span>${x.isInter?` <span class="pill em" title="You prep this yourself on the Pantry tab">prep</span>`:''}
+        ${x.isInter?`<span class="sub">${x.have?`${x.have} prepped`:'none prepped'}${x.canPrep?` · could prep ${x.canPrep}`:' · no raw stock to prep from'}</span>`:''}</td>
+      <td class="n">×${l.qty}</td>
+      <td class="n">${up?`<span class="pill warn" title="No price set for this ingredient">set price</span>`:`<span class="dim">${g(ingUnit(l.ingredient))}</span>`}</td>
+      <td class="n">${up?`<span class="dim">—</span>`:`<span class="gold">${g(ingUnit(l.ingredient)*l.qty)}</span>`}</td>
+      <td class="n"><button class="stocklink ${x.have?'':'bad'}" title="Open ${l.ingredient} on the Pantry tab"
+            onclick="jumpToPantry('${l.ingredient.replace(/'/g,"\\'")}')">${x.have}</button>
+        <div class="${barCls}"><i style="width:${fill}%"></i></div></td>
+      <td class="n cover ${x.cooks?'good':'bad'}">${x.cooks}</td></tr>`;
+  }).join("");
+
+  let alerts="";
+  if(batches===0) alerts+=`<div class="msg bad"><span>⛔</span><div><strong>Can't cook this right now</strong> — out of ${lims.join(" and ")}.</div></div>`;
+  else if(batches<=2||batches<minCooks) alerts+=`<div class="msg warn"><span>⚠</span><div>Stock allows <strong>${batches} cook${batches===1?'':'s'}</strong>
+      (${cookable} serving${cookable===1?'':'s'}) — limited by <strong>${lims.join(", ")}</strong>.
+      ${batches<minCooks?`<span class="dim">Fewer than the last column suggests: ${lims[0]} is spent more than once per cook.</span>`:''}</div></div>`;
+  lims.filter(n=>inter(n)).forEach(n=>{ const can=prepPossible(n);
+    alerts+=`<div class="msg ${can?'warn':'bad'}"><span>🔪</span><div><strong>${n} isn't prepped.</strong>
+      ${can?`You have the raw stock for <strong>${can}</strong> — prep it on the Pantry tab, then come back.`
+           :`And you can't prep any: it needs ${inter(n).lines.map(l=>`${l.qty} ${l.ingredient} <span class="${ingHave(l.ingredient)>=l.qty?'dim':'bad'}">(have ${ingHave(l.ingredient)})</span>`).join(", ")}.`}
+      <span class="dim">Nothing is prepped automatically — your raw stock is never spent behind your back.</span></div>
+      ${can?`<button class="b sm" onclick="goPrep('${n.replace(/'/g,"\\'")}')">Prep ${n}</button>`:''}</div>`; });
+  if(missing.length) alerts+=`<div class="msg warn"><span>💰</span><div><strong>Price incomplete.</strong>
+      ${missing.join(", ")} ${missing.length===1?'has':'have'} no price yet, so the total below is understated.</div></div>`;
+
+  body.innerHTML=`
+    ${fixBar}
+    <div class="yieldline">Makes <strong class="gold">${y}</strong> serving${y===1?'':'s'} per cook at the <strong>${r.bench}</strong>.</div>
+    ${fixMode
+      ? `<div class="kv" style="margin-top:6px"><label>Station</label><input value="${r.bench}" onchange="rSet('${r.id}','bench',this.value)" style="width:110px">
+          <label style="width:auto">Yield</label><input class="n" type="number" min="1" value="${y}" onchange="rSet('${r.id}','yield',this.value)" style="width:50px"></div>
+         <div class="ing-h"><span>Ingredient</span><span>Qty</span><span>Unit</span><span>Line</span><span>Have</span><span></span></div>
+         ${rows}
+         <button class="b sm" style="margin-top:4px" onclick="addLine('${r.id}')">+ ingredient</button>`
+      : `<div class="dim" style="font-size:11px">Fixed recipe from the ${r.src} cookbook — quantities are per cook.</div>
+         <table class="rt"><thead><tr><th>Ingredient</th><th class="n">Need</th><th class="n">Unit</th><th class="n">Line</th>
+           <th class="n">Have</th><th class="n" title="How many cooks this one ingredient covers">Covers</th></tr></thead>
+           <tbody>${rows}</tbody>
+           <tfoot><tr><td colspan="3">Ingredients per cook${y>1?` · ${g(recipeMat(r)/y)} per serving`:''}</td>
+             <td class="n tot">${g(recipeMat(r))}</td><td colspan="2"></td></tr></tfoot></table>`}
+    ${alerts}
 
     <div class="priceband">
       <div><div class="formula">( ${g(recipeMat(r))} ingredients + <input type="number" min="0" placeholder="${data.settings.defaultLabor}" value="${r.labor??''}" onchange="rSet('${r.id}','labor',this.value)" style="width:44px" title="labor override"> labor )${y>1?` ÷ ${y} servings`:''}
@@ -738,8 +901,27 @@ function renderDetail(){
 
     <div class="kv" style="margin-top:6px"><label>Servings</label>
       <span class="step"><button onclick="stepField('detQty',-1)">−</button><input id="detQty" type="number" min="1" value="1"><button onclick="stepField('detQty',1)">+</button></span>
+      <button class="b sm" ${cookable?'':'disabled'} onclick="document.getElementById('detQty').value=${cookable}">Max ${cookable}</button>
       <button class="b pri" style="margin-left:auto" onclick="addToTray('${r.id}')">＋ Queue to cook</button></div>
-    <div class="note"><strong>${r.made||0}</strong> already cooked · can cook <strong>${canMake(r)}</strong> more from pantry stock right now.</div>`;
+    <div class="note"><strong class="${r.made?'gold':'dim'}">${r.made||0}</strong> in finished stock ·
+      <strong class="${cookable?'good':'bad'}">${cookable}</strong> cookable from the pantry right now${y>1?` (${batches} cook${batches===1?'':'s'})`:''}.</div>`;
+}
+// Stock is owned by the Pantry tab; the dish card points you at the right row.
+function jumpToPantry(name){
+  view('pantry');
+  SEC.ingredients=false; saveSec(); applySec();
+  pantryFocus=name; renderPantry();
+  requestAnimationFrame(()=>{
+    const el=document.querySelector("tr.focus-row") || document.getElementById("secIngredients");
+    if(el) el.scrollIntoView({behavior:"smooth",block:"center"});
+  });
+  setTimeout(()=>{ pantryFocus=null; const el=document.querySelector("tr.focus-row"); if(el) el.classList.remove("focus-row"); }, 2600);
+}
+function goPrep(name){
+  view('pantry');
+  SEC.prep=false; saveSec(); applySec();
+  const sel=document.getElementById("prepSel"); if(sel){ sel.value=name; updPrep(); }
+  requestAnimationFrame(()=>{ const el=document.getElementById("secPrep"); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); });
 }
 function rSet(id,k,v){ const r=rec(id); r[k]=(k==='name'||k==='bench')?v:(k==='labor'&&v==='')?null:+v; render(); }
 function lineSet(id,ix,k,v){ const r=rec(id); r.lines[ix][k]=(k==='ingredient')?v:+v; render(); }
@@ -758,31 +940,109 @@ function trayClear(){ tray=[]; renderTray(); }
 function renderTray(){
   const rows=document.getElementById("trayRows"), empty=document.getElementById("trayEmpty");
   const totalsEl=document.getElementById("trayTotals"), coBtn=document.getElementById("checkoutBtn"), discEl=document.getElementById("trayDisc");
+  const needsBox=document.getElementById("needsBody"), needsPill=document.getElementById("needsPill"), needsCnt=document.getElementById("cntNeeds");
   const count=tray.reduce((a,t)=>a+t.qty,0);
   document.getElementById("trayCount").textContent = count?count+" servings":"empty";
   discEl.style.display="none";
-  if(!tray.length){ rows.innerHTML=""; empty.style.display="block"; totalsEl.style.display="none"; coBtn.style.display="none"; updateTrayChip(0,0); return; }
+  if(!tray.length){ rows.innerHTML=""; empty.style.display="block"; totalsEl.style.display="none"; coBtn.style.display="none";
+    if(needsBox) needsBox.innerHTML=`<div class="empty">Nothing queued.</div>`;
+    if(needsPill){ needsPill.textContent=""; needsPill.className="pill"; }
+    if(needsCnt) needsCnt.textContent="";
+    updateTrayChip(0,0); return; }
   empty.style.display="none"; totalsEl.style.display="flex"; coBtn.style.display="block";
-  let cost=0, shortAny=false;
-  rows.innerHTML=tray.map(t=>{ const r=rec(t.id); if(!r) return ""; const lc=unitCost(r)*t.qty; cost+=lc;
-    const short = canMake(r) < t.qty; if(short) shortAny=true;
-    return `<div class="tray-row"><div>${r.name}${short?` <span class="pill" style="color:var(--bad);border-color:var(--bad)">short</span>`:''}</div>
-      <span class="step"><button onclick="trayStep('${t.id}',-1)">−</button><input class="n" style="width:38px" value="${t.qty}" readonly><button onclick="trayStep('${t.id}',1)">+</button></span>
-      <div class="lp dim">${g(lc)}</div><button class="x" onclick="trayRemove('${t.id}')">✕</button></div>`; }).join("");
-  coBtn.disabled=false; coBtn.textContent = shortAny ? "🍳 Cook what stock allows" : "🍳 Cook — add to finished stock";
-  totalsEl.innerHTML=[["Servings",count,""],["Ingredient cost",g(cost),"dim"],["Cost / serving",g(count?cost/count:0),"gold"]]
+
+  const A=analyseTray();
+  let cost=0, cookableTotal=0, blockedTotal=0, spares=0;
+
+  // Rows are listed in the order stock is allocated: best margin first.
+  rows.innerHTML=A.rows.map(row=>{ const r=row.r, y=recipeYield(r), lc=unitCost(r)*row.t.qty;
+    cost+=lc; cookableTotal+=row.cookable; blockedTotal+=row.t.qty-row.cookable;
+    if(row.done>0) spares+=row.spare;
+    const badge = row.done>=row.want
+      ? `<span class="pill" style="color:var(--good);border-color:var(--good)">all ${row.t.qty}</span>`
+      : `<span class="pill" style="color:var(--bad);border-color:var(--bad)">${row.cookable} of ${row.t.qty}</span>`;
+    const sub = `${row.want} cook${row.want===1?'':'s'}`
+      + (y>1?` → ${row.want*y} servings${row.t.qty%y?` <span class="em">(${row.want*y-row.t.qty} spare → shelf)</span>`:''}`:'')
+      + (row.blocked.length?` · <span class="bad">short of ${row.blocked.join(", ")}</span>`:'');
+    return `<div class="tray-row qrow"><div>${r.name} ${badge}</div>
+      <span class="dim mgn" title="Profit per serving — decides who gets scarce ingredients first">+${g(row.margin)}/srv</span>
+      <span class="step"><button onclick="trayStep('${row.t.id}',-1)">−</button><input class="n" style="width:38px" value="${row.t.qty}" readonly><button onclick="trayStep('${row.t.id}',1)">+</button></span>
+      <div class="lp dim">${g(lc)}</div><button class="x" onclick="trayRemove('${row.t.id}')">✕</button>
+      <div class="qsub">${sub}</div></div>`; }).join("");
+
+  // What you'd actually DO about a shortfall differs: buy the raw stuff, prep the rest.
+  const shortNames=Object.keys(A.short).sort();
+  const toBuy=shortNames.filter(n=>!inter(n)), toPrep=shortNames.filter(n=>inter(n));
+  let banner="";
+  if(toBuy.length) banner+=`<div class="msg bad"><span>🛒</span>
+    <div><strong>Buy:</strong> ${toBuy.map(n=>`${Math.ceil(A.short[n])} × ${n}`).join(" · ")}</div>
+    <button class="b sm" onclick="shortToPantry()">Add to Pantry to-buy</button></div>`;
+  if(toPrep.length) banner+=`<div class="msg warn"><span>🔪</span>
+    <div><strong>Prep first:</strong> ${toPrep.map(n=>{ const q=Math.ceil(A.short[n]), can=prepPossible(n);
+        return `${q} × ${n} <span class="${can>=q?'dim':'bad'}">(can prep ${can})</span>`; }).join(" · ")}
+      <span class="dim">Made on the Pantry tab — nothing is prepped automatically.</span></div>
+    <button class="b sm" onclick="goPrep('${toPrep[0].replace(/'/g,"\'")}')">Prep</button></div>`;
+  if(spares>0) banner+=`<div class="msg info"><span>🍞</span><div><strong>${spares} spare serving${spares===1?'':'s'}</strong>
+    will go onto the shelf as finished stock — a batch can't be split, so cooking your order produces them anyway.</div></div>`;
+  if(blockedTotal>0 && A.rows.length>1) banner+=`<div class="msg info"><span>ℹ</span><div>Scarce ingredients go to the
+    <strong>most profitable dish first</strong> — ${A.rows[0].r.name} at +${g(A.rows[0].margin)}/serving is fed before the rest.
+    <span class="dim">Margins price against ${standardCust().name} ×${standardCust().markup}, so changing the buyer never reshuffles the queue.</span></div></div>`;
+  discEl.style.display = banner ? "block" : "none";
+  discEl.innerHTML = banner;
+
+  const blockedBy=shortNames.slice(0,2).join(" & ");
+  coBtn.disabled = cookableTotal===0;
+  coBtn.textContent = cookableTotal===0
+    ? `Nothing cookable — short of ${blockedBy||'ingredients'}`
+    : blockedTotal>0
+      ? `🍳 Cook ${cookableTotal} of ${count} servings — ${blockedTotal} blocked by ${blockedBy}`
+      : `🍳 Cook all ${count} servings — add to finished stock`;
+
+  totalsEl.innerHTML=[["Servings",count,""],["Cookable now",cookableTotal,cookableTotal===count?"good":"em"],
+                      ["Ingredient cost",g(cost),"dim"],["Cost / serving",g(count?cost/count:0),"gold"]]
     .map(([l,v,cls])=>`<div class="cell"><div class="lab">${l}</div><div class="val ${cls}">${v}</div></div>`).join("");
+
+  // Reference half — the full breakdown, in the folded panel below the button.
+  if(needsBox){
+    const names=Object.keys(A.need).sort();
+    needsBox.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Ingredient</th><th class="n">Need</th><th class="n">Have</th><th class="n">After</th><th class="n">Status</th></tr></thead>
+      <tbody>${names.map(n=>{ const have=ingHave(n), sh=A.short[n]||0, after=Math.max(0,A.after[n]||0), it=inter(n);
+        const st = sh>0 ? (it?`<span class="bad">prep ${Math.ceil(sh)} more</span>`:`<span class="bad">short ${Math.ceil(sh)}</span>`)
+                 : after===0 ? `<span class="em">exactly enough</span>` : `<span class="good">ok</span>`;
+        return `<tr><td>${n}${it?` <span class="pill em">prep</span>`:''}</td>
+          <td class="n">${A.need[n]}</td><td class="n">${have}</td>
+          <td class="n">${sh>0?'<span class="dim">—</span>':after}</td><td class="n">${st}</td></tr>`; }).join("")}</tbody></table></div>`;
+    if(needsCnt) needsCnt.textContent=names.length+" ingredients";
+    if(needsPill){ needsPill.textContent = shortNames.length? shortNames.length+" short" : "all covered";
+      needsPill.className = "pill"; needsPill.style.color = shortNames.length?"var(--bad)":"var(--good)";
+      needsPill.style.borderColor = shortNames.length?"var(--bad)":"var(--good)"; }
+  }
   updateTrayChip(count,cost);
+}
+// Shortfalls belong beside your stock numbers, so shopping and stock-taking are one screen.
+function shortToPantry(){
+  const A=analyseTray();
+  Object.keys(A.short).forEach(n=>{ if(inter(n)) return; const o=ingObj(n); if(o) o.toBuy=Math.ceil(A.short[n]); });
+  render(); view('pantry');
+  SEC.ingredients=false; saveSec(); applySec();
+  requestAnimationFrame(()=>{ const el=document.getElementById("secIngredients"); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); });
 }
 function updateTrayChip(count,cost){ document.getElementById("trayChip").innerHTML=`Queue <b>${count}</b> · ${g(cost||0)}`; }
 // Cook the queue: spend raw ingredients (capped at what's in stock) and add servings to finished stock.
 function cook(){
   if(!tray.length) return;
-  tray.forEach(t=>{ const r=rec(t.id); if(!r) return; const n=Math.min(t.qty, canMake(r)); if(n<=0) return;
-    const acc={}; dishRaw(r,n,acc);
-    Object.keys(acc).forEach(name=>{ const o=ingObj(name); if(o) o.stock=Math.max(0,(+o.stock||0)-Math.ceil(acc[name])); });
-    r.made=(+r.made||0)+n; });
-  tray=[]; render();
+  const A=analyseTray();
+  const pool=queuePool();
+  A.rows.forEach(row=>{
+    if(row.done<=0) return;
+    for(let b=0;b<row.done;b++) takeBatch(pool,row.r);
+    // A batch can't be split, so the whole yield is produced — spares included.
+    row.r.made=(+row.r.made||0)+row.made;
+    row.t.qty=Math.max(0,row.t.qty-row.cookable);
+  });
+  [...data.materials,...data.intermediates].forEach(o=>{ o.stock=Math.max(0,pool[o.name]||0); });
+  tray=tray.filter(t=>t.qty>0);   // anything blocked stays queued
+  render();
 }
 
 /* ── Presets ── */
@@ -893,6 +1153,7 @@ function recordTrade(){
   data.trades.unshift({ id:uid(), ts:Date.now(), mat:name, side:tradeSide, qty:q, unit:u, note:document.getElementById("trNote").value||"" });
   document.getElementById("trNote").value=""; render();
 }
+function clearBuy(id){ const m=data.materials.find(x=>x.id===id); if(m){ delete m.toBuy; render(); } }
 function adoptAvg(id){ const m=data.materials.find(x=>x.id===id); const s=tradeStats(m.name); if(s.avgBuy!=null){ m.price=Math.round(s.avgBuy*100)/100; render(); } }
 function updPrep(){ const it=inter(document.getElementById("prepSel").value); const info=document.getElementById("prepInfo"); if(!it){ info.textContent=""; return; }
   const b=Math.max(1,+document.getElementById("prepQty").value||1);
@@ -908,9 +1169,10 @@ function renderPantry(){
   let val=0;
   document.getElementById("invBody").innerHTML=data.materials.map(m=>{ const s=tradeStats(m.name); const v=(+m.stock||0)*matCost(m); val+=v;
     const trend = (s.lastBuy!=null && s.avgBuy!=null) ? (s.lastBuy>s.avgBuy?'<span class="trend-up">▲</span>':s.lastBuy<s.avgBuy?'<span class="trend-dn">▼</span>':'') : '';
-    return `<tr><td>${m.name}</td>
+    return `<tr class="${pantryFocus===m.name?'focus-row':''}"><td>${m.name}</td>
       <td class="n"><input class="n" style="width:64px" type="number" step="0.5" value="${m.price}" onchange="matSet('${m.id}','price',this.value)"></td>
       <td class="n"><input class="n" style="width:54px" type="number" value="${m.stock}" onchange="matSet('${m.id}','stock',this.value)"></td>
+      <td class="n">${+m.toBuy>0?`<span class="tobuy" title="Short for the cook queue — click when bought">${m.toBuy}<button class="x" title="Clear" onclick="clearBuy('${m.id}')">✓</button></span>`:'<span class="dim">—</span>'}</td>
       <td class="n"><input class="n" style="width:48px" type="number" min="0" placeholder="—" value="${m.target??''}" title="target/par stock" onchange="matTarget('${m.id}',this.value)"></td>
       <td class="n"><input type="checkbox" ${m.buybackOk!==false?'checked':''} onchange="matBuy('${m.id}',this.checked)"></td>
       <td class="n dim">${g(v)}</td>
@@ -918,7 +1180,7 @@ function renderPantry(){
       <td class="n">${s.avgBuy!=null?`<button class="adopt" title="Adopt avg buy as calc price" onclick="adoptAvg('${m.id}')">→</button>`:''}</td></tr>`; }).join("");
   document.getElementById("invValue").textContent="stock value "+g(val);
   document.getElementById("interBody").innerHTML=data.intermediates.map(i=>{ const v=(+i.stock||0)*interUnit(i); const s=tradeStats(i.name);
-    return `<tr><td>${i.name}</td><td class="n dim">${g(interUnit(i))}</td><td class="n">${+i.stock||0}</td><td class="n">${g(v)}</td><td class="n dim">${g(s.lastBuy)}</td><td class="n dim">${g(s.avgBuy)}</td></tr>`; }).join("");
+    return `<tr class="${pantryFocus===i.name?'focus-row':''}"><td>${i.name}</td><td class="n dim">${g(interUnit(i))}</td><td class="n">${+i.stock||0}</td><td class="n">${g(v)}</td><td class="n dim">${g(s.lastBuy)}</td><td class="n dim">${g(s.avgBuy)}</td></tr>`; }).join("");
   // trade log
   const body=document.getElementById("trBody"), empty=document.getElementById("trEmpty");
   document.getElementById("trCount").textContent=data.trades.length+" trades";
