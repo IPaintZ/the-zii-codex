@@ -8,3 +8,6 @@ keisaal-calculator.html
 # The loose PNG/SVG files and the small linked contact sheet stay in git.
 media/download-catalog.html
 media/contact-sheet-portable.html
+
+# Editor/tool config — local to this machine, not part of the site.
+.claude/
