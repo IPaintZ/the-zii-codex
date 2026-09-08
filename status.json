@@ -42,7 +42,7 @@
       ]
     },
     "436a19ec72cc734e1f3c6742a3d715ff87c308da0fa8d6e4b2c383ed35fc00ac": {
-      "thru": 5,
+      "thru": 4,
       "tools": [
         "tailor",
         "traders"
@@ -55,7 +55,7 @@
       ]
     },
     "cdd12e543dbd378e2c622155da961f4d19e7c0ed2b666284dad3c2a7dfe71332": {
-      "thru": 6,
+      "thru": 4,
       "tools": [
         "smithy"
       ]
