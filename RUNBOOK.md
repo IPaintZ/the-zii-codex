@@ -119,3 +119,98 @@ These aren't on GitHub. The quickest true restore, on the live site with the pan
 
 If you skip step B, access still works fine — you just won't see the plaintext codes or names in
 the table, only the backup file itself.
+
+---
+
+# Building new features without touching the live site
+
+The live site is **only ever what is on the `main` branch** — GitHub Pages is configured to serve
+`main` from the repo root. Anything on another branch is invisible to customers, even after you
+push it to GitHub. That is the whole safety net; nothing else is needed to keep work-in-progress
+off the live site.
+
+## The two folders
+
+```
+H:\Coding\Claude\Keisaal Calculator\   →  branch main     — this IS the live version
+H:\Coding\Claude\Keizaal-testing\      →  branch testing  — the sandbox
+```
+
+Both are the same repository (a git *worktree*), just checked out to two different branches, so
+you can have the live `cook-app.html` and the testing one open side by side without switching
+anything. Edit files in the testing folder and the live folder does not move.
+
+**Rule of thumb:** if a customer could be looking at it right now, it lives in the first folder.
+
+## Everyday loop
+
+1. Work in `H:\Coding\Claude\Keizaal-testing\`.
+2. Commit there as often as you like — `git add -A && git commit -m "…"` — none of it is live.
+3. Push it if you want an off-machine backup: `git push`. Still not live.
+4. When it's finished and tested, run **Send testing to live** below.
+
+## Send testing to live
+
+⚠ **Do the `status.json` step. Do not skip it.** The admin panel writes `status.json` straight to
+`main` on GitHub every time you publish a code. That means `main` is almost always ahead of your
+testing branch on that one file, and a careless merge can drag a stale copy over the live one —
+**silently killing working customer codes.**
+
+Run these from the **testing** folder, in order:
+
+```bash
+git -C "H:/Coding/Claude/Keisaal Calculator" fetch origin
+git -C "H:/Coding/Claude/Keisaal Calculator" merge --ff-only origin/main
+git merge main
+git checkout main -- status.json
+git commit -m "Sync status.json from live" --allow-empty
+```
+
+Line by line: fetch what the admin panel published → move your local `main` up to it → pull those
+live changes into testing → **force `status.json` back to the live copy** → save that.
+
+Then from the **live** folder (`H:\Coding\Claude\Keisaal Calculator`):
+
+```bash
+git merge testing
+git push
+```
+
+Pages rebuilds in about a minute. Hard-refresh the live site (Ctrl+F5) and check the tool you
+changed.
+
+## After it's live
+
+Keep using the same testing branch for the next feature — nothing to recreate. Just pull the live
+state back down first so you're not building on something stale:
+
+```bash
+git -C "H:/Coding/Claude/Keizaal-testing" merge main
+```
+
+## If it goes wrong
+
+**"I merged and a customer's code stopped working."** You dragged an old `status.json` over the
+live one. Fix it from the live folder:
+
+```bash
+git checkout origin/main -- status.json
+git commit -m "Restore live status.json"
+git push
+```
+
+Or, faster and without git at all: open the admin panel and click **Publish to GitHub** — it
+rewrites `status.json` from what's in your browser, which is the real source of truth for codes.
+
+**"I want to throw the testing work away and start over."** From the testing folder:
+
+```bash
+git reset --hard main
+```
+
+Nothing on `main` is touched, and the live site never saw any of it.
+
+**"I lost uncommitted work after `git reset --hard`."** That command deletes unsaved edits with no
+undo. Commit first, always — that is what makes the sandbox safe to experiment in.
+
+**"Which branch am I in?"** `git branch --show-current`, or just look at the folder name.
