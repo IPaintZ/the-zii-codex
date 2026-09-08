@@ -130,10 +130,18 @@ function envChecks(){
       document.visibilityState === "prerender" ? "warn" : "ok",
       document.visibilityState === "prerender" ? "prerender" : "ok");
 
+  /* localStorage is per-origin, so this row only tells you about the site this
+     page is being served from. Served from anywhere but the real site it cannot
+     see the real site's flag, and saying "ok" there would be a lie by omission. */
+  var onSite = /(^|\.)ipaintz\.github\.io$/.test(location.hostname);
   var r = add("env", "Opt-out flag (skipgc)",
       skip ? "This browser was opted out with #toggle-goatcounter"
-           : "Not set — this browser has not opted out",
-      skip ? "bad" : "ok", skip ? "opted out" : "ok");
+           : onSite ? "Not set — this browser has not opted out"
+                    : "Cannot tell from here. This flag is stored per site, and this page is "
+                      + "served from " + location.hostname + ", not the Codex. Check it on the "
+                      + "real site by loading it with #toggle-goatcounter.",
+      skip ? "bad" : onSite ? "ok" : "warn",
+      skip ? "opted out" : onSite ? "ok" : "unknown");
 
   if (skip){
     var b = document.createElement("button");
@@ -141,7 +149,7 @@ function envChecks(){
     b.onclick = function(){ try{ localStorage.removeItem("skipgc"); }catch(e){} location.reload(); };
     r.querySelector(".nm").appendChild(b);
   }
-  return { inFrame: inFrame, local: local, skip: skip };
+  return { inFrame: inFrame, local: local, skip: skip, cannotCheckSkip: !onSite && !skip };
 }
 
 /* ── 3. verdict ───────────────────────────────────────────────────── */
@@ -166,10 +174,14 @@ function verdict(env){
            "console warning, no visible symptom, the visit simply never arrives. Built-in browser " +
            "tracker blocking (Opera, Vivaldi, Brave, Firefox strict mode) usually behaves this " +
            "way. The Worker fixes it, since the hit then goes to your own hostname.";
-  } else if (env.skip){
-    head = "This browser is opted out";
-    body = "Someone loaded the site with #toggle-goatcounter here, which sets a permanent " +
-           "skipgc flag in this browser. Nothing is blocked — clear the flag above and reload.";
+  } else if (env.skip || (env.cannotCheckSkip && results.script && results.pixel)){
+    head = env.skip ? "This browser is opted out" : "Reachable — but check the opt-out flag";
+    body = env.skip
+      ? "Someone loaded the site with #toggle-goatcounter here, which sets a permanent skipgc " +
+        "flag in this browser. Nothing is blocked — clear the flag above and reload."
+      : "Nothing is blocking the counter from this device. The one thing this page cannot see " +
+        "from " + location.hostname + " is whether the real site's opt-out flag is set, since " +
+        "that is stored per site. Load the Codex with #toggle-goatcounter to check.";
     colour = "var(--warn)";
   } else if (env.local || env.inFrame){
     head = "Counting is switched off for this context";
