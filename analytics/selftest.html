@@ -159,6 +159,13 @@ function verdict(env){
     body = "The blocklist matches gc.zgo.at but not the dashboard host. The Worker will fix this, " +
            "since it re-serves the script from your own hostname.";
     colour = "var(--warn)";
+  } else if (results.script && !results.pixel){
+    head = "Counter loads, but the hit is blocked";
+    body = "count.js downloads and runs, so nothing looks wrong from the page's side — but the " +
+           "request carrying the pageview never reaches the dashboard. This is the quiet one: no " +
+           "console warning, no visible symptom, the visit simply never arrives. Built-in browser " +
+           "tracker blocking (Opera, Vivaldi, Brave, Firefox strict mode) usually behaves this " +
+           "way. The Worker fixes it, since the hit then goes to your own hostname.";
   } else if (env.skip){
     head = "This browser is opted out";
     body = "Someone loaded the site with #toggle-goatcounter here, which sets a permanent " +
