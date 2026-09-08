@@ -129,14 +129,23 @@ The live site is **only ever what is on the `main` branch** — GitHub Pages is 
 push it to GitHub. That is the whole safety net; nothing else is needed to keep work-in-progress
 off the live site.
 
-## The two folders
+## The three folders
 
 ```
 H:\Coding\Claude\Keisaal Calculator\   →  branch main     — this IS the live version
-H:\Coding\Claude\Keizaal-testing\      →  branch testing  — the sandbox
+H:\Coding\Claude\Keizaal-testing\      →  branch testing  — features being built
+H:\Coding\Claude\Keizaal-lab\          →  branch lab      — mockups & notes, never merges
 ```
 
-Both are the same repository (a git *worktree*), just checked out to two different branches, so
+`lab` is an *orphan* branch: it shares no history with `main`, so git flatly refuses to
+merge it (`fatal: refusing to merge unrelated histories`). It is also **local only and must
+stay that way** — this repo is public, and `lab` holds unreleased designs. A `pre-push` hook
+in `.git/hooks` blocks it from being pushed; `main` and `testing` push normally.
+
+⚠ **`lab` is on this machine and nowhere else.** It is not on GitHub, so a disk failure loses
+it. Include `H:\Coding\Claude\Keizaal-lab\` in whatever you back up.
+
+All three are the same repository (git *worktrees*), just checked out to different branches, so
 you can have the live `cook-app.html` and the testing one open side by side without switching
 anything. Edit files in the testing folder and the live folder does not move.
 
