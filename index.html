@@ -225,9 +225,56 @@
   body.running #appFrame { display:block; border:none; width:100%; height:calc(100vh - 34px); background:var(--bg); }
 </style>
 <!-- GoatCounter: privacy-friendly, cookieless page analytics. Auto-counts the shell load;
-     per-tool virtual pageviews (tool/<name>) are fired from enterApp() below. -->
-<script data-goatcounter="https://ipaintz.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+     per-tool virtual pageviews (tool/<name>) are fired from enterApp() below.
+
+     ANALYTICS_HOST, when set, is a Cloudflare Worker (analytics/worker.js) that re-serves
+     count.js and forwards hits to the same GoatCounter dashboard. Blocklists name gc.zgo.at
+     and goatcounter.com outright, so coming from our own hostname is what keeps those
+     visitors counted. Empty is the safe default — hits go straight to GoatCounter, exactly
+     as they always have. Fill it in once the Worker is deployed (SETUP.md section 4).
+
+     count.js is async, but bootGate() enters a tool synchronously for returning visitors —
+     well before the script lands. Hits made that early are queued here and flushed on load
+     instead of being dropped on the floor. -->
+<script>
+(function () {
+  var ANALYTICS_HOST = "";   /* "" → straight to GoatCounter; else the Worker's URL, no trailing slash */
+
+  var src      = ANALYTICS_HOST ? ANALYTICS_HOST + "/count.js" : "https://gc.zgo.at/count.js",
+      endpoint = ANALYTICS_HOST ? ANALYTICS_HOST + "/count"
+                                : "https://ipaintz.goatcounter.com/count",
+      queue    = [];
+
+  /* count.js reads the endpoint from either of these; set both so neither the
+     proxied nor the direct build can end up pointing at the wrong host. */
+  window.goatcounter = window.goatcounter || {};
+  window.goatcounter.endpoint = endpoint;
+
+  /* The one entry point for counting anything. Safe to call at any time: before
+     count.js has loaded the hit waits in the queue, and if the script never
+     arrives at all it simply never fires. Nothing here can throw into the app. */
+  window.ziiCount = function (hit) {
+    if (window.goatcounter && window.goatcounter.count) {
+      try { window.goatcounter.count(hit); } catch (e) {}
+    } else if (queue.length < 50) {
+      queue.push(hit);
+    }
+  };
+
+  var s = document.createElement("script");
+  s.async = true;
+  s.src = src;
+  s.setAttribute("data-goatcounter", endpoint);
+  s.addEventListener("load", function () {
+    var pending = queue.splice(0, queue.length);
+    if (!(window.goatcounter && window.goatcounter.count)) return;
+    for (var i = 0; i < pending.length; i++) {
+      try { window.goatcounter.count(pending[i]); } catch (e) {}
+    }
+  });
+  document.head.appendChild(s);
+})();
+</script>
 </head>
 <body class="tool-smithy locked">
 
@@ -592,16 +639,16 @@ function enterApp(tool){
 }
 /* Fire a virtual pageview per tool so the GoatCounter dashboard shows per-tool
    usage (tool/smithy, demo/cook, …). This is a label sent to analytics only —
-   it never changes the browser URL. Guarded in case the async script hasn't loaded. */
+   it never changes the browser URL. ziiCount() (defined in <head>) holds the hit
+   if count.js hasn't loaded yet, which is the usual case on a returning visitor's
+   first tool: bootGate() calls enterApp() while the async script is still in flight. */
 function countTool(tool){
   try {
-    if (window.goatcounter && window.goatcounter.count){
-      window.goatcounter.count({
-        path:  (demo ? "demo/" : "tool/") + tool,
-        title: TOOLS[tool].name + (demo ? " (demo)" : ""),
-        event: false
-      });
-    }
+    window.ziiCount({
+      path:  (demo ? "demo/" : "tool/") + tool,
+      title: TOOLS[tool].name + (demo ? " (demo)" : ""),
+      event: false
+    });
   } catch(e){ /* analytics must never break the app */ }
 }
 function showGate(tool, msg){

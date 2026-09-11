@@ -67,6 +67,47 @@ from the same browser.
 2. Click **Publish to GitHub**. **The code does not work until you Publish.**
 3. Close the admin panel, paste the code into the gate, and click **Unlock**. You're in.
 
+---
+
+## 4. Deploy the analytics beacon
+
+Skip this and the site still works — you just lose some of your visitor numbers. Worth
+twenty minutes.
+
+The Codex counts pageviews with **GoatCounter** (cookieless, no personal data). The problem
+is that tracker blocklists name GoatCounter's own hostnames outright — AdGuard's Tracking
+Protection filter, on by default, carries `||gc.zgo.at^` and `||goatcounter.com^`, which
+kills the script *and* the fallback pixel. Those visitors load the site fine and are simply
+never counted.
+
+The fix is to serve the beacon from a hostname of your own. `analytics/worker.js` is a
+~60-line Cloudflare Worker that re-serves GoatCounter's script and forwards hits to the same
+dashboard. Nothing about what is collected changes.
+
+1. Sign up at **https://dash.cloudflare.com** (free — the Workers free tier is 100,000
+   requests/day, far more than this site will ever use). No domain or credit card needed.
+2. **Compute -> Workers & Pages -> Create -> Create Worker.**
+3. Give it a **neutral name** — `zii-codex-edge` is good, `zii-analytics` or `zii-tracker`
+   is not. The name becomes the public hostname, and obvious words are what future filter
+   rules get written against. Click **Deploy** to create the placeholder.
+4. **Edit code**, delete the sample, paste the whole of `analytics/worker.js`, **Deploy**.
+5. Copy the Worker's URL — `https://zii-codex-edge.<your-account>.workers.dev`.
+6. In `index.html`, find `ANALYTICS_HOST` near the top and put that URL in, no trailing
+   slash. Commit and push.
+
+**Check it worked:** open the live site, then browser devtools -> **Network**. You should see
+`count.js` and a `count?p=...` request to your `workers.dev` hostname, both `200`. Your visit
+shows up in the GoatCounter dashboard within a minute or so.
+
+**On accuracy.** Pageview totals through the proxy are exact. *Unique visitor* counts need a
+look after a few days: GoatCounter builds its daily visitor hash from the source IP, and the
+Worker forwards the real one in `X-Forwarded-For`, but hosted GoatCounter decides for itself
+whether to trust that header from an unknown source. If uniques look suspiciously flat next
+to pageviews, that is the cause — the totals are still sound.
+
+**To undo any of this**, set `ANALYTICS_HOST` back to `""`. The site goes straight to
+GoatCounter again, exactly as before, and the Worker can be deleted.
+
 That's setup done. Everything from here on — weekly resets, selling, renewing, revoking,
 backups — is in **RUNBOOK.md**.
 

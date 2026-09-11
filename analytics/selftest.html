@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analytics self-test — The Zii Codex</title>
+<style>
+  :root{ --bg:#16130f; --fg:#ece3d2; --dim:#9a8f7d; --gold:#d9a441;
+         --ok:#4fb39a; --bad:#d9614f; --warn:#d98a4f; --card:#211c16; }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg); padding:20px 16px 60px;
+        font-family:"Segoe UI",system-ui,sans-serif; line-height:1.5;
+        max-width:720px; margin-inline:auto; }
+  h1{ font-size:19px; margin:0 0 4px }
+  .sub{ color:var(--dim); font-size:13px; margin:0 0 22px }
+  .row{ background:var(--card); border-radius:8px; padding:12px 14px; margin-bottom:9px;
+        display:flex; gap:12px; align-items:flex-start; }
+  .row .nm{ flex:1; min-width:0 }
+  .row .nm b{ display:block; font-weight:600; font-size:14px }
+  .row .nm span{ display:block; color:var(--dim); font-size:12px; word-break:break-word }
+  .pill{ flex:none; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+         padding:4px 9px; border-radius:99px; background:#3a332a; color:var(--dim); white-space:nowrap }
+  .pill.ok{ background:rgba(79,179,154,.16); color:var(--ok) }
+  .pill.bad{ background:rgba(217,97,79,.16); color:var(--bad) }
+  .pill.warn{ background:rgba(217,138,79,.16); color:var(--warn) }
+  #verdict{ border-radius:8px; padding:16px; margin:22px 0 10px; font-size:14px;
+            border:1px solid #3a332a; background:var(--card) }
+  #verdict b{ display:block; font-size:16px; margin-bottom:6px }
+  h2{ font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--dim);
+      margin:26px 0 9px; font-weight:600 }
+  button{ background:var(--gold); color:#1c1710; border:0; border-radius:6px; padding:9px 14px;
+          font:inherit; font-weight:600; cursor:pointer }
+  button.ghost{ background:#3a332a; color:var(--fg) }
+  input{ background:#15110d; border:1px solid #3a332a; color:var(--fg); border-radius:6px;
+         padding:9px 11px; font:inherit; width:100%; margin-bottom:9px }
+  .foot{ color:var(--dim); font-size:12px; margin-top:26px }
+  code{ background:#15110d; padding:1px 5px; border-radius:4px; font-size:12px }
+</style>
+</head>
+<body>
+
+<h1>Analytics self-test</h1>
+<p class="sub">Open this page on a device that isn't showing up in GoatCounter. Everything runs
+   locally in this browser — it tells you <em>why</em> that device isn't being counted.</p>
+
+<div id="verdict"><b>Running…</b><span>Give it a couple of seconds.</span></div>
+
+<h2>Can this device reach the counter?</h2>
+<div id="net"></div>
+
+<h2>Would GoatCounter count this page?</h2>
+<div id="env"></div>
+
+<h2>Your proxy Worker (optional)</h2>
+<input id="host" placeholder="https://your-worker.workers.dev — leave blank to skip" autocapitalize="off" autocorrect="off" spellcheck="false">
+<button onclick="testHost()">Test it</button>
+<div id="proxy" style="margin-top:9px"></div>
+
+<p class="foot">
+  A <b>BLOCKED</b> on the first two rows means an ad/tracker blocker or a filtering DNS resolver
+  on this device is dropping the request — the page itself is fine. That is invisible in normal
+  browsing, which is why these visits never appeared.
+  <br><br>
+  If everything passes, this device just sent a real hit to the path
+  <code>/_selftest</code> — look for it in your GoatCounter dashboard to confirm end to end.
+</p>
+
+<script>
+/* ── tiny render helper ───────────────────────────────────────────── */
+function add(where, name, detail, state, label){
+  var d = document.createElement("div");
+  d.className = "row";
+  d.innerHTML = '<div class="nm"><b></b><span></span></div><div class="pill"></div>';
+  d.querySelector("b").textContent = name;
+  d.querySelector("span").textContent = detail;
+  var p = d.querySelector(".pill");
+  p.textContent = label; if (state) p.className = "pill " + state;
+  document.getElementById(where).appendChild(d);
+  return d;
+}
+
+/* ── 1. reachability ──────────────────────────────────────────────
+   Load the real counter script and the pixel endpoint. A blocker makes
+   both fail (or hang), which is exactly what we want to detect. */
+var results = { script:null, pixel:null };
+
+function probeScript(url, timeout){
+  return new Promise(function(resolve){
+    var done = false, s = document.createElement("script");
+    var finish = function(v){ if (!done){ done = true; resolve(v); } };
+    s.onload  = function(){ finish(true) };
+    s.onerror = function(){ finish(false) };
+    setTimeout(function(){ finish(false) }, timeout);
+    s.src = url;
+    document.head.appendChild(s);
+  });
+}
+
+function probeImage(url, timeout){
+  return new Promise(function(resolve){
+    var done = false, i = new Image();
+    var finish = function(v){ if (!done){ done = true; resolve(v); } };
+    i.onload  = function(){ finish(true) };
+    i.onerror = function(){ finish(false) };
+    setTimeout(function(){ finish(false) }, timeout);
+    i.src = url;
+  });
+}
+
+/* ── 2. the same checks count.js makes on itself ──────────────────── */
+function envChecks(){
+  var inFrame;
+  try { inFrame = (window.location !== window.parent.location); }
+  catch (e) { inFrame = true; }              /* cross-origin parent ⇒ we are framed */
+
+  var local = /(localhost$|^127\.|^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\.|^192\.168\.|^0\.0\.0\.0$)/
+              .test(location.hostname);
+
+  var skip = false;
+  try { skip = localStorage.getItem("skipgc") === "t"; } catch (e) {}
+
+  add("env", "Page address", location.protocol + "//" + location.hostname,
+      local || location.protocol === "file:" ? "bad" : "ok",
+      local ? "local" : location.protocol === "file:" ? "file" : "ok");
+
+  add("env", "Top-level window", inFrame ? "In an iframe — count.js skips these" : "Not framed",
+      inFrame ? "bad" : "ok", inFrame ? "framed" : "ok");
+
+  add("env", "Page visibility", document.visibilityState || "unknown",
+      document.visibilityState === "prerender" ? "warn" : "ok",
+      document.visibilityState === "prerender" ? "prerender" : "ok");
+
+  /* localStorage is per-origin, so this row only tells you about the site this
+     page is being served from. Served from anywhere but the real site it cannot
+     see the real site's flag, and saying "ok" there would be a lie by omission. */
+  var onSite = /(^|\.)ipaintz\.github\.io$/.test(location.hostname);
+  var r = add("env", "Opt-out flag (skipgc)",
+      skip ? "This browser was opted out with #toggle-goatcounter"
+           : onSite ? "Not set — this browser has not opted out"
+                    : "Cannot tell from here. This flag is stored per site, and this page is "
+                      + "served from " + location.hostname + ", not the Codex. Check it on the "
+                      + "real site by loading it with #toggle-goatcounter.",
+      skip ? "bad" : onSite ? "ok" : "warn",
+      skip ? "opted out" : onSite ? "ok" : "unknown");
+
+  if (skip){
+    var b = document.createElement("button");
+    b.textContent = "Clear it";
+    b.onclick = function(){ try{ localStorage.removeItem("skipgc"); }catch(e){} location.reload(); };
+    r.querySelector(".nm").appendChild(b);
+  }
+  return { inFrame: inFrame, local: local, skip: skip, cannotCheckSkip: !onSite && !skip };
+}
+
+/* ── 3. verdict ───────────────────────────────────────────────────── */
+function verdict(env){
+  var v = document.getElementById("verdict"), head, body, colour = "var(--bad)";
+
+  if (!results.script && !results.pixel){
+    head = "Blocked on this device";
+    body = "Neither the counter script nor the pixel could be reached, but this page loaded " +
+           "fine — so it is not a network problem. An ad/tracker blocker (extension, phone app, " +
+           "or a filtering DNS resolver like AdGuard DNS or NextDNS) is dropping requests to " +
+           "GoatCounter. This is the case the proxy Worker in SETUP.md § 4 exists to fix.";
+  } else if (!results.script && results.pixel){
+    head = "Script blocked, endpoint reachable";
+    body = "The blocklist matches gc.zgo.at but not the dashboard host. The Worker will fix this, " +
+           "since it re-serves the script from your own hostname.";
+    colour = "var(--warn)";
+  } else if (results.script && !results.pixel){
+    head = "Counter loads, but the hit is blocked";
+    body = "count.js downloads and runs, so nothing looks wrong from the page's side — but the " +
+           "request carrying the pageview never reaches the dashboard. This is the quiet one: no " +
+           "console warning, no visible symptom, the visit simply never arrives. Built-in browser " +
+           "tracker blocking (Opera, Vivaldi, Brave, Firefox strict mode) usually behaves this " +
+           "way. The Worker fixes it, since the hit then goes to your own hostname.";
+  } else if (env.skip || (env.cannotCheckSkip && results.script && results.pixel)){
+    head = env.skip ? "This browser is opted out" : "Reachable — but check the opt-out flag";
+    body = env.skip
+      ? "Someone loaded the site with #toggle-goatcounter here, which sets a permanent skipgc " +
+        "flag in this browser. Nothing is blocked — clear the flag above and reload."
+      : "Nothing is blocking the counter from this device. The one thing this page cannot see " +
+        "from " + location.hostname + " is whether the real site's opt-out flag is set, since " +
+        "that is stored per site. Load the Codex with #toggle-goatcounter to check.";
+    colour = "var(--warn)";
+  } else if (env.local || env.inFrame){
+    head = "Counting is switched off for this context";
+    body = "count.js deliberately ignores local addresses and framed pages. Expected if you are " +
+           "testing a local copy; not what happens on the live site.";
+    colour = "var(--warn)";
+  } else {
+    head = "This device counts fine";
+    body = "The counter is reachable and nothing is filtering it. A hit for /_selftest was just " +
+           "sent — check the GoatCounter dashboard to confirm it arrived. If this device still " +
+           "never shows up in normal use, the cause is elsewhere, not blocking.";
+    colour = "var(--ok)";
+  }
+  v.style.borderColor = colour;
+  v.innerHTML = "<b></b><span></span>";
+  v.querySelector("b").textContent = head;
+  v.querySelector("b").style.color = colour;
+  v.querySelector("span").textContent = body;
+}
+
+/* ── 4. optional: test the proxy Worker ───────────────────────────── */
+async function testHost(){
+  var host = document.getElementById("host").value.trim().replace(/\/+$/, "");
+  var box = document.getElementById("proxy");
+  box.innerHTML = "";
+  if (!host){ add("proxy", "No URL given", "Paste your workers.dev URL above first.", "warn", "skipped"); return; }
+
+  var s = await probeScript(host + "/count.js", 6000);
+  add("proxy", "Worker serves count.js", host + "/count.js",
+      s ? "ok" : "bad", s ? "reachable" : "blocked");
+
+  var p = await probeImage(host + "/count?p=/_selftest-proxy&t=Self-test+via+proxy&rnd=" + Math.random(), 6000);
+  add("proxy", "Worker forwards a hit", host + "/count",
+      p ? "ok" : "bad", p ? "reachable" : "blocked");
+
+  if (s && p) add("proxy", "Verdict", "This device would be counted through the Worker.", "ok", "good");
+  else        add("proxy", "Verdict", "The Worker is unreachable from here — check the URL and that it is deployed.", "bad", "problem");
+}
+
+/* ── run ──────────────────────────────────────────────────────────── */
+(async function(){
+  var env = envChecks();
+
+  var sRow = add("net", "GoatCounter script (gc.zgo.at)", "Loading…", "", "…");
+  var pRow = add("net", "Dashboard endpoint (ipaintz.goatcounter.com)", "Loading…", "", "…");
+
+  results.script = await probeScript("https://gc.zgo.at/count.js", 6000);
+  sRow.querySelector("span").textContent = results.script
+    ? "Loaded normally" : "Did not load — blocked, or the host could not be resolved";
+  sRow.querySelector(".pill").className = "pill " + (results.script ? "ok" : "bad");
+  sRow.querySelector(".pill").textContent = results.script ? "reachable" : "blocked";
+
+  results.pixel = await probeImage(
+    "https://ipaintz.goatcounter.com/count?p=/_selftest&t=Self-test&rnd=" + Math.random(), 6000);
+  pRow.querySelector("span").textContent = results.pixel
+    ? "Reachable — a /_selftest hit was sent" : "Unreachable — blocked, or the host could not be resolved";
+  pRow.querySelector(".pill").className = "pill " + (results.pixel ? "ok" : "bad");
+  pRow.querySelector(".pill").textContent = results.pixel ? "reachable" : "blocked";
+
+  verdict(env);
+})();
+</script>
+</body>
+</html>
