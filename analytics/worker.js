@@ -11,8 +11,9 @@
  * hits still land in the same GoatCounter dashboard, still cookieless.
  *
  * Two routes, nothing else:
- *   GET /count.js  → re-serves GoatCounter's counter script
- *   GET /count     → forwards a hit to the ipaintz.goatcounter.com dashboard
+ *   GET  /count.js  → re-serves GoatCounter's counter script
+ *   GET  /count     → forwards a hit (the no-JS pixel, and the self-test probe)
+ *   POST /count     → forwards a hit (navigator.sendBeacon — the normal path)
  */
 
 const UPSTREAM_SCRIPT = "https://gc.zgo.at/count.js";
@@ -22,10 +23,15 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
 
-    if (request.method !== "GET" && request.method !== "HEAD")
+    /* POST matters: count.js sends hits with navigator.sendBeacon, which always
+       POSTs. Rejecting it drops every real pageview while GET-based checks (curl,
+       the self-test's <img> probe) still look perfectly healthy — and sendBeacon
+       reports success as soon as the request is queued, so count.js never falls
+       back to the pixel and nothing appears in the console. */
+    if (!["GET", "HEAD", "POST"].includes(request.method))
       return new Response("Method not allowed", { status: 405 });
 
-    if (url.pathname === "/count.js") return serveScript();
+    if (url.pathname === "/count.js" && request.method !== "POST") return serveScript();
     if (url.pathname === "/count")    return forwardHit(request, url);
 
     /* Anything else is someone poking at the Worker, not a visitor. */
@@ -46,15 +52,15 @@ async function serveScript() {
   return res;
 }
 
-/* Forward one pageview. The query string is passed through untouched — it is
-   what count.js built (path, title, referrer, screen size), and we have no
-   business rewriting it. */
+/* Forward one pageview, preserving the method. The query string is passed
+   through untouched — it is what count.js built (path, title, referrer, screen
+   size), and we have no business rewriting it. */
 async function forwardHit(request, url) {
   const target = new URL(UPSTREAM_COUNT);
   target.search = url.search;
 
   const headers = new Headers();
-  for (const h of ["user-agent", "referer", "accept-language"]) {
+  for (const h of ["user-agent", "referer", "accept-language", "content-type"]) {
     const v = request.headers.get(h);
     if (v) headers.set(h, v);
   }
@@ -71,13 +77,16 @@ async function forwardHit(request, url) {
     headers.set("x-real-ip", ip);
   }
 
-  const upstream = await fetch(target.toString(), {
-    method: "GET",
-    headers,
-    redirect: "manual"
-  });
+  const init = { method: request.method, headers, redirect: "manual" };
+  if (request.method === "POST") init.body = await request.arrayBuffer();
+
+  const upstream = await fetch(target.toString(), init);
 
   const res = new Response(upstream.body, { status: upstream.status });
+  /* Keep the upstream type: the hit response is a 1x1 GIF, and the self-test
+     loads it as an <img>. */
+  const ct = upstream.headers.get("content-type");
+  if (ct) res.headers.set("content-type", ct);
   res.headers.set("cache-control", "no-store");
   res.headers.set("access-control-allow-origin", "*");
   return res;

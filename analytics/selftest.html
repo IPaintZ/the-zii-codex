@@ -214,11 +214,25 @@ async function testHost(){
       s ? "ok" : "bad", s ? "reachable" : "blocked");
 
   var p = await probeImage(host + "/count?p=/_selftest-proxy&t=Self-test+via+proxy&rnd=" + Math.random(), 6000);
-  add("proxy", "Worker forwards a hit", host + "/count",
+  add("proxy", "Worker forwards a hit (GET)", host + "/count",
       p ? "ok" : "bad", p ? "reachable" : "blocked");
 
-  if (s && p) add("proxy", "Verdict", "This device would be counted through the Worker.", "ok", "good");
-  else        add("proxy", "Verdict", "The Worker is unreachable from here — check the URL and that it is deployed.", "bad", "problem");
+  /* The one that actually matters. count.js sends every real hit with
+     navigator.sendBeacon, which POSTs — a Worker that only answers GET looks
+     perfectly healthy above and still drops every pageview. */
+  var b = false;
+  try {
+    var r = await fetch(host + "/count?p=/_selftest-beacon&t=Self-test+beacon&rnd=" + Math.random(),
+                        { method: "POST", mode: "cors" });
+    b = r.ok;
+  } catch (e) { b = false; }
+  add("proxy", "Worker accepts a real hit (POST)",
+      b ? "This is how count.js sends every pageview" : "Rejected — real pageviews would be silently dropped",
+      b ? "ok" : "bad", b ? "accepted" : "rejected");
+
+  if (s && p && b)  add("proxy", "Verdict", "This device would be counted through the Worker.", "ok", "good");
+  else if (s && !b) add("proxy", "Verdict", "The Worker is reachable but refuses POST, so no real pageview would arrive. Redeploy analytics/worker.js — the current copy handles POST.", "bad", "problem");
+  else              add("proxy", "Verdict", "The Worker is unreachable from here — check the URL and that it is deployed.", "bad", "problem");
 }
 
 /* ── run ──────────────────────────────────────────────────────────── */
