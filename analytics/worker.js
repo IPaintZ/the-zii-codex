@@ -10,7 +10,7 @@
  * keeps those visitors counted. Nothing about what gets collected changes: the
  * hits still land in the same GoatCounter dashboard, still cookieless.
  *
- * Two routes, nothing else:
+ * Two paths, nothing else:
  *   GET  /count.js  → re-serves GoatCounter's counter script
  *   GET  /count     → forwards a hit (the no-JS pixel, and the self-test probe)
  *   POST /count     → forwards a hit (navigator.sendBeacon — the normal path)
